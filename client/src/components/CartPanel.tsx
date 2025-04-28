@@ -55,10 +55,10 @@ export default function CartPanel({ isOpen, onClose }: CartPanelProps) {
     }
   };
 
-  const estimatedDeliveryTime = () => {
+  const estimatedPickupTime = () => {
     const now = new Date();
-    const deliveryTime = new Date(now.getTime() + 35 * 60000); // 35 minutes from now
-    return deliveryTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const pickupTime = new Date(now.getTime() + 20 * 60000); // 20 minutes from now
+    return pickupTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
   return (
@@ -85,16 +85,16 @@ export default function CartPanel({ isOpen, onClose }: CartPanelProps) {
           <div className="flex-1 overflow-y-auto p-5">
             {cart.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-full text-center">
-                <div className="bg-primary/10 p-6 rounded-full mb-6">
+                <div className="bg-primary/10 p-5 rounded-lg mb-6 transform rotate-6 shadow-lg border border-primary/20">
                   <ShoppingBag className="h-16 w-16 text-primary" />
                 </div>
-                <h3 className="text-xl font-heading text-foreground mb-2">YOUR CART IS EMPTY</h3>
-                <p className="text-muted-foreground mb-6 max-w-xs">Add some delicious items to get started on your food journey</p>
+                <h3 className="text-2xl font-heading text-primary mb-3">HUNGRY?</h3>
+                <p className="text-muted-foreground mb-6 max-w-xs">Your cart is waiting to be filled with our delicious menu items</p>
                 <Button 
-                  className="bg-primary hover:bg-primary/90 font-menu"
+                  className="bg-primary hover:bg-primary/90 font-menu px-6"
                   onClick={onClose}
                 >
-                  BROWSE MENU
+                  EXPLORE MENU
                 </Button>
               </div>
             ) : (
@@ -176,14 +176,14 @@ export default function CartPanel({ isOpen, onClose }: CartPanelProps) {
                   ))}
                 </AnimatePresence>
 
-                {/* Delivery information */}
+                {/* Pickup information */}
                 <div className="mt-6 p-4 bg-secondary/10 rounded-xl border border-border">
                   <div className="flex items-center mb-3">
-                    <Truck className="h-5 w-5 text-primary mr-2" />
-                    <h4 className="font-heading text-sm">DELIVERY INFORMATION</h4>
+                    <ShoppingBag className="h-5 w-5 text-primary mr-2" />
+                    <h4 className="font-heading text-sm">PICKUP INFORMATION</h4>
                   </div>
                   <div className="flex items-center justify-between text-sm text-muted-foreground mb-1">
-                    <span>Estimated Time:</span>
+                    <span>Estimated Ready Time:</span>
                     <div className="flex items-center">
                       <Clock className="h-4 w-4 mr-1 text-primary" />
                       <span>{estimatedDeliveryTime()}</span>
@@ -192,8 +192,8 @@ export default function CartPanel({ isOpen, onClose }: CartPanelProps) {
                   <div className="flex items-center justify-between text-sm text-muted-foreground">
                     <span>Payment Method:</span>
                     <div className="flex items-center">
-                      <CreditCard className="h-4 w-4 mr-1 text-primary" />
-                      <span>Credit Card</span>
+                      <Receipt className="h-4 w-4 mr-1 text-primary" />
+                      <span>Pay at Restaurant</span>
                     </div>
                   </div>
                 </div>

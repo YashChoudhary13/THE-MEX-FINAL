@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { motion } from "framer-motion";
+import { motion, useScroll, useTransform } from "framer-motion";
 import { ArrowDownCircle, Sparkles, Star, Award, ChevronDown } from "lucide-react";
 import Header from "@/components/Header";
 import CategorySidebar from "@/components/CategorySidebar";
@@ -16,6 +16,15 @@ export default function Home() {
   const [searchQuery, setSearchQuery] = useState("");
   const [showMenu, setShowMenu] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  const menuScrollRef = useRef<HTMLDivElement>(null);
+  
+  // Set up scroll animation
+  const { scrollYProgress } = useScroll({
+    target: menuScrollRef,
+    offset: ["start end", "end start"]
+  });
+  
+  const menuAnimY = useTransform(scrollYProgress, [0, 0.5], [100, 0]);
 
   // Fetch menu categories
   const { data: categories, isLoading: categoriesLoading } = useQuery<MenuCategory[]>({
@@ -224,22 +233,28 @@ export default function Home() {
         </div>
       </section>
       
-      {/* Menu Section (only shown if showMenu is true) */}
-      <div 
-        ref={menuRef}
-        className={`container mx-auto px-4 py-6 flex flex-col lg:flex-row flex-grow transition-opacity duration-500 ease-in-out ${showMenu ? 'opacity-100' : 'opacity-0 hidden'}`}
-      >
-        <CategorySidebar 
-          categories={categories as MenuCategory[] || []} 
-          isLoading={categoriesLoading}
-          activeCategory={activeCategory}
-          onCategoryChange={handleCategoryChange}
-        />
-        
-        <MenuContent 
-          activeCategory={activeCategory} 
-          searchQuery={searchQuery}
-        />
+      {/* Menu Section with scroll animation */}
+      <div ref={menuScrollRef} className="w-full">
+        <motion.div 
+          ref={menuRef}
+          className={`container mx-auto px-4 py-6 flex flex-col lg:flex-row flex-grow transition-opacity duration-500 ease-in-out ${showMenu ? 'opacity-100' : 'opacity-0 hidden'}`}
+          style={{ 
+            y: menuAnimY,
+            opacity: useTransform(scrollYProgress, [0, 0.2], [0.6, 1])
+          }}
+        >
+          <CategorySidebar 
+            categories={categories as MenuCategory[] || []} 
+            isLoading={categoriesLoading}
+            activeCategory={activeCategory}
+            onCategoryChange={handleCategoryChange}
+          />
+          
+          <MenuContent 
+            activeCategory={activeCategory} 
+            searchQuery={searchQuery}
+          />
+        </motion.div>
       </div>
       
       <CartPanel 

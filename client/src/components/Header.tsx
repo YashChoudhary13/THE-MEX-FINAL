@@ -147,6 +147,13 @@ export default function Header({
             >
               CONTACT
             </Button>
+            <Button 
+              variant="link" 
+              className="font-menu text-foreground hover:text-primary"
+              onClick={() => navigate("/admin")}
+            >
+              ADMIN
+            </Button>
           </div>
         
           {onCartToggle && (

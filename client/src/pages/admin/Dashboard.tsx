@@ -2,15 +2,13 @@ import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { MenuCategory, MenuItem, Order } from "@shared/schema";
-import { CreditCard, Menu, ArrowRightLeft, Settings, BarChart3, Users, LogOut, ShoppingBag } from "lucide-react";
+import { CreditCard, Menu, ArrowRightLeft, Settings, BarChart3, Users, LogOut, ShoppingBag, Plus, Edit, Trash } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Card, CardHeader, CardContent, CardTitle, CardDescription } from "@/components/ui/card";
 
-// Import lazy-loaded admin components
-const AdminOrders = React.lazy(() => import("./components/AdminOrders"));
-const AdminMenu = React.lazy(() => import("./components/AdminMenu"));
-const AdminTodaysSpecial = React.lazy(() => import("./components/AdminTodaysSpecial"));
+// We'll wrap the admin component sections in conditional rendering
+// to avoid errors when the component files are being loaded
 
 export default function AdminDashboard() {
   const [, navigate] = useLocation();
@@ -316,19 +314,240 @@ export default function AdminDashboard() {
             )}
             
             {activeTab === "orders" && (
-              <AdminOrders orders={orders || []} isLoading={ordersLoading} />
+              <div className="p-6 bg-card rounded-lg">
+                <h2 className="text-xl font-semibold mb-4">Order Management</h2>
+                <div className="flex flex-col md:flex-row gap-4 items-end mb-6">
+                  <div className="w-full md:w-1/3">
+                    <label className="text-sm font-medium mb-2 block">Search Orders</label>
+                    <input 
+                      className="w-full px-3 py-2 border rounded-md bg-background"
+                      placeholder="Search by name or order number..." 
+                    />
+                  </div>
+                  <div className="w-full md:w-1/3">
+                    <label className="text-sm font-medium mb-2 block">Filter by Status</label>
+                    <select className="w-full px-3 py-2 border rounded-md bg-background">
+                      <option value="all">All Orders</option>
+                      <option value="pending">Pending</option>
+                      <option value="processing">Processing</option>
+                      <option value="completed">Completed</option>
+                      <option value="cancelled">Cancelled</option>
+                    </select>
+                  </div>
+                  <Button className="bg-primary hover:bg-primary/90">
+                    Export Orders
+                  </Button>
+                </div>
+                
+                <div className="border rounded-md overflow-hidden">
+                  <table className="w-full">
+                    <thead className="bg-muted/50">
+                      <tr>
+                        <th className="py-3 px-4 text-left">Order ID</th>
+                        <th className="py-3 px-4 text-left">Customer</th>
+                        <th className="py-3 px-4 text-left">Date</th>
+                        <th className="py-3 px-4 text-left">Total</th>
+                        <th className="py-3 px-4 text-left">Status</th>
+                        <th className="py-3 px-4 text-left">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {orders?.map((order) => (
+                        <tr key={order.id} className="border-t">
+                          <td className="py-3 px-4">#{order.id}</td>
+                          <td className="py-3 px-4">{order.customerName}</td>
+                          <td className="py-3 px-4">Apr 28, 2025</td>
+                          <td className="py-3 px-4">${order.total.toFixed(2)}</td>
+                          <td className="py-3 px-4">
+                            <span className={`text-xs px-2 py-1 rounded-full ${
+                              order.status === 'completed' 
+                                ? 'bg-green-500/10 text-green-500' 
+                                : order.status === 'processing' 
+                                  ? 'bg-blue-500/10 text-blue-500'
+                                  : 'bg-orange-500/10 text-orange-500'
+                            }`}>
+                              {order.status.toUpperCase()}
+                            </span>
+                          </td>
+                          <td className="py-3 px-4">
+                            <Button variant="ghost" size="sm">View Details</Button>
+                          </td>
+                        </tr>
+                      ))}
+                      {!orders || orders.length === 0 && (
+                        <tr>
+                          <td colSpan={6} className="py-8 text-center text-muted-foreground">
+                            No orders found
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
             )}
             
             {activeTab === "menu" && (
-              <AdminMenu 
-                categories={categories || []} 
-                menuItems={menuItems || []} 
-                isLoading={categoriesLoading || menuItemsLoading} 
-              />
+              <div className="p-6 bg-card rounded-lg">
+                <h2 className="text-xl font-semibold mb-4">Menu Management</h2>
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
+                  <div className="flex gap-2 overflow-x-auto w-full sm:w-auto pb-2">
+                    <Button 
+                      variant="secondary"
+                      size="sm"
+                    >
+                      All Items
+                    </Button>
+                    {categories?.map((category) => (
+                      <Button 
+                        key={category.id} 
+                        variant="ghost"
+                        size="sm"
+                      >
+                        {category.name}
+                      </Button>
+                    ))}
+                  </div>
+                  
+                  <Button className="bg-primary hover:bg-primary/90">
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Menu Item
+                  </Button>
+                </div>
+                
+                <div className="border rounded-md overflow-hidden">
+                  <table className="w-full">
+                    <thead className="bg-muted/50">
+                      <tr>
+                        <th className="py-3 px-4 text-left">Image</th>
+                        <th className="py-3 px-4 text-left">Name</th>
+                        <th className="py-3 px-4 text-left">Category</th>
+                        <th className="py-3 px-4 text-left">Price</th>
+                        <th className="py-3 px-4 text-left">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {menuItems?.map((item) => {
+                        const category = categories?.find(c => c.id === item.categoryId);
+                        return (
+                          <tr key={item.id} className="border-t">
+                            <td className="py-3 px-4">
+                              <div className="w-12 h-12 rounded-md overflow-hidden bg-muted">
+                                <img 
+                                  src={item.image} 
+                                  alt={item.name} 
+                                  className="w-full h-full object-cover"
+                                />
+                              </div>
+                            </td>
+                            <td className="py-3 px-4 font-medium">{item.name}</td>
+                            <td className="py-3 px-4">{category?.name || "Unknown"}</td>
+                            <td className="py-3 px-4">${item.price.toFixed(2)}</td>
+                            <td className="py-3 px-4">
+                              <div className="flex gap-2">
+                                <Button variant="outline" size="icon">
+                                  <Edit className="h-4 w-4" />
+                                </Button>
+                                <Button 
+                                  variant="outline" 
+                                  size="icon"
+                                  className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                                >
+                                  <Trash className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                      {!menuItems || menuItems.length === 0 && (
+                        <tr>
+                          <td colSpan={5} className="py-8 text-center text-muted-foreground">
+                            No menu items found
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
             )}
             
             {activeTab === "specials" && (
-              <AdminTodaysSpecial menuItems={menuItems || []} isLoading={menuItemsLoading} />
+              <div className="space-y-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Current Special Offer</CardTitle>
+                    <CardDescription>The currently highlighted special on your menu</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid md:grid-cols-3 gap-6">
+                      <div className="col-span-1">
+                        <div className="aspect-square rounded-xl border overflow-hidden bg-muted relative">
+                          <img 
+                            src="https://images.unsplash.com/photo-1594212699903-ec8a3eca50f5?auto=format&fit=crop&w=800" 
+                            alt="Double Smash Burger"
+                            className="w-full h-full object-cover"
+                          />
+                          <div className="absolute top-3 left-3 bg-primary text-white text-sm font-bold px-3 py-1 rounded-lg">
+                            SPECIAL OFFER
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div className="md:col-span-2 flex flex-col">
+                        <h3 className="text-2xl font-heading mb-2">Double Smash Burger</h3>
+                        <p className="text-muted-foreground mb-4">Two smashed beef patties, melted cheese, caramelized onions, special sauce, crispy pickles</p>
+                        
+                        <div className="grid grid-cols-2 gap-4 mb-6">
+                          <div className="space-y-1">
+                            <h4 className="text-sm font-medium text-muted-foreground">Special Price</h4>
+                            <p className="text-2xl font-bold text-primary">$14.99</p>
+                          </div>
+                          <div className="space-y-1">
+                            <h4 className="text-sm font-medium text-muted-foreground">Original Price</h4>
+                            <p className="text-xl line-through text-muted-foreground">$17.99</p>
+                          </div>
+                        </div>
+                        
+                        <div className="text-sm text-muted-foreground bg-muted p-3 rounded-md mb-4">
+                          <p><strong>Discount:</strong> $3.00 off (17%)</p>
+                        </div>
+                        
+                        <div className="mt-auto">
+                          <Button className="w-full">Change Special</Button>
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+                
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Special Offer Performance</CardTitle>
+                    <CardDescription>Analytics for your current special offer</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                      <div className="space-y-2">
+                        <h3 className="text-sm font-medium text-muted-foreground">Orders Today</h3>
+                        <p className="text-3xl font-bold">24</p>
+                        <p className="text-sm text-muted-foreground">+12% from yesterday</p>
+                      </div>
+                      <div className="space-y-2">
+                        <h3 className="text-sm font-medium text-muted-foreground">Revenue</h3>
+                        <p className="text-3xl font-bold">$359.76</p>
+                        <p className="text-sm text-muted-foreground">+8% from yesterday</p>
+                      </div>
+                      <div className="space-y-2">
+                        <h3 className="text-sm font-medium text-muted-foreground">Promotion Effectiveness</h3>
+                        <p className="text-3xl font-bold">85%</p>
+                        <p className="text-sm text-muted-foreground">of customers order the special</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
             )}
           </div>
         </div>

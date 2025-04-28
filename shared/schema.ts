@@ -29,6 +29,10 @@ export const menuItems = pgTable("menu_items", {
   label: text("label"), // For tags like "Healthy", "Best Seller", etc.
   rating: doublePrecision("rating").default(5.0),
   reviewCount: integer("review_count").default(0),
+  ingredients: text("ingredients"),
+  calories: text("calories"),
+  allergens: text("allergens"),
+  dietaryInfo: text("dietary_info").array(),
 });
 
 export const insertMenuItemSchema = createInsertSchema(menuItems).pick({
@@ -41,6 +45,10 @@ export const insertMenuItemSchema = createInsertSchema(menuItems).pick({
   label: true,
   rating: true,
   reviewCount: true,
+  ingredients: true,
+  calories: true,
+  allergens: true,
+  dietaryInfo: true,
 });
 
 export type InsertMenuItem = z.infer<typeof insertMenuItemSchema>;

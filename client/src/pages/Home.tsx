@@ -2,9 +2,12 @@ import { useState, useEffect, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { motion, useScroll, useTransform } from "framer-motion";
 import { ArrowDownCircle, Sparkles, Star, Award, ChevronDown } from "lucide-react";
+import { useIsMobile } from "@/hooks/use-mobile";
 import Header from "@/components/Header";
 import CategorySidebar from "@/components/CategorySidebar";
 import MenuContent from "@/components/MenuContent";
+import MobileMenu from "@/components/MobileMenu";
+import MobileMenuContent from "@/components/MobileMenuContent";
 import CartPanel from "@/components/CartPanel";
 import Footer from "@/components/Footer";
 import { MenuCategory } from "@shared/schema";
@@ -17,6 +20,9 @@ export default function Home() {
   const menuRef = useRef<HTMLDivElement>(null);
   const menuScrollRef = useRef<HTMLDivElement>(null);
   const heroSectionRef = useRef<HTMLElement>(null);
+  
+  // Use mobile hook to detect screen size
+  const isMobile = window.innerWidth < 768; // Simple check for server-side rendering
   
   // Set up scroll animation
   const { scrollYProgress } = useScroll();

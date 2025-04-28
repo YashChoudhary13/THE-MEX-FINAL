@@ -234,7 +234,7 @@ export default function Home() {
       </section>
       
       {/* Menu Section with scroll animation */}
-      <div ref={menuScrollRef} className="w-full">
+      <div ref={menuScrollRef} className="w-full relative">
         <motion.div 
           ref={menuRef}
           className={`container mx-auto px-4 py-6 flex flex-col lg:flex-row flex-grow transition-opacity duration-500 ease-in-out ${showMenu ? 'opacity-100' : 'opacity-0 hidden'}`}

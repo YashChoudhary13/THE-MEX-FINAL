@@ -186,7 +186,7 @@ export default function CartPanel({ isOpen, onClose }: CartPanelProps) {
                     <span>Estimated Ready Time:</span>
                     <div className="flex items-center">
                       <Clock className="h-4 w-4 mr-1 text-primary" />
-                      <span>{estimatedDeliveryTime()}</span>
+                      <span>{estimatedPickupTime()}</span>
                     </div>
                   </div>
                   <div className="flex items-center justify-between text-sm text-muted-foreground">
@@ -209,7 +209,7 @@ export default function CartPanel({ isOpen, onClose }: CartPanelProps) {
                 <span className="font-medium text-foreground">${subtotal.toFixed(2)}</span>
               </div>
               <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Delivery Fee</span>
+                <span className="text-muted-foreground">Service Fee</span>
                 <span className="font-medium text-foreground">${deliveryFee.toFixed(2)}</span>
               </div>
               <div className="flex justify-between text-sm">

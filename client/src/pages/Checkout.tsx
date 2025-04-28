@@ -139,11 +139,14 @@ export default function Checkout() {
       <div className="min-h-screen flex flex-col">
         <Header />
         <div className="container mx-auto px-4 py-12 flex-grow flex flex-col items-center justify-center">
-          <div className="text-center">
-            <h1 className="text-3xl font-bold text-secondary mb-4">Your Cart is Empty</h1>
-            <p className="text-gray-600 mb-6">Please add some items to your cart before proceeding to checkout.</p>
-            <Button onClick={() => navigate("/")} className="bg-primary hover:bg-primary/90">
-              Back to Menu
+          <div className="text-center max-w-md p-8 rounded-xl bg-card border border-border">
+            <h1 className="text-3xl font-heading bg-gradient-to-r from-primary to-primary-foreground bg-clip-text text-transparent mb-6">YOUR CART IS EMPTY</h1>
+            <p className="text-muted-foreground mb-8">Please add some items to your cart before proceeding to checkout.</p>
+            <Button 
+              onClick={() => navigate("/")} 
+              className="bg-primary hover:bg-primary/90 font-menu text-lg py-6 px-8"
+            >
+              EXPLORE MENU
             </Button>
           </div>
         </div>
@@ -156,30 +159,30 @@ export default function Checkout() {
     <div className="min-h-screen flex flex-col">
       <Header />
       <div className="container mx-auto px-4 py-6 flex-grow">
-        <div className="max-w-3xl mx-auto bg-white rounded-lg shadow-md overflow-hidden">
-          <div className="border-b p-4 bg-secondary text-white rounded-t-lg">
-            <h1 className="text-xl font-bold">Checkout</h1>
+        <div className="max-w-3xl mx-auto bg-card border border-border rounded-xl shadow-xl overflow-hidden">
+          <div className="border-b p-5 bg-gradient-to-r from-primary/20 to-background">
+            <h1 className="text-2xl font-heading bg-gradient-to-r from-primary to-primary-foreground bg-clip-text text-transparent">CHECKOUT</h1>
           </div>
 
           {/* Step Indicators */}
-          <div className="flex p-6 border-b">
+          <div className="flex p-6 border-b border-border">
             <div className="flex-1 text-center">
-              <div className={`w-8 h-8 ${currentStep === CheckoutStep.Delivery ? 'bg-primary' : 'bg-gray-300'} text-white rounded-full mx-auto flex items-center justify-center`}>1</div>
-              <span className={`text-xs mt-1 block font-medium ${currentStep === CheckoutStep.Delivery ? 'text-primary' : 'text-gray-500'}`}>Delivery</span>
+              <div className={`w-9 h-9 ${currentStep === CheckoutStep.Delivery ? 'bg-primary' : 'bg-secondary/20'} text-foreground rounded-full mx-auto flex items-center justify-center font-heading`}>1</div>
+              <span className={`text-xs mt-2 block font-medium font-menu ${currentStep === CheckoutStep.Delivery ? 'text-primary' : 'text-muted-foreground'}`}>PICKUP</span>
             </div>
             <div className="flex-1 flex items-center">
-              <div className={`h-1 ${currentStep >= CheckoutStep.Payment ? 'bg-primary' : 'bg-gray-300'} flex-1`}></div>
+              <div className={`h-1 ${currentStep >= CheckoutStep.Payment ? 'bg-primary' : 'bg-muted'} flex-1`}></div>
             </div>
             <div className="flex-1 text-center">
-              <div className={`w-8 h-8 ${currentStep === CheckoutStep.Payment ? 'bg-primary' : 'bg-gray-300'} text-white rounded-full mx-auto flex items-center justify-center`}>2</div>
-              <span className={`text-xs mt-1 block font-medium ${currentStep === CheckoutStep.Payment ? 'text-primary' : 'text-gray-500'}`}>Payment</span>
+              <div className={`w-9 h-9 ${currentStep === CheckoutStep.Payment ? 'bg-primary' : 'bg-secondary/20'} text-foreground rounded-full mx-auto flex items-center justify-center font-heading`}>2</div>
+              <span className={`text-xs mt-2 block font-medium font-menu ${currentStep === CheckoutStep.Payment ? 'text-primary' : 'text-muted-foreground'}`}>PAYMENT</span>
             </div>
             <div className="flex-1 flex items-center">
-              <div className={`h-1 ${currentStep >= CheckoutStep.Confirmation ? 'bg-primary' : 'bg-gray-300'} flex-1`}></div>
+              <div className={`h-1 ${currentStep >= CheckoutStep.Confirmation ? 'bg-primary' : 'bg-muted'} flex-1`}></div>
             </div>
             <div className="flex-1 text-center">
-              <div className={`w-8 h-8 ${currentStep === CheckoutStep.Confirmation ? 'bg-primary' : 'bg-gray-300'} text-white rounded-full mx-auto flex items-center justify-center`}>3</div>
-              <span className={`text-xs mt-1 block font-medium ${currentStep === CheckoutStep.Confirmation ? 'text-primary' : 'text-gray-500'}`}>Confirmation</span>
+              <div className={`w-9 h-9 ${currentStep === CheckoutStep.Confirmation ? 'bg-primary' : 'bg-secondary/20'} text-foreground rounded-full mx-auto flex items-center justify-center font-heading`}>3</div>
+              <span className={`text-xs mt-2 block font-medium font-menu ${currentStep === CheckoutStep.Confirmation ? 'text-primary' : 'text-muted-foreground'}`}>CONFIRM</span>
             </div>
           </div>
 

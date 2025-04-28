@@ -85,22 +85,16 @@ export default function CartPanel({ isOpen, onClose }: CartPanelProps) {
           <div className="flex-1 overflow-y-auto p-5">
             {cart.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-full text-center p-4">
-                <motion.div 
-                  className="bg-primary/10 p-6 rounded-xl mb-8 border border-primary/20 shadow-lg"
-                  initial={{ rotate: 0, scale: 0.9 }}
-                  animate={{ rotate: [0, -2, 2, -2, 0], scale: 1 }}
-                  transition={{ duration: 0.5, ease: "easeOut" }}
-                >
-                  <ShoppingBag className="h-20 w-20 text-primary" />
-                </motion.div>
-                <h3 className="text-3xl font-heading text-primary mb-4 text-gradient-to-r from-primary to-primary-foreground">HUNGRY?</h3>
-                <p className="text-muted-foreground mb-8 max-w-xs">Your cart is empty and waiting to be filled with our delicious menu items</p>
-                <Button 
-                  className="bg-primary hover:bg-primary/90 font-menu px-8 py-6 text-lg w-full md:w-auto rounded-xl"
-                  onClick={onClose}
-                >
-                  <Utensils className="mr-2 h-5 w-5" /> EXPLORE MENU
-                </Button>
+                <h3 className="text-3xl font-heading text-primary mb-4 bg-gradient-to-r from-primary to-primary-foreground bg-clip-text text-transparent">HUNGRY?</h3>
+                <p className="text-muted-foreground mb-10 max-w-xs">Your cart is empty and waiting to be filled with our delicious menu items</p>
+                <div className="w-full flex justify-center">
+                  <Button 
+                    className="bg-primary hover:bg-primary/90 font-menu px-8 py-6 text-lg mx-auto rounded-xl"
+                    onClick={onClose}
+                  >
+                    <Utensils className="mr-2 h-5 w-5" /> EXPLORE MENU
+                  </Button>
+                </div>
               </div>
             ) : (
               <div>

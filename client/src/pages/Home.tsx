@@ -202,7 +202,12 @@ export default function Home() {
           >
             <div className="relative h-80 md:h-[32rem] w-full perspective-1000">
               {/* Main Burger Image */}
-              <div className="food-3d-effect absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 md:w-80 md:h-80 z-20">
+              <div className="food-3d-effect absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 md:w-80 md:h-80 z-20 cursor-pointer hover:scale-105 transition-transform duration-300"
+                   onClick={() => {
+                     setActiveCategory("burgers");
+                     scrollToMenu();
+                   }}
+              >
                 <img 
                   src="https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=800" 
                   alt="Delicious Burger" 
@@ -211,7 +216,13 @@ export default function Home() {
               </div>
               
               {/* Secondary food images positioned around */}
-              <div className="absolute left-0 top-1/4 w-32 h-32 md:w-48 md:h-48 rotate-12 opacity-70 z-10 food-3d-effect">
+              <div 
+                className="absolute left-0 top-1/4 w-32 h-32 md:w-48 md:h-48 rotate-12 opacity-70 z-10 food-3d-effect cursor-pointer hover:scale-105 transition-transform duration-300"
+                onClick={() => {
+                  setActiveCategory("sides");
+                  scrollToMenu();
+                }}
+              >
                 <img 
                   src="https://images.unsplash.com/photo-1619881590738-a111d176d906?auto=format&fit=crop&w=400" 
                   alt="French Fries" 
@@ -219,7 +230,13 @@ export default function Home() {
                 />
               </div>
               
-              <div className="absolute right-0 top-2/3 w-24 h-24 md:w-40 md:h-40 -rotate-6 opacity-80 z-10 food-3d-effect">
+              <div 
+                className="absolute right-0 top-2/3 w-24 h-24 md:w-40 md:h-40 -rotate-6 opacity-80 z-10 food-3d-effect cursor-pointer hover:scale-105 transition-transform duration-300"
+                onClick={() => {
+                  setActiveCategory("drinks");
+                  scrollToMenu();
+                }}
+              >
                 <img 
                   src="https://images.unsplash.com/photo-1629203432180-71e9b18d33f3?auto=format&fit=crop&w=400" 
                   alt="Soda drink" 

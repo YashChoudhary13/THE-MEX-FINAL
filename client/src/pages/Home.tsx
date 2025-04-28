@@ -22,7 +22,7 @@ export default function Home() {
   const heroSectionRef = useRef<HTMLElement>(null);
   
   // Use mobile hook to detect screen size
-  const isMobile = window.innerWidth < 768; // Simple check for server-side rendering
+  const isMobile = useIsMobile();
   
   // Set up scroll animation
   const { scrollYProgress } = useScroll();
@@ -199,63 +199,86 @@ export default function Home() {
             </div>
           </motion.div>
           
-          {/* Right 3D Food Images */}
-          <motion.div 
-            className="lg:w-1/2 relative"
-            initial="initial"
-            animate="animate"
-            variants={heroImagesVariants}
-          >
-            <div className="relative h-80 md:h-[32rem] w-full perspective-1000">
-              {/* Main Burger Image */}
-              <div className="food-3d-effect absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 md:w-80 md:h-80 z-20 cursor-pointer hover:scale-105 transition-transform duration-300"
-                   onClick={() => {
-                     setActiveCategory("burgers");
-                     scrollToMenu();
-                   }}
-              >
-                <img 
-                  src="https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=800" 
-                  alt="Delicious Burger" 
-                  className="w-full h-full object-contain drop-shadow-[0_20px_50px_rgba(255,80,0,0.5)]"
-                />
+          {/* Right 3D Food Images - Only visible on larger screens */}
+          {!isMobile ? (
+            <motion.div 
+              className="lg:w-1/2 relative"
+              initial="initial"
+              animate="animate"
+              variants={heroImagesVariants}
+            >
+              <div className="relative h-80 md:h-[32rem] w-full perspective-1000">
+                {/* Main Burger Image */}
+                <div className="food-3d-effect absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 md:w-80 md:h-80 z-20 cursor-pointer hover:scale-105 transition-transform duration-300"
+                     onClick={() => {
+                       setActiveCategory("burgers");
+                       scrollToMenu();
+                     }}
+                >
+                  <img 
+                    src="https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=800" 
+                    alt="Delicious Burger" 
+                    className="w-full h-full object-contain drop-shadow-[0_20px_50px_rgba(255,80,0,0.5)]"
+                  />
+                </div>
+                
+                {/* Secondary food images positioned around */}
+                <div 
+                  className="absolute left-0 top-1/4 w-32 h-32 md:w-48 md:h-48 rotate-12 opacity-70 z-10 food-3d-effect cursor-pointer hover:scale-105 transition-transform duration-300"
+                  onClick={() => {
+                    setActiveCategory("sides");
+                    scrollToMenu();
+                  }}
+                >
+                  <img 
+                    src="https://images.unsplash.com/photo-1619881590738-a111d176d906?auto=format&fit=crop&w=400" 
+                    alt="French Fries" 
+                    className="w-full h-full object-contain drop-shadow-xl"
+                  />
+                </div>
+                
+                <div 
+                  className="absolute right-0 top-2/3 w-24 h-24 md:w-40 md:h-40 -rotate-6 opacity-80 z-10 food-3d-effect cursor-pointer hover:scale-105 transition-transform duration-300"
+                  onClick={() => {
+                    setActiveCategory("drinks");
+                    scrollToMenu();
+                  }}
+                >
+                  <img 
+                    src="https://images.unsplash.com/photo-1629203432180-71e9b18d33f3?auto=format&fit=crop&w=400" 
+                    alt="Soda drink" 
+                    className="w-full h-full object-contain drop-shadow-xl"
+                  />
+                </div>
               </div>
               
-              {/* Secondary food images positioned around */}
-              <div 
-                className="absolute left-0 top-1/4 w-32 h-32 md:w-48 md:h-48 rotate-12 opacity-70 z-10 food-3d-effect cursor-pointer hover:scale-105 transition-transform duration-300"
-                onClick={() => {
-                  setActiveCategory("sides");
-                  scrollToMenu();
-                }}
-              >
-                <img 
-                  src="https://images.unsplash.com/photo-1619881590738-a111d176d906?auto=format&fit=crop&w=400" 
-                  alt="French Fries" 
-                  className="w-full h-full object-contain drop-shadow-xl"
-                />
+              {/* Simplified decorative gradient in the background for better performance */}
+              <div className="absolute inset-0 opacity-20 bg-gradient-radial from-primary/20 via-transparent to-transparent"></div>
+            </motion.div>
+          ) : (
+            // Simplified mobile hero image (single focused image)
+            <motion.div 
+              className="w-full relative mb-6"
+              initial="initial"
+              animate="animate"
+              variants={heroImagesVariants}
+            >
+              <div className="relative h-64 w-full">
+                <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-56 h-56 z-20 cursor-pointer hover:scale-105 transition-transform duration-300"
+                  onClick={() => {
+                    setActiveCategory("burgers");
+                    scrollToMenu();
+                  }}
+                >
+                  <img 
+                    src="https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=800" 
+                    alt="Delicious Burger" 
+                    className="w-full h-full object-contain drop-shadow-[0_10px_25px_rgba(255,80,0,0.4)]"
+                  />
+                </div>
               </div>
-              
-              <div 
-                className="absolute right-0 top-2/3 w-24 h-24 md:w-40 md:h-40 -rotate-6 opacity-80 z-10 food-3d-effect cursor-pointer hover:scale-105 transition-transform duration-300"
-                onClick={() => {
-                  setActiveCategory("drinks");
-                  scrollToMenu();
-                }}
-              >
-                <img 
-                  src="https://images.unsplash.com/photo-1629203432180-71e9b18d33f3?auto=format&fit=crop&w=400" 
-                  alt="Soda drink" 
-                  className="w-full h-full object-contain drop-shadow-xl"
-                />
-              </div>
-              
-              {/* Removed bouncing elements to improve performance */}
-            </div>
-            
-            {/* Simplified decorative gradient in the background for better performance */}
-            <div className="absolute inset-0 opacity-20 bg-gradient-radial from-primary/20 via-transparent to-transparent"></div>
-          </motion.div>
+            </motion.div>
+          )}
         </div>
         
         {/* Scroll Down Indicator */}
@@ -283,26 +306,51 @@ export default function Home() {
             transition: { duration: 0.5, ease: [0.22, 1, 0.36, 1] }
           }}
         >
-          <motion.div 
-            className="flex flex-col lg:flex-row w-full"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: menuOpen ? 1 : 0 }}
-            transition={{ delay: 0.2, duration: 0.3 }}
-          >
-            <CategorySidebar 
-              categories={categories as MenuCategory[] || []} 
-              isLoading={categoriesLoading}
-              activeCategory={activeCategory}
-              onCategoryChange={handleCategoryChange}
-            />
-            
-            <MenuContent 
-              activeCategory={activeCategory} 
-              searchQuery={searchQuery}
-            />
-          </motion.div>
+          {isMobile ? (
+            // Mobile-specific layout
+            <motion.div
+              className="w-full"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: menuOpen ? 1 : 0 }}
+              transition={{ delay: 0.2, duration: 0.3 }}
+            >
+              <MobileMenuContent 
+                activeCategory={activeCategory} 
+                searchQuery={searchQuery}
+              />
+            </motion.div>
+          ) : (
+            // Desktop layout
+            <motion.div 
+              className="flex flex-col lg:flex-row w-full"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: menuOpen ? 1 : 0 }}
+              transition={{ delay: 0.2, duration: 0.3 }}
+            >
+              <CategorySidebar 
+                categories={categories as MenuCategory[] || []} 
+                isLoading={categoriesLoading}
+                activeCategory={activeCategory}
+                onCategoryChange={handleCategoryChange}
+              />
+              
+              <MenuContent 
+                activeCategory={activeCategory} 
+                searchQuery={searchQuery}
+              />
+            </motion.div>
+          )}
         </motion.div>
       </section>
+      
+      {/* Mobile floating menu button */}
+      {isMobile && categories && (
+        <MobileMenu 
+          categories={categories as MenuCategory[] || []}
+          activeCategory={activeCategory}
+          onCategoryChange={handleCategoryChange}
+        />
+      )}
       
       <CartPanel 
         isOpen={isCartOpen} 

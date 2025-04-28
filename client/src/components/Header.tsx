@@ -61,6 +61,26 @@ export default function Header({
                     <Button
                       variant="ghost"
                       className="w-full justify-start font-menu"
+                      onClick={() => navigate("/about")}
+                    >
+                      <ChevronRight className="h-4 w-4 mr-2 text-primary" />
+                      About Us
+                    </Button>
+                  </SheetClose>
+                  <SheetClose asChild>
+                    <Button
+                      variant="ghost"
+                      className="w-full justify-start font-menu"
+                      onClick={() => navigate("/contact")}
+                    >
+                      <ChevronRight className="h-4 w-4 mr-2 text-primary" />
+                      Contact
+                    </Button>
+                  </SheetClose>
+                  <SheetClose asChild>
+                    <Button
+                      variant="ghost"
+                      className="w-full justify-start font-menu"
                       onClick={() => navigate("/checkout")}
                     >
                       <ChevronRight className="h-4 w-4 mr-2 text-primary" />
@@ -89,11 +109,36 @@ export default function Header({
             >
               <path d="M13 10V3L4 14h7v7l9-11h-7z" />
             </svg>
-            <h1 className="ml-2 text-3xl font-heading text-primary">BURGER HUB</h1>
+            <h1 className="ml-2 text-3xl font-heading text-primary">THE MEX</h1>
           </Button>
         </div>
         
         <div className="flex items-center">
+          {/* Desktop Navigation */}
+          <div className="hidden md:flex items-center mr-6 space-x-6">
+            <Button 
+              variant="link" 
+              className="font-menu text-foreground hover:text-primary"
+              onClick={() => navigate("/")}
+            >
+              HOME
+            </Button>
+            <Button 
+              variant="link" 
+              className="font-menu text-foreground hover:text-primary"
+              onClick={() => navigate("/about")}
+            >
+              ABOUT
+            </Button>
+            <Button 
+              variant="link" 
+              className="font-menu text-foreground hover:text-primary"
+              onClick={() => navigate("/contact")}
+            >
+              CONTACT
+            </Button>
+          </div>
+        
           {onCartToggle && (
             <div className="relative mr-4">
               <Button

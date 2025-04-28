@@ -10,6 +10,7 @@ import OrderConfirmation from "@/pages/OrderConfirmation";
 import About from "@/pages/About";
 import Contact from "@/pages/Contact";
 import NotFound from "@/pages/not-found";
+import AdminDashboard from "@/pages/admin/Dashboard";
 
 function Router() {
   return (
@@ -19,6 +20,7 @@ function Router() {
       <Route path="/order-confirmation/:id" component={OrderConfirmation} />
       <Route path="/about" component={About} />
       <Route path="/contact" component={Contact} />
+      <Route path="/admin" component={AdminDashboard} />
       <Route component={NotFound} />
     </Switch>
   );

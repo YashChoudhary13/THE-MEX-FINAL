@@ -105,9 +105,7 @@ export default function AdminTodaysSpecial({ menuItems, isLoading }: AdminTodays
               
               <div className="mt-auto">
                 <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-                  <DialogTrigger asChild>
-                    <Button className="w-full">Change Special</Button>
-                  </DialogTrigger>
+                  <Button className="w-full" onClick={() => setIsDialogOpen(true)}>Change Special</Button>
                   <DialogContent className="sm:max-w-[600px]">
                     <DialogHeader>
                       <DialogTitle>Update Today's Special</DialogTitle>

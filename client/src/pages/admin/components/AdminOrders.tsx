@@ -128,7 +128,7 @@ export default function AdminOrders({ orders, isLoading }: AdminOrdersProps) {
                       {/* Since we don't have a createdAt field, we'll use a placeholder */}
                       Apr 28, 2025
                     </TableCell>
-                    <TableCell>${order.totalAmount.toFixed(2)}</TableCell>
+                    <TableCell>${order.total.toFixed(2)}</TableCell>
                     <TableCell>
                       <Select 
                         defaultValue={order.status}

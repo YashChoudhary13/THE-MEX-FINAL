@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { MenuCategory, MenuItem, Order } from "@shared/schema";
@@ -6,9 +6,11 @@ import { CreditCard, Menu, ArrowRightLeft, Settings, BarChart3, Users, LogOut, S
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Card, CardHeader, CardContent, CardTitle, CardDescription } from "@/components/ui/card";
-import AdminOrders from "./components/AdminOrders";
-import AdminMenu from "./components/AdminMenu";
-import AdminTodaysSpecial from "./components/AdminTodaysSpecial";
+
+// Import lazy-loaded admin components
+const AdminOrders = React.lazy(() => import("./components/AdminOrders"));
+const AdminMenu = React.lazy(() => import("./components/AdminMenu"));
+const AdminTodaysSpecial = React.lazy(() => import("./components/AdminTodaysSpecial"));
 
 export default function AdminDashboard() {
   const [, navigate] = useLocation();
@@ -267,7 +269,7 @@ export default function AdminDashboard() {
                                 <p className="text-sm text-muted-foreground">{order.customerName}</p>
                               </div>
                               <div className="text-right">
-                                <p className="font-medium">${order.totalAmount.toFixed(2)}</p>
+                                <p className="font-medium">${order.total.toFixed(2)}</p>
                                 <span className={`text-xs px-2 py-1 rounded-full ${
                                   order.status === 'completed' 
                                     ? 'bg-green-500/10 text-green-500' 

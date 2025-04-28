@@ -87,6 +87,16 @@ export default function Header({
                       Checkout
                     </Button>
                   </SheetClose>
+                  <SheetClose asChild>
+                    <Button
+                      variant="ghost"
+                      className="w-full justify-start font-menu"
+                      onClick={() => navigate("/admin")}
+                    >
+                      <ChevronRight className="h-4 w-4 mr-2 text-primary" />
+                      Admin
+                    </Button>
+                  </SheetClose>
                 </nav>
               </div>
             </SheetContent>

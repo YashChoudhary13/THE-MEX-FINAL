@@ -1,7 +1,7 @@
 import { useLocation } from "wouter";
 import { useCart } from "@/context/CartContext";
 import { useToast } from "@/hooks/use-toast";
-import { Trash2, X, Minus, Plus, ShoppingBag, Receipt, Truck, Clock, CreditCard } from "lucide-react";
+import { Trash2, X, Minus, Plus, ShoppingBag, Receipt, Truck, Clock, CreditCard, Utensils } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { motion, AnimatePresence } from "framer-motion";
@@ -68,33 +68,38 @@ export default function CartPanel({ isOpen, onClose }: CartPanelProps) {
         onClick={onClose}
       ></div>
       
-      <div className={`side-panel absolute top-0 right-0 h-full w-full md:w-[420px] bg-card border-l border-border shadow-xl transform ${isOpen ? 'translate-x-0' : 'translate-x-full'}`}>
+      <div className={`side-panel absolute top-0 right-0 h-full w-full md:w-[420px] bg-card border-l border-border shadow-xl transform transition-transform duration-300 ${isOpen ? 'translate-x-0' : 'translate-x-full'}`}>
         <div className="flex flex-col h-full">
           {/* Cart Header */}
-          <div className="border-b border-border p-5 flex justify-between items-center bg-gradient-to-r from-primary/20 to-background text-foreground">
+          <div className="border-b border-border p-4 md:p-5 flex justify-between items-center bg-gradient-to-r from-primary/20 to-background text-foreground sticky top-0">
             <div className="flex items-center">
-              <ShoppingBag className="h-6 w-6 text-primary mr-3" />
-              <h2 className="font-heading text-2xl">YOUR CART</h2>
+              <ShoppingBag className="h-5 w-5 md:h-6 md:w-6 text-primary mr-2 md:mr-3" />
+              <h2 className="font-heading text-xl md:text-2xl">YOUR CART</h2>
             </div>
             <Button variant="ghost" size="icon" className="rounded-full hover:bg-primary/10" onClick={onClose}>
-              <X className="h-6 w-6" />
+              <X className="h-5 w-5 md:h-6 md:w-6" />
             </Button>
           </div>
           
           {/* Cart Items */}
           <div className="flex-1 overflow-y-auto p-5">
             {cart.length === 0 ? (
-              <div className="flex flex-col items-center justify-center h-full text-center">
-                <div className="bg-primary/10 p-5 rounded-lg mb-6 transform rotate-6 shadow-lg border border-primary/20">
-                  <ShoppingBag className="h-16 w-16 text-primary" />
-                </div>
-                <h3 className="text-2xl font-heading text-primary mb-3">HUNGRY?</h3>
-                <p className="text-muted-foreground mb-6 max-w-xs">Your cart is waiting to be filled with our delicious menu items</p>
+              <div className="flex flex-col items-center justify-center h-full text-center p-4">
+                <motion.div 
+                  className="bg-primary/10 p-6 rounded-xl mb-8 border border-primary/20 shadow-lg"
+                  initial={{ rotate: 0, scale: 0.9 }}
+                  animate={{ rotate: [0, -2, 2, -2, 0], scale: 1 }}
+                  transition={{ duration: 0.5, ease: "easeOut" }}
+                >
+                  <ShoppingBag className="h-20 w-20 text-primary" />
+                </motion.div>
+                <h3 className="text-3xl font-heading text-primary mb-4 text-gradient-to-r from-primary to-primary-foreground">HUNGRY?</h3>
+                <p className="text-muted-foreground mb-8 max-w-xs">Your cart is empty and waiting to be filled with our delicious menu items</p>
                 <Button 
-                  className="bg-primary hover:bg-primary/90 font-menu px-6"
+                  className="bg-primary hover:bg-primary/90 font-menu px-8 py-6 text-lg w-full md:w-auto rounded-xl"
                   onClick={onClose}
                 >
-                  EXPLORE MENU
+                  <Utensils className="mr-2 h-5 w-5" /> EXPLORE MENU
                 </Button>
               </div>
             ) : (

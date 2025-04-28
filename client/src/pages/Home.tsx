@@ -14,17 +14,19 @@ export default function Home() {
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
-  const [showMenu, setShowMenu] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const menuScrollRef = useRef<HTMLDivElement>(null);
+  const heroSectionRef = useRef<HTMLElement>(null);
   
   // Set up scroll animation
   const { scrollYProgress } = useScroll({
-    target: menuScrollRef,
-    offset: ["start end", "end start"]
+    offset: ["start start", "end start"]
   });
   
-  const menuAnimY = useTransform(scrollYProgress, [0, 0.5], [100, 0]);
+  // Automatically show the menu based on scroll position
+  const menuOpacity = useTransform(scrollYProgress, [0.15, 0.2], [0, 1]);
+  const menuScale = useTransform(scrollYProgress, [0.15, 0.3], [0.95, 1]);
+  const menuY = useTransform(scrollYProgress, [0.15, 0.3], [50, 0]);
 
   // Fetch menu categories
   const { data: categories, isLoading: categoriesLoading } = useQuery<MenuCategory[]>({
@@ -50,7 +52,6 @@ export default function Home() {
 
   const handleSearch = (query: string) => {
     setSearchQuery(query);
-    setShowMenu(true);
     // If clearing search, let category selection be preserved
     if (!query.trim()) return;
     
@@ -66,7 +67,6 @@ export default function Home() {
   };
 
   const scrollToMenu = () => {
-    setShowMenu(true);
     if (menuRef.current) {
       menuRef.current.scrollIntoView({ behavior: 'smooth' });
     }
@@ -234,13 +234,14 @@ export default function Home() {
       </section>
       
       {/* Menu Section with scroll animation */}
-      <div ref={menuScrollRef} className="w-full relative">
+      <section ref={menuScrollRef} className="w-full relative py-8">
         <motion.div 
           ref={menuRef}
-          className={`container mx-auto px-4 py-6 flex flex-col lg:flex-row flex-grow transition-opacity duration-500 ease-in-out ${showMenu ? 'opacity-100' : 'opacity-0 hidden'}`}
+          className="container mx-auto px-4 py-6 flex flex-col lg:flex-row flex-grow"
           style={{ 
-            y: menuAnimY,
-            opacity: useTransform(scrollYProgress, [0, 0.2], [0.6, 1])
+            opacity: menuOpacity, 
+            y: menuY, 
+            scale: menuScale 
           }}
         >
           <CategorySidebar 
@@ -255,7 +256,7 @@ export default function Home() {
             searchQuery={searchQuery}
           />
         </motion.div>
-      </div>
+      </section>
       
       <CartPanel 
         isOpen={isCartOpen} 

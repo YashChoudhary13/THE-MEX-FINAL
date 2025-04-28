@@ -19,14 +19,28 @@ export default function Home() {
   const heroSectionRef = useRef<HTMLElement>(null);
   
   // Set up scroll animation
-  const { scrollYProgress } = useScroll({
-    offset: ["start start", "end start"]
-  });
+  const { scrollYProgress } = useScroll();
   
-  // Automatically show the menu based on scroll position
-  const menuOpacity = useTransform(scrollYProgress, [0.15, 0.2], [0, 1]);
-  const menuScale = useTransform(scrollYProgress, [0.15, 0.3], [0.95, 1]);
-  const menuY = useTransform(scrollYProgress, [0.15, 0.3], [50, 0]);
+  // Animation values to make the menu "open up" as user scrolls
+  const [menuOpen, setMenuOpen] = useState(false);
+  
+  // Update menu open state based on scroll position
+  useEffect(() => {
+    const handleScroll = () => {
+      const scrollPosition = window.scrollY;
+      const windowHeight = window.innerHeight;
+      
+      // Menu starts opening at 20% of window height scroll
+      if (scrollPosition > windowHeight * 0.2) {
+        setMenuOpen(true);
+      } else {
+        setMenuOpen(false);
+      }
+    };
+    
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
   // Fetch menu categories
   const { data: categories, isLoading: categoriesLoading } = useQuery<MenuCategory[]>({
@@ -233,28 +247,37 @@ export default function Home() {
         </div>
       </section>
       
-      {/* Menu Section with scroll animation */}
+      {/* Menu Section with open animation */}
       <section ref={menuScrollRef} className="w-full relative py-8">
         <motion.div 
           ref={menuRef}
           className="container mx-auto px-4 py-6 flex flex-col lg:flex-row flex-grow"
-          style={{ 
-            opacity: menuOpacity, 
-            y: menuY, 
-            scale: menuScale 
+          initial={{ opacity: 0, height: 0, scale: 0.9 }}
+          animate={{ 
+            opacity: menuOpen ? 1 : 0, 
+            height: menuOpen ? "auto" : 0,
+            scale: menuOpen ? 1 : 0.9,
+            transition: { duration: 0.5, ease: [0.22, 1, 0.36, 1] }
           }}
         >
-          <CategorySidebar 
-            categories={categories as MenuCategory[] || []} 
-            isLoading={categoriesLoading}
-            activeCategory={activeCategory}
-            onCategoryChange={handleCategoryChange}
-          />
-          
-          <MenuContent 
-            activeCategory={activeCategory} 
-            searchQuery={searchQuery}
-          />
+          <motion.div 
+            className="flex flex-col lg:flex-row w-full"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: menuOpen ? 1 : 0 }}
+            transition={{ delay: 0.2, duration: 0.3 }}
+          >
+            <CategorySidebar 
+              categories={categories as MenuCategory[] || []} 
+              isLoading={categoriesLoading}
+              activeCategory={activeCategory}
+              onCategoryChange={handleCategoryChange}
+            />
+            
+            <MenuContent 
+              activeCategory={activeCategory} 
+              searchQuery={searchQuery}
+            />
+          </motion.div>
         </motion.div>
       </section>
       

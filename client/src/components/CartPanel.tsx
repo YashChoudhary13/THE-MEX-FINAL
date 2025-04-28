@@ -134,23 +134,23 @@ export default function CartPanel({ isOpen, onClose }: CartPanelProps) {
                       custom={index}
                       layout
                     >
-                      <div className="w-20 h-20 overflow-hidden rounded-lg border border-border flex-shrink-0">
+                      <div className="w-16 h-16 md:w-20 md:h-20 overflow-hidden rounded-lg border border-border flex-shrink-0">
                         <img 
                           src={item.image} 
                           alt={item.name} 
                           className="w-full h-full object-cover"
                         />
                       </div>
-                      <div className="ml-4 flex-1">
-                        <div className="flex justify-between">
-                          <h3 className="font-heading text-foreground">{item.name}</h3>
+                      <div className="ml-3 md:ml-4 flex-1 min-w-0">
+                        <div className="flex justify-between items-start">
+                          <h3 className="font-heading text-foreground text-sm md:text-base truncate mr-2">{item.name}</h3>
                           <Button 
                             variant="ghost" 
                             size="icon"
-                            className="text-muted-foreground hover:text-red-500 h-8 w-8 rounded-full"
+                            className="text-muted-foreground hover:text-red-500 h-7 w-7 md:h-8 md:w-8 rounded-full flex-shrink-0"
                             onClick={() => removeFromCart(item.id)}
                           >
-                            <Trash2 className="h-4 w-4" />
+                            <Trash2 className="h-3 w-3 md:h-4 md:w-4" />
                           </Button>
                         </div>
                         <div className="flex justify-between items-center mt-2">
@@ -158,23 +158,23 @@ export default function CartPanel({ isOpen, onClose }: CartPanelProps) {
                             <Button 
                               variant="ghost" 
                               size="sm"
-                              className="h-8 w-8 rounded-full text-foreground hover:text-primary"
+                              className="h-7 w-7 md:h-8 md:w-8 rounded-full text-foreground hover:text-primary p-0"
                               onClick={() => updateCartItemQuantity(item.id, item.quantity - 1)}
                               disabled={item.quantity <= 1}
                             >
-                              <Minus className="h-4 w-4" />
+                              <Minus className="h-3 w-3 md:h-4 md:w-4" />
                             </Button>
-                            <span className="w-8 text-center text-sm font-medium">{item.quantity}</span>
+                            <span className="w-6 md:w-8 text-center text-xs md:text-sm font-medium">{item.quantity}</span>
                             <Button 
                               variant="ghost" 
                               size="sm"
-                              className="h-8 w-8 rounded-full text-foreground hover:text-primary"
+                              className="h-7 w-7 md:h-8 md:w-8 rounded-full text-foreground hover:text-primary p-0"
                               onClick={() => updateCartItemQuantity(item.id, item.quantity + 1)}
                             >
-                              <Plus className="h-4 w-4" />
+                              <Plus className="h-3 w-3 md:h-4 md:w-4" />
                             </Button>
                           </div>
-                          <span className="font-bold text-primary">${(item.price * item.quantity).toFixed(2)}</span>
+                          <span className="font-bold text-primary text-sm md:text-base">${(item.price * item.quantity).toFixed(2)}</span>
                         </div>
                       </div>
                     </motion.div>

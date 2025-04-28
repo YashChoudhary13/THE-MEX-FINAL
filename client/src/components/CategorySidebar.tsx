@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { MenuCategory } from "@shared/schema";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Flame, ChevronRight } from "lucide-react";
 
 interface CategorySidebarProps {
   categories: MenuCategory[];
@@ -15,15 +16,16 @@ export default function CategorySidebar({
   activeCategory, 
   onCategoryChange 
 }: CategorySidebarProps) {
-  // Find today's special - just using the first item from the main courses for demo
+  // Find today's special - using a featured burger for demo
   const todaysSpecial = useMemo(() => {
     if (categories.length > 0) {
-      // For the sake of this demo, we'll just pick the first category's special
       return {
-        name: "Mediterranean Salad",
-        price: 12.99,
-        originalPrice: 15.99,
-        image: "https://images.unsplash.com/photo-1546069901-ba9599a7e63c"
+        name: "Double Smash Burger",
+        price: 14.99,
+        originalPrice: 17.99,
+        image: "https://images.unsplash.com/photo-1594212699903-ec8a3eca50f5?auto=format&fit=crop&w=800",
+        label: "CHEF'S CHOICE",
+        description: "Two smashed beef patties, melted cheese, caramelized onions, special sauce, crispy pickles"
       };
     }
     return null;
@@ -32,25 +34,37 @@ export default function CategorySidebar({
   return (
     <aside className="lg:w-1/4 mb-6 lg:mb-0 lg:pr-6">
       <div className="lg:sticky lg:top-32">
-        <h2 className="text-xl font-heading font-bold mb-4 text-secondary">Categories</h2>
+        <h2 className="text-3xl font-heading mb-6 text-primary">MENU</h2>
         
         {isLoading ? (
-          <div className="space-y-2">
-            <Skeleton className="h-10 w-full" />
-            <Skeleton className="h-10 w-full" />
-            <Skeleton className="h-10 w-full" />
-            <Skeleton className="h-10 w-full" />
+          <div className="space-y-3">
+            <Skeleton className="h-12 w-full bg-muted" />
+            <Skeleton className="h-12 w-full bg-muted" />
+            <Skeleton className="h-12 w-full bg-muted" />
+            <Skeleton className="h-12 w-full bg-muted" />
           </div>
         ) : (
           <nav>
-            <ul>
+            <ul className="space-y-2">
               {categories.map((category) => (
-                <li key={category.id} className="mb-1">
+                <li key={category.id}>
                   <button
-                    className={`category-pill block w-full text-left px-4 py-2 rounded-lg font-menu font-medium hover:bg-primary hover:text-white transition-colors ${activeCategory === category.slug ? 'active' : ''}`}
+                    className={`block w-full text-left px-5 py-3 rounded-lg font-menu font-medium text-lg transition-all ${
+                      activeCategory === category.slug 
+                        ? 'bg-primary text-white shadow-lg shadow-primary/20' 
+                        : 'text-foreground hover:bg-muted hover:text-primary'
+                    }`}
                     onClick={() => onCategoryChange(category.slug)}
                   >
-                    {category.name}
+                    <div className="flex items-center">
+                      {activeCategory === category.slug && (
+                        <Flame className="mr-2 h-5 w-5" />
+                      )}
+                      {category.name.toUpperCase()}
+                      {activeCategory === category.slug && (
+                        <ChevronRight className="ml-auto h-5 w-5" />
+                      )}
+                    </div>
                   </button>
                 </li>
               ))}
@@ -58,37 +72,51 @@ export default function CategorySidebar({
           </nav>
         )}
         
-        <div className="mt-8 bg-secondary text-white p-4 rounded-lg">
-          <h3 className="font-heading font-bold text-lg mb-2">Today's Special</h3>
-          <p className="text-sm mb-3">Try our chef's signature dish with 15% off!</p>
+        <div className="mt-12 bg-gradient-to-br from-primary/20 to-accent/20 p-6 rounded-2xl border border-primary/10">
+          <div className="flex items-center mb-3">
+            <Flame className="h-5 w-5 text-primary mr-2" />
+            <h3 className="font-heading text-xl text-primary">TODAY'S SPECIAL</h3>
+          </div>
           
           {isLoading || !todaysSpecial ? (
-            <div className="bg-white rounded-lg p-2 overflow-hidden">
-              <Skeleton className="w-full h-32 rounded" />
-              <div className="mt-2">
-                <Skeleton className="h-5 w-3/4" />
-                <div className="flex justify-between items-center mt-1">
-                  <Skeleton className="h-4 w-16" />
-                  <Skeleton className="h-3 w-12" />
-                </div>
+            <div className="space-y-4">
+              <Skeleton className="w-full h-48 rounded-xl bg-card" />
+              <Skeleton className="h-6 w-3/4 bg-card" />
+              <Skeleton className="h-4 w-full bg-card" />
+              <div className="flex justify-between items-center mt-1">
+                <Skeleton className="h-6 w-20 bg-card" />
+                <Skeleton className="h-4 w-16 bg-card" />
               </div>
             </div>
           ) : (
-            <div className="bg-white rounded-lg p-2 overflow-hidden">
-              <div className="w-full h-32 overflow-hidden rounded">
-                <img 
-                  src={todaysSpecial.image} 
-                  alt={todaysSpecial.name} 
-                  className="w-full h-full object-cover"
-                />
-              </div>
-              <div className="mt-2">
-                <h4 className="font-menu font-medium text-secondary">{todaysSpecial.name}</h4>
-                <div className="flex justify-between items-center mt-1">
-                  <span className="text-primary font-bold">${todaysSpecial.price.toFixed(2)}</span>
-                  <span className="text-xs line-through text-gray-500">${todaysSpecial.originalPrice.toFixed(2)}</span>
+            <div className="space-y-4">
+              <div className="relative">
+                <div className="absolute top-3 left-3 bg-primary text-white text-xs px-3 py-1 rounded-full font-menu">
+                  {todaysSpecial.label}
+                </div>
+                <div className="w-full h-48 overflow-hidden rounded-xl food-3d-effect">
+                  <img 
+                    src={todaysSpecial.image} 
+                    alt={todaysSpecial.name} 
+                    className="w-full h-full object-cover"
+                  />
                 </div>
               </div>
+              <h4 className="font-heading text-xl text-foreground">{todaysSpecial.name}</h4>
+              <p className="text-sm text-muted-foreground">{todaysSpecial.description}</p>
+              <div className="flex justify-between items-center">
+                <span className="text-xl font-bold text-primary">${todaysSpecial.price.toFixed(2)}</span>
+                <span className="text-sm line-through text-muted-foreground">${todaysSpecial.originalPrice.toFixed(2)}</span>
+              </div>
+              <button 
+                className="w-full py-3 bg-primary text-white font-menu rounded-lg hover:bg-primary/90 transition-colors"
+                onClick={() => {
+                  // This could trigger adding the item to cart
+                  console.log('Special added to cart');
+                }}
+              >
+                ADD TO CART
+              </button>
             </div>
           )}
         </div>

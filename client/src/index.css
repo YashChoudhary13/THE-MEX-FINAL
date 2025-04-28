@@ -1,58 +1,65 @@
-@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Open+Sans:wght@400;600&family=Poppins:wght@400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Montserrat:wght@400;500;600;700&family=Bebas+Neue&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
-  --background: 0 0% 100%;
-  --foreground: 20 14.3% 4.1%;
-  --muted: 60 4.8% 95.9%;
-  --muted-foreground: 25 5.3% 44.7%;
-  --popover: 0 0% 100%;
-  --popover-foreground: 20 14.3% 4.1%;
-  --card: 0 0% 100%;
-  --card-foreground: 20 14.3% 4.1%;
-  --border: 20 5.9% 90%;
-  --input: 20 5.9% 90%;
-  --primary: 17 100% 60%;  /* #FF6B35 */
-  --primary-foreground: 211 100% 99%;
-  --secondary: 255 27% 25%;  /* #2E294E */
-  --secondary-foreground: 0 0% 98%;
-  --accent: 172 70% 35%;  /* #1B998B */
-  --accent-foreground: 0 0% 98%;
-  --destructive: 0 84.2% 60.2%;
-  --destructive-foreground: 60 9.1% 97.8%;
-  --ring: 20 14.3% 4.1%;
+  --background: 220 10% 12%;  /* #1a1c22 - Dark background */
+  --foreground: 0 0% 98%;     /* #fafafa - Light text */
+  --muted: 220 10% 18%;       /* #272a32 - Slightly lighter than background */
+  --muted-foreground: 220 10% 80%; /* #c6c8cf - Muted text */
+  --popover: 220 10% 15%;     /* #1f222a - Popover background */
+  --popover-foreground: 0 0% 98%; /* #fafafa - Popover text */
+  --card: 220 10% 15%;        /* #1f222a - Card background */
+  --card-foreground: 0 0% 98%; /* #fafafa - Card text */
+  --border: 220 10% 22%;      /* #2d303a - Border color */
+  --input: 220 10% 22%;       /* #2d303a - Input background */
+  --primary: 16 100% 50%;     /* #FF5000 - Vibrant orange for fast food */
+  --primary-foreground: 0 0% 100%; /* #ffffff - Primary button text */
+  --secondary: 220 60% 10%;   /* #121a2e - Deep blue-gray */
+  --secondary-foreground: 0 0% 98%; /* #fafafa - Secondary text */
+  --accent: 35 100% 50%;      /* #FFA500 - Accent orange/yellow */
+  --accent-foreground: 220 60% 10%; /* #121a2e - Accent text */
+  --destructive: 0 84.2% 60.2%; /* #f44336 - Red for errors/destructive actions */
+  --destructive-foreground: 0 0% 98%; /* #fafafa - Destructive text */
+  --ring: 16 100% 50%;        /* #FF5000 - Ring color */
   --radius: 0.5rem;
 
-  --success: 123 41% 35%;  /* #4CAF50 */
-  --warning: 36 100% 50%;  /* #FF9800 */
-  --error: 4 90% 58%;  /* #F44336 */
-  --light: 0 0% 97%;  /* #F7F7F7 */
-  --dark: 0 0% 20%;  /* #333333 */
+  --success: 142 76% 36%;     /* #12b76a - Success green */
+  --warning: 35 100% 50%;     /* #ffa500 - Warning yellow/orange */
+  --error: 0 84.2% 60.2%;     /* #f44336 - Error red */
+  --light: 220 10% 22%;       /* #2d303a - Light background in dark mode */
+  --dark: 220 10% 12%;        /* #1a1c22 - Dark background */
 }
 
-.dark {
-  --background: 240 10% 3.9%;
-  --foreground: 0 0% 98%;
-  --muted: 240 3.7% 15.9%;
-  --muted-foreground: 240 5% 64.9%;
-  --popover: 240 10% 3.9%;
-  --popover-foreground: 0 0% 98%;
-  --card: 240 10% 3.9%;
-  --card-foreground: 0 0% 98%;
-  --border: 240 3.7% 15.9%;
-  --input: 240 3.7% 15.9%;
-  --primary: 17 100% 60%;  /* #FF6B35 */
-  --primary-foreground: 211 100% 99%;
-  --secondary: 255 27% 25%;  /* #2E294E */
-  --secondary-foreground: 0 0% 98%;
-  --accent: 172 70% 35%;  /* #1B998B */
-  --accent-foreground: 0 0% 98%;
-  --destructive: 0 62.8% 30.6%;
-  --destructive-foreground: 0 0% 98%;
-  --ring: 240 4.9% 83.9%;
+/* We're using dark theme by default now */
+.light {
+  --background: 0 0% 100%;    /* #ffffff - Light background */
+  --foreground: 220 20% 10%;  /* #171b26 - Dark text on light background */
+  --muted: 220 20% 96%;       /* #f3f4f7 - Light muted background */
+  --muted-foreground: 220 10% 40%; /* #5f636d - Muted text */
+  --popover: 0 0% 100%;       /* #ffffff - Popover background */
+  --popover-foreground: 220 20% 10%; /* #171b26 - Popover text */
+  --card: 0 0% 100%;          /* #ffffff - Card background */
+  --card-foreground: 220 20% 10%; /* #171b26 - Card text */
+  --border: 220 13% 90%;      /* #e3e5eb - Border color */
+  --input: 220 13% 90%;       /* #e3e5eb - Input background */
+  --primary: 16 100% 50%;     /* #FF5000 - Same primary */
+  --primary-foreground: 0 0% 100%; /* #ffffff - Primary text */
+  --secondary: 220 60% 10%;   /* #121a2e - Secondary color */
+  --secondary-foreground: 0 0% 98%; /* #fafafa - Secondary text */
+  --accent: 35 100% 50%;      /* #FFA500 - Accent */
+  --accent-foreground: 220 60% 10%; /* #121a2e - Accent text */
+  --destructive: 0 84.2% 60.2%; /* #f44336 - Destructive */
+  --destructive-foreground: 0 0% 98%; /* #fafafa - Destructive text */
+  --ring: 16 100% 50%;        /* #FF5000 - Ring color */
+  
+  --success: 142 76% 36%;     /* #12b76a - Success */
+  --warning: 35 100% 50%;     /* #ffa500 - Warning */
+  --error: 0 84.2% 60.2%;     /* #f44336 - Error */
+  --light: 0 0% 100%;         /* #ffffff - Light */
+  --dark: 220 10% 12%;        /* #1a1c22 - Dark */
 }
 
 @layer base {
@@ -61,7 +68,7 @@
   }
 
   body {
-    @apply font-sans antialiased bg-light text-foreground;
+    @apply font-body antialiased bg-background text-foreground;
   }
 
   h1, h2, h3, h4, h5, h6 {
@@ -70,24 +77,59 @@
 }
 
 .font-heading {
-  font-family: 'Playfair Display', serif;
+  font-family: 'Bebas Neue', sans-serif;
+  letter-spacing: 0.05em;
 }
 
 .font-body {
-  font-family: 'Open Sans', sans-serif;
+  font-family: 'Montserrat', sans-serif;
 }
 
 .font-menu {
-  font-family: 'Poppins', sans-serif;
+  font-family: 'Oswald', sans-serif;
+  letter-spacing: 0.03em;
 }
 
 .menu-item-transition {
   transition: transform 0.3s ease, box-shadow 0.3s ease;
+  position: relative;
+  z-index: 1;
 }
 
 .menu-item-transition:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  transform: translateY(-8px);
+  box-shadow: 0 15px 30px -5px rgba(255, 80, 0, 0.25), 0 8px 10px -6px rgba(0, 0, 0, 0.3);
+}
+
+.menu-item-transition::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: var(--radius);
+  padding: 2px; 
+  background: linear-gradient(45deg, rgba(255, 80, 0, 0), rgba(255, 80, 0, 0.5), rgba(255, 80, 0, 0));
+  -webkit-mask: 
+    linear-gradient(#fff 0 0) content-box, 
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  z-index: -1;
+}
+
+.menu-item-transition:hover::before {
+  opacity: 1;
+}
+
+/* 3D-like food image hover effect */
+.food-3d-effect {
+  transition: transform 0.5s ease;
+  perspective: 1000px;
+}
+
+.food-3d-effect:hover {
+  transform: rotateY(15deg) rotateX(5deg) scale(1.05);
 }
 
 .cart-badge-animation {

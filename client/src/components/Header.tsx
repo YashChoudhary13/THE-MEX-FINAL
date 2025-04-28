@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useLocation } from "wouter";
 import { useCart } from "@/context/CartContext";
-import { MenuIcon, Search, ShoppingBag } from "lucide-react";
+import { MenuIcon, Search, ShoppingBag, ChevronRight, Flame, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { 
@@ -34,34 +34,36 @@ export default function Header({
   const cartItemCount = cart.reduce((total, item) => total + item.quantity, 0);
 
   return (
-    <header className="sticky top-0 z-50 bg-white shadow-md">
+    <header className="sticky top-0 z-50 bg-card border-b border-border">
       <div className="container mx-auto px-4 py-3 flex justify-between items-center">
         <div className="flex items-center">
           <Sheet>
             <SheetTrigger asChild>
-              <Button variant="ghost" size="icon" className="mr-2 lg:hidden text-secondary">
+              <Button variant="ghost" size="icon" className="mr-2 lg:hidden text-foreground">
                 <MenuIcon className="h-6 w-6" />
               </Button>
             </SheetTrigger>
-            <SheetContent side="left">
+            <SheetContent side="left" className="bg-card border-r border-border">
               <div className="py-6">
-                <h3 className="font-heading font-bold text-lg mb-4 text-secondary">Menu</h3>
+                <h3 className="font-heading font-bold text-xl mb-4 text-primary">MENU</h3>
                 <nav className="space-y-2">
                   <SheetClose asChild>
                     <Button 
                       variant="ghost" 
-                      className="w-full justify-start" 
+                      className="w-full justify-start font-menu" 
                       onClick={() => navigate("/")}
                     >
+                      <Flame className="h-4 w-4 mr-2 text-primary" />
                       Home
                     </Button>
                   </SheetClose>
                   <SheetClose asChild>
                     <Button
                       variant="ghost"
-                      className="w-full justify-start"
+                      className="w-full justify-start font-menu"
                       onClick={() => navigate("/checkout")}
                     >
+                      <ChevronRight className="h-4 w-4 mr-2 text-primary" />
                       Checkout
                     </Button>
                   </SheetClose>
@@ -87,7 +89,7 @@ export default function Header({
             >
               <path d="M13 10V3L4 14h7v7l9-11h-7z" />
             </svg>
-            <h1 className="ml-2 text-2xl font-heading font-bold text-secondary">Flavor Haven</h1>
+            <h1 className="ml-2 text-3xl font-heading text-primary">BURGER HUB</h1>
           </Button>
         </div>
         
@@ -97,7 +99,7 @@ export default function Header({
               <Button
                 variant="ghost"
                 size="icon"
-                className="text-secondary hover:text-primary transition-colors"
+                className="text-foreground hover:text-primary transition-colors"
                 onClick={onCartToggle}
               >
                 <ShoppingBag className="h-6 w-6" />
@@ -111,24 +113,29 @@ export default function Header({
           )}
           
           <div className="hidden md:block">
-            <Button variant="default" className="bg-primary hover:bg-primary/90">
-              Sign In
+            <Button variant="default" className="bg-primary hover:bg-primary/90 font-menu">
+              SIGN IN
             </Button>
           </div>
         </div>
       </div>
       
       {!hideSearch && (
-        <div className="bg-light py-3 px-4 border-b">
+        <div className="bg-muted py-4 px-4">
           <div className="container mx-auto">
             <div className="relative">
               <Input
-                placeholder="Search for dishes, cuisine..."
-                className="w-full py-2 pl-10 pr-4 rounded-lg border focus:ring-primary"
+                placeholder="Search for burgers, sides, drinks..."
+                className="w-full py-6 pl-12 pr-4 rounded-full border-primary/20 bg-card focus:ring-primary text-lg"
                 value={searchQuery}
                 onChange={handleSearchChange}
               />
-              <Search className="h-5 w-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
+              <Search className="h-6 w-6 text-primary absolute left-4 top-1/2 transform -translate-y-1/2" />
+              <div className="absolute right-4 top-1/2 transform -translate-y-1/2 hidden sm:flex items-center gap-3 text-muted-foreground">
+                <span className="text-sm bg-primary/10 py-1 px-3 rounded-full">burgers</span>
+                <span className="text-sm bg-primary/10 py-1 px-3 rounded-full">fries</span>
+                <span className="text-sm bg-primary/10 py-1 px-3 rounded-full">shakes</span>
+              </div>
             </div>
           </div>
         </div>

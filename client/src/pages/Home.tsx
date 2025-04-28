@@ -35,11 +35,25 @@ export default function Home() {
 
   const handleCategoryChange = (slug: string) => {
     setActiveCategory(slug);
+    // Clear search when selecting a category
+    setSearchQuery("");
   };
 
   const handleSearch = (query: string) => {
     setSearchQuery(query);
     setShowMenu(true);
+    // If clearing search, let category selection be preserved
+    if (!query.trim()) return;
+    
+    // Set activeCategory to null to search across all categories
+    setActiveCategory(null);
+    
+    // Scroll to menu section
+    if (menuRef.current) {
+      setTimeout(() => {
+        menuRef.current?.scrollIntoView({ behavior: 'smooth' });
+      }, 100);
+    }
   };
 
   const scrollToMenu = () => {
@@ -49,22 +63,22 @@ export default function Home() {
     }
   };
 
-  // Animations for hero section
+  // Optimized animations for hero section
   const heroImagesVariants = {
-    initial: { opacity: 0, y: 20 },
+    initial: { opacity: 0, y: 10 },
     animate: { 
       opacity: 1, 
       y: 0,
-      transition: { duration: 0.8, ease: "easeOut" }
+      transition: { duration: 0.5, ease: "easeOut" }
     }
   };
 
   const heroTextVariants = {
-    initial: { opacity: 0, y: -20 },
+    initial: { opacity: 0, y: -10 },
     animate: { 
       opacity: 1, 
       y: 0,
-      transition: { duration: 0.8, delay: 0.3, ease: "easeOut" }
+      transition: { duration: 0.5, delay: 0.2, ease: "easeOut" }
     }
   };
 
@@ -190,27 +204,11 @@ export default function Home() {
                 />
               </div>
               
-              {/* Floating elements for decoration */}
-              <div className="absolute top-10 left-1/4 w-8 h-8 md:w-12 md:h-12 animate-bounce opacity-75">
-                <img 
-                  src="https://images.unsplash.com/photo-1550617931-e17a7b70dce2?auto=format&fit=crop&w=100" 
-                  alt="Tomato" 
-                  className="w-full h-full object-contain rounded-full"
-                />
-              </div>
-              
-              <div className="absolute bottom-10 right-10 w-8 h-8 md:w-12 md:h-12 animate-bounce delay-300 opacity-75">
-                <img 
-                  src="https://images.unsplash.com/photo-1608039858788-7f290bb0058f?auto=format&fit=crop&w=100" 
-                  alt="Onion" 
-                  className="w-full h-full object-contain rounded-full"
-                />
-              </div>
+              {/* Removed bouncing elements to improve performance */}
             </div>
             
-            {/* Decorative circles in the background */}
-            <div className="absolute top-1/4 right-1/4 w-40 h-40 rounded-full bg-primary/10 filter blur-2xl"></div>
-            <div className="absolute bottom-1/3 left-1/3 w-60 h-60 rounded-full bg-accent/10 filter blur-3xl"></div>
+            {/* Simplified decorative gradient in the background for better performance */}
+            <div className="absolute inset-0 opacity-20 bg-gradient-radial from-primary/20 via-transparent to-transparent"></div>
           </motion.div>
         </div>
         

@@ -140,7 +140,7 @@ export class MemStorage implements IStorage {
     const newItem: MenuItem = { 
       ...item, 
       id,
-      popular: item.popular || null,
+      featured: item.featured || null,
       label: item.label || null,
       rating: item.rating || null,
       reviewCount: item.reviewCount || null,
@@ -297,7 +297,7 @@ export class MemStorage implements IStorage {
       price: 8.99,
       categoryId: starters.id,
       image: "https://images.unsplash.com/photo-1559847844-5315695dadae",
-      popular: true,
+      featured: true,
       label: "Popular",
       rating: 5.0,
       reviewCount: 126

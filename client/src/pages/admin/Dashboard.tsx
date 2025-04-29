@@ -1,11 +1,22 @@
-import React, { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import React, { useState, useEffect } from "react";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { useLocation } from "wouter";
-import { MenuCategory, MenuItem, Order } from "@shared/schema";
-import { CreditCard, Menu, ArrowRightLeft, Settings, BarChart3, Users, LogOut, ShoppingBag, Plus, Edit, Trash } from "lucide-react";
+import { MenuCategory, MenuItem, Order, InsertMenuItem, InsertMenuCategory, InsertSpecialOffer } from "@shared/schema";
+import { CreditCard, Menu, ArrowRightLeft, Settings, BarChart3, Users, LogOut, ShoppingBag, Plus, Edit, Trash, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Card, CardHeader, CardContent, CardTitle, CardDescription } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { queryClient, apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 
 // We'll wrap the admin component sections in conditional rendering
 // to avoid errors when the component files are being loaded
@@ -13,6 +24,13 @@ import { Card, CardHeader, CardContent, CardTitle, CardDescription } from "@/com
 export default function AdminDashboard() {
   const [, navigate] = useLocation();
   const [activeTab, setActiveTab] = useState("overview");
+  const [isAddMenuItemOpen, setIsAddMenuItemOpen] = useState(false);
+  const [isEditMenuItemOpen, setIsEditMenuItemOpen] = useState(false);
+  const [isAddCategoryOpen, setIsAddCategoryOpen] = useState(false);
+  const [isUpdateSpecialOpen, setIsUpdateSpecialOpen] = useState(false);
+  const [selectedMenuItem, setSelectedMenuItem] = useState<MenuItem | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState<MenuCategory | null>(null);
+  const { toast } = useToast();
   
   // Fetch menu categories
   const { data: categories, isLoading: categoriesLoading } = useQuery<MenuCategory[]>({
@@ -26,7 +44,147 @@ export default function AdminDashboard() {
   
   // Fetch orders
   const { data: orders, isLoading: ordersLoading } = useQuery<Order[]>({
-    queryKey: ["/api/orders"],
+    queryKey: ["/api/admin/orders"],
+  });
+
+  // Fetch current special offer
+  const { data: specialOffer, isLoading: specialOfferLoading } = useQuery<any>({
+    queryKey: ["/api/special-offer"],
+  });
+
+  // Mutations for menu management
+  const createMenuItemMutation = useMutation({
+    mutationFn: async (data: InsertMenuItem) => {
+      const response = await apiRequest("POST", "/api/admin/menu-items", data);
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/menu-items"] });
+      setIsAddMenuItemOpen(false);
+      toast({
+        title: "Menu item created",
+        description: "The menu item has been added successfully",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Failed to create menu item",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  });
+
+  const updateMenuItemMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: number, data: Partial<InsertMenuItem> }) => {
+      const response = await apiRequest("PATCH", `/api/admin/menu-items/${id}`, data);
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/menu-items"] });
+      setIsEditMenuItemOpen(false);
+      setSelectedMenuItem(null);
+      toast({
+        title: "Menu item updated",
+        description: "The menu item has been updated successfully",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Failed to update menu item",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  });
+
+  const deleteMenuItemMutation = useMutation({
+    mutationFn: async (id: number) => {
+      const response = await apiRequest("DELETE", `/api/admin/menu-items/${id}`);
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/menu-items"] });
+      toast({
+        title: "Menu item deleted",
+        description: "The menu item has been deleted successfully",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Failed to delete menu item",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  });
+
+  const createCategoryMutation = useMutation({
+    mutationFn: async (data: InsertMenuCategory) => {
+      const response = await apiRequest("POST", "/api/admin/categories", data);
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/categories"] });
+      setIsAddCategoryOpen(false);
+      toast({
+        title: "Category created",
+        description: "The category has been added successfully",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Failed to create category",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  });
+
+  const updateSpecialOfferMutation = useMutation({
+    mutationFn: async (data: InsertSpecialOffer) => {
+      // First deactivate all existing specials
+      await apiRequest("POST", "/api/admin/special-offers/deactivate-all");
+      // Then create the new special
+      const response = await apiRequest("POST", "/api/admin/special-offers", data);
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/special-offer"] });
+      setIsUpdateSpecialOpen(false);
+      toast({
+        title: "Special offer updated",
+        description: "Today's special has been updated successfully",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Failed to update special offer",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  });
+
+  const updateOrderStatusMutation = useMutation({
+    mutationFn: async ({ id, status }: { id: number, status: string }) => {
+      const response = await apiRequest("PATCH", `/api/admin/orders/${id}/status`, { status });
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/orders"] });
+      toast({
+        title: "Order status updated",
+        description: "The order status has been updated successfully",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Failed to update order status",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
   });
 
   const handleLogout = () => {
@@ -184,12 +342,33 @@ export default function AdminDashboard() {
             </div>
             
             <div>
-              <Button className="bg-primary hover:bg-primary/90">
-                {activeTab === "overview" && "View Reports"}
-                {activeTab === "orders" && "New Order"}
-                {activeTab === "menu" && "Add Item"}
-                {activeTab === "specials" && "Update Special"}
-              </Button>
+              {activeTab === "overview" && (
+                <Button className="bg-primary hover:bg-primary/90">
+                  View Reports
+                </Button>
+              )}
+              {activeTab === "orders" && (
+                <Button className="bg-primary hover:bg-primary/90">
+                  New Order
+                </Button>
+              )}
+              {activeTab === "menu" && (
+                <div className="flex space-x-2">
+                  <Button variant="outline" onClick={() => setIsAddCategoryOpen(true)}>
+                    <Plus className="h-4 w-4 mr-2" />
+                    New Category
+                  </Button>
+                  <Button className="bg-primary hover:bg-primary/90" onClick={() => setIsAddMenuItemOpen(true)}>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Item
+                  </Button>
+                </div>
+              )}
+              {activeTab === "specials" && (
+                <Button className="bg-primary hover:bg-primary/90" onClick={() => setIsUpdateSpecialOpen(true)}>
+                  Update Special
+                </Button>
+              )}
             </div>
           </div>
           

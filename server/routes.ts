@@ -70,7 +70,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // API Route for creating an order
-  app.post("/api/orders", async (req, res) => {
+  app.post("/api/orders", isAuthenticated, async (req, res) => {
     try {
       // Validate request body
       const orderData = insertOrderSchema.parse(req.body);
@@ -91,7 +91,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // API Route for getting an order by ID
-  app.get("/api/orders/:id", async (req, res) => {
+  app.get("/api/orders/:id", isAuthenticated, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       
@@ -113,7 +113,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // API Route for updating order status
-  app.patch("/api/orders/:id/status", async (req, res) => {
+  app.patch("/api/orders/:id/status", isAdmin, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       
@@ -188,7 +188,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/admin/categories/:id", async (req, res) => {
+  app.delete("/api/admin/categories/:id", isAdmin, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       
@@ -246,7 +246,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/admin/menu-items/:id", async (req, res) => {
+  app.delete("/api/admin/menu-items/:id", isAdmin, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       
@@ -294,7 +294,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Admin routes for special offers management
-  app.post("/api/admin/special-offers", async (req, res) => {
+  app.post("/api/admin/special-offers", isAdmin, async (req, res) => {
     try {
       const offerData = insertSpecialOfferSchema.parse(req.body);
       const offer = await storage.createSpecialOffer(offerData);
@@ -309,7 +309,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch("/api/admin/special-offers/:id", async (req, res) => {
+  app.patch("/api/admin/special-offers/:id", isAdmin, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       
@@ -330,7 +330,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/admin/special-offers/deactivate-all", async (req, res) => {
+  app.delete("/api/admin/special-offers/deactivate-all", isAdmin, async (req, res) => {
     try {
       await storage.deactivateAllSpecialOffers();
       res.json({ message: "All special offers deactivated successfully" });

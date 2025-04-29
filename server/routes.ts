@@ -6,6 +6,8 @@ import { insertOrderSchema, insertMenuItemSchema, insertMenuCategorySchema, inse
 import { setupAuth } from "./auth";
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Set up authentication
+  setupAuth(app);
   // API Routes for menu categories
   app.get("/api/categories", async (req, res) => {
     try {
@@ -135,6 +137,206 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error updating order status:", error);
       res.status(500).json({ message: "Failed to update order status" });
+    }
+  });
+
+  // API Route for getting all orders (admin only)
+  app.get("/api/admin/orders", async (req, res) => {
+    try {
+      const orders = await storage.getOrders();
+      res.json(orders);
+    } catch (error) {
+      console.error("Error fetching orders:", error);
+      res.status(500).json({ message: "Failed to fetch orders" });
+    }
+  });
+
+  // Admin routes for menu category management
+  app.post("/api/admin/categories", async (req, res) => {
+    try {
+      const categoryData = insertMenuCategorySchema.parse(req.body);
+      const category = await storage.createMenuCategory(categoryData);
+      res.status(201).json(category);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ message: "Invalid category data", errors: error.errors });
+      } else {
+        console.error("Error creating category:", error);
+        res.status(500).json({ message: "Failed to create category" });
+      }
+    }
+  });
+
+  app.patch("/api/admin/categories/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "Invalid category ID" });
+      }
+
+      const updatedCategory = await storage.updateMenuCategory(id, req.body);
+      
+      if (!updatedCategory) {
+        return res.status(404).json({ message: "Category not found" });
+      }
+      
+      res.json(updatedCategory);
+    } catch (error) {
+      console.error("Error updating category:", error);
+      res.status(500).json({ message: "Failed to update category" });
+    }
+  });
+
+  app.delete("/api/admin/categories/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "Invalid category ID" });
+      }
+
+      const success = await storage.deleteMenuCategory(id);
+      
+      if (!success) {
+        return res.status(404).json({ message: "Category not found or could not be deleted" });
+      }
+      
+      res.json({ message: "Category deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting category:", error);
+      res.status(500).json({ message: "Failed to delete category" });
+    }
+  });
+
+  // Admin routes for menu item management
+  app.post("/api/admin/menu-items", async (req, res) => {
+    try {
+      const menuItemData = insertMenuItemSchema.parse(req.body);
+      const menuItem = await storage.createMenuItem(menuItemData);
+      res.status(201).json(menuItem);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ message: "Invalid menu item data", errors: error.errors });
+      } else {
+        console.error("Error creating menu item:", error);
+        res.status(500).json({ message: "Failed to create menu item" });
+      }
+    }
+  });
+
+  app.patch("/api/admin/menu-items/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "Invalid menu item ID" });
+      }
+
+      const updatedMenuItem = await storage.updateMenuItem(id, req.body);
+      
+      if (!updatedMenuItem) {
+        return res.status(404).json({ message: "Menu item not found" });
+      }
+      
+      res.json(updatedMenuItem);
+    } catch (error) {
+      console.error("Error updating menu item:", error);
+      res.status(500).json({ message: "Failed to update menu item" });
+    }
+  });
+
+  app.delete("/api/admin/menu-items/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "Invalid menu item ID" });
+      }
+
+      const success = await storage.deleteMenuItem(id);
+      
+      if (!success) {
+        return res.status(404).json({ message: "Menu item not found or could not be deleted" });
+      }
+      
+      res.json({ message: "Menu item deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting menu item:", error);
+      res.status(500).json({ message: "Failed to delete menu item" });
+    }
+  });
+
+  // Special Offers routes
+  app.get("/api/special-offers", async (req, res) => {
+    try {
+      const specialOffers = await storage.getSpecialOffers();
+      res.json(specialOffers);
+    } catch (error) {
+      console.error("Error fetching special offers:", error);
+      res.status(500).json({ message: "Failed to fetch special offers" });
+    }
+  });
+
+  app.get("/api/special-offers/active", async (req, res) => {
+    try {
+      const activeOffer = await storage.getActiveSpecialOffer();
+      
+      if (!activeOffer) {
+        return res.json(null);
+      }
+      
+      res.json(activeOffer);
+    } catch (error) {
+      console.error("Error fetching active special offer:", error);
+      res.status(500).json({ message: "Failed to fetch active special offer" });
+    }
+  });
+
+  // Admin routes for special offers management
+  app.post("/api/admin/special-offers", async (req, res) => {
+    try {
+      const offerData = insertSpecialOfferSchema.parse(req.body);
+      const offer = await storage.createSpecialOffer(offerData);
+      res.status(201).json(offer);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ message: "Invalid special offer data", errors: error.errors });
+      } else {
+        console.error("Error creating special offer:", error);
+        res.status(500).json({ message: "Failed to create special offer" });
+      }
+    }
+  });
+
+  app.patch("/api/admin/special-offers/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "Invalid special offer ID" });
+      }
+
+      const updatedOffer = await storage.updateSpecialOffer(id, req.body);
+      
+      if (!updatedOffer) {
+        return res.status(404).json({ message: "Special offer not found" });
+      }
+      
+      res.json(updatedOffer);
+    } catch (error) {
+      console.error("Error updating special offer:", error);
+      res.status(500).json({ message: "Failed to update special offer" });
+    }
+  });
+
+  app.delete("/api/admin/special-offers/deactivate-all", async (req, res) => {
+    try {
+      await storage.deactivateAllSpecialOffers();
+      res.json({ message: "All special offers deactivated successfully" });
+    } catch (error) {
+      console.error("Error deactivating special offers:", error);
+      res.status(500).json({ message: "Failed to deactivate special offers" });
     }
   });
 

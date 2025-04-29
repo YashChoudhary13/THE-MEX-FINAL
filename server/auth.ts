@@ -1,12 +1,13 @@
 import passport from "passport";
 import { Strategy as LocalStrategy } from "passport-local";
-import { Express } from "express";
+import { Express, Request } from "express";
 import session from "express-session";
 import { User as UserType } from "@shared/schema";
 import { storage } from "./storage";
 
 declare global {
   namespace Express {
+    // eslint-disable-next-line @typescript-eslint/no-empty-interface
     interface User extends UserType {}
   }
 }
@@ -57,12 +58,12 @@ export function setupAuth(app: Express) {
 
   // Authentication routes
   app.post("/api/login", (req, res, next) => {
-    passport.authenticate("local", (err, user, info) => {
+    passport.authenticate("local", (err: any, user: UserType | false, info: { message?: string }) => {
       if (err) return next(err);
       if (!user) {
         return res.status(401).json({ message: info?.message || "Authentication failed" });
       }
-      req.logIn(user, (err) => {
+      req.logIn(user, (err: any) => {
         if (err) return next(err);
         return res.json({ 
           id: user.id, 
@@ -75,7 +76,7 @@ export function setupAuth(app: Express) {
   });
 
   app.post("/api/logout", (req, res) => {
-    req.logout((err) => {
+    req.logout((err: any) => {
       if (err) {
         return res.status(500).json({ message: "Logout failed" });
       }
@@ -88,7 +89,7 @@ export function setupAuth(app: Express) {
       return res.status(401).json({ message: "Not authenticated" });
     }
     
-    const user = req.user as User;
+    const user = req.user as UserType;
     res.json({ 
       id: user.id, 
       username: user.username, 
@@ -122,7 +123,7 @@ export function setupAuth(app: Express) {
         });
         
         // Auto-login after registration
-        req.logIn(newUser, (err) => {
+        req.logIn(newUser, (err: any) => {
           if (err) return next(err);
           return res.status(201).json({ 
             id: newUser.id, 
@@ -144,7 +145,7 @@ export function setupAuth(app: Express) {
       return res.status(401).json({ message: "Authentication required" });
     }
     
-    const user = req.user as User;
+    const user = req.user as UserType;
     if (user.role !== "admin") {
       return res.status(403).json({ message: "Admin access required" });
     }

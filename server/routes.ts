@@ -6,8 +6,8 @@ import { insertOrderSchema, insertMenuItemSchema, insertMenuCategorySchema, inse
 import { setupAuth } from "./auth";
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Set up authentication
-  setupAuth(app);
+  // Set up authentication and get middleware
+  const { isAuthenticated, isAdmin } = setupAuth(app);
   // API Routes for menu categories
   app.get("/api/categories", async (req, res) => {
     try {
@@ -141,7 +141,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // API Route for getting all orders (admin only)
-  app.get("/api/admin/orders", async (req, res) => {
+  app.get("/api/admin/orders", isAdmin, async (req, res) => {
     try {
       const orders = await storage.getOrders();
       res.json(orders);
@@ -152,7 +152,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Admin routes for menu category management
-  app.post("/api/admin/categories", async (req, res) => {
+  app.post("/api/admin/categories", isAdmin, async (req, res) => {
     try {
       const categoryData = insertMenuCategorySchema.parse(req.body);
       const category = await storage.createMenuCategory(categoryData);
@@ -167,7 +167,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch("/api/admin/categories/:id", async (req, res) => {
+  app.patch("/api/admin/categories/:id", isAdmin, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       
@@ -210,7 +210,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Admin routes for menu item management
-  app.post("/api/admin/menu-items", async (req, res) => {
+  app.post("/api/admin/menu-items", isAdmin, async (req, res) => {
     try {
       const menuItemData = insertMenuItemSchema.parse(req.body);
       const menuItem = await storage.createMenuItem(menuItemData);
@@ -225,7 +225,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch("/api/admin/menu-items/:id", async (req, res) => {
+  app.patch("/api/admin/menu-items/:id", isAdmin, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       

@@ -1,26 +1,43 @@
 import passport from "passport";
 import { Strategy as LocalStrategy } from "passport-local";
-import { Express, Request } from "express";
+import { Express } from "express";
 import session from "express-session";
-import { User as UserType } from "@shared/schema";
+import { scrypt, randomBytes, timingSafeEqual } from "crypto";
+import { promisify } from "util";
 import { storage } from "./storage";
+import { User as UserType } from "@shared/schema";
 
 declare global {
   namespace Express {
-    // eslint-disable-next-line @typescript-eslint/no-empty-interface
     interface User extends UserType {}
   }
 }
 
+const scryptAsync = promisify(scrypt);
+
+async function hashPassword(password: string) {
+  const salt = randomBytes(16).toString("hex");
+  const buf = (await scryptAsync(password, salt, 64)) as Buffer;
+  return `${buf.toString("hex")}.${salt}`;
+}
+
+async function comparePasswords(supplied: string, stored: string) {
+  const [hashed, salt] = stored.split(".");
+  const hashedBuf = Buffer.from(hashed, "hex");
+  const suppliedBuf = (await scryptAsync(supplied, salt, 64)) as Buffer;
+  return timingSafeEqual(hashedBuf, suppliedBuf);
+}
+
 export function setupAuth(app: Express) {
+  // Session configuration
   const sessionSettings: session.SessionOptions = {
-    secret: "mex-restaurant-secret-key",
+    secret: process.env.SESSION_SECRET || "mex-restaurant-secret-key",
     resave: false,
     saveUninitialized: false,
     store: storage.sessionStore,
     cookie: {
+      maxAge: 1000 * 60 * 60 * 24 * 7, // 1 week
       secure: process.env.NODE_ENV === "production",
-      maxAge: 24 * 60 * 60 * 1000, // 24 hours
     }
   };
 
@@ -29,20 +46,22 @@ export function setupAuth(app: Express) {
   app.use(passport.initialize());
   app.use(passport.session());
 
+  // Configure passport with local strategy
   passport.use(
     new LocalStrategy(async (username, password, done) => {
       try {
-        const user = await storage.verifyUser(username, password);
-        if (!user) {
-          return done(null, false, { message: "Invalid credentials" });
+        const user = await storage.getUserByUsername(username);
+        if (!user || !(await comparePasswords(password, user.password))) {
+          return done(null, false);
         }
         return done(null, user);
-      } catch (error) {
-        return done(error);
+      } catch (err) {
+        return done(err);
       }
     })
   );
 
+  // Serialize and deserialize user
   passport.serializeUser((user, done) => {
     done(null, user.id);
   });
@@ -51,36 +70,58 @@ export function setupAuth(app: Express) {
     try {
       const user = await storage.getUser(id);
       done(null, user);
-    } catch (error) {
-      done(error);
+    } catch (err) {
+      done(err);
     }
   });
 
-  // Authentication routes
+  // Authentication endpoints
+  app.post("/api/register", async (req, res, next) => {
+    try {
+      // Check if username already exists
+      const existingUser = await storage.getUserByUsername(req.body.username);
+      if (existingUser) {
+        return res.status(400).json({ message: "Username already exists" });
+      }
+
+      // Hash the password
+      const hashedPassword = await hashPassword(req.body.password);
+
+      // Create user
+      const user = await storage.createUser({
+        ...req.body,
+        password: hashedPassword,
+        role: req.body.role || "user", // Default role
+      });
+
+      // Log in the new user
+      req.login(user, (err) => {
+        if (err) return next(err);
+        return res.status(201).json(user);
+      });
+    } catch (error) {
+      console.error("Register error:", error);
+      return res.status(500).json({ message: "Error creating user account" });
+    }
+  });
+
   app.post("/api/login", (req, res, next) => {
-    passport.authenticate("local", (err: any, user: UserType | false, info: { message?: string }) => {
+    passport.authenticate("local", (err: Error, user: UserType) => {
       if (err) return next(err);
       if (!user) {
-        return res.status(401).json({ message: info?.message || "Authentication failed" });
+        return res.status(401).json({ message: "Invalid username or password" });
       }
-      req.logIn(user, (err: any) => {
+      req.login(user, (err) => {
         if (err) return next(err);
-        return res.json({ 
-          id: user.id, 
-          username: user.username, 
-          role: user.role,
-          email: user.email
-        });
+        return res.status(200).json(user);
       });
     })(req, res, next);
   });
 
-  app.post("/api/logout", (req, res) => {
-    req.logout((err: any) => {
-      if (err) {
-        return res.status(500).json({ message: "Logout failed" });
-      }
-      res.json({ message: "Logged out successfully" });
+  app.post("/api/logout", (req, res, next) => {
+    req.logout((err) => {
+      if (err) return next(err);
+      res.status(200).json({ message: "Logged out successfully" });
     });
   });
 
@@ -88,68 +129,23 @@ export function setupAuth(app: Express) {
     if (!req.isAuthenticated()) {
       return res.status(401).json({ message: "Not authenticated" });
     }
-    
-    const user = req.user as UserType;
-    res.json({ 
-      id: user.id, 
-      username: user.username, 
-      role: user.role,
-      email: user.email
-    });
+    return res.json(req.user);
   });
 
-  // Register route (disabled in production to prevent unauthorized user creation)
-  if (process.env.NODE_ENV !== "production") {
-    app.post("/api/register", async (req, res, next) => {
-      try {
-        const { username, password, email, role } = req.body;
-        
-        if (!username || !password) {
-          return res.status(400).json({ message: "Username and password are required" });
-        }
-        
-        // Check if user already exists
-        const existingUser = await storage.getUserByUsername(username);
-        if (existingUser) {
-          return res.status(400).json({ message: "Username already taken" });
-        }
-        
-        // Create new user
-        const newUser = await storage.createUser({
-          username,
-          password,
-          email,
-          role: role || "user",
-        });
-        
-        // Auto-login after registration
-        req.logIn(newUser, (err: any) => {
-          if (err) return next(err);
-          return res.status(201).json({ 
-            id: newUser.id, 
-            username: newUser.username, 
-            role: newUser.role,
-            email: newUser.email
-          });
-        });
-      } catch (error) {
-        console.error("Registration error:", error);
-        res.status(500).json({ message: "Registration failed" });
-      }
-    });
-  }
+  // Authentication middleware
+  const isAuthenticated = (req: any, res: any, next: any) => {
+    if (req.isAuthenticated()) {
+      return next();
+    }
+    res.status(401).json({ message: "Authentication required" });
+  };
 
-  // Middleware for checking if user is authenticated
-  app.use("/api/admin/*", (req, res, next) => {
-    if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: "Authentication required" });
+  const isAdmin = (req: any, res: any, next: any) => {
+    if (req.isAuthenticated() && req.user.role === "admin") {
+      return next();
     }
-    
-    const user = req.user as UserType;
-    if (user.role !== "admin") {
-      return res.status(403).json({ message: "Admin access required" });
-    }
-    
-    next();
-  });
+    res.status(403).json({ message: "Admin privileges required" });
+  };
+
+  return { isAuthenticated, isAdmin };
 }

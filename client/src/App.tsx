@@ -16,6 +16,7 @@ import NotFound from "@/pages/not-found";
 import AdminDashboard from "@/pages/admin/Dashboard";
 import AuthPage from "@/pages/AuthPage";
 import ResetPasswordPage from "@/pages/ResetPasswordPage";
+import UserAccount from "@/pages/UserAccount";
 
 function Router() {
   return (
@@ -35,6 +36,11 @@ function Router() {
       <Route path="/contact" component={Contact} />
       <Route path="/auth" component={AuthPage} />
       <Route path="/reset-password/:token" component={ResetPasswordPage} />
+      <Route path="/account">
+        <ProtectedRoute>
+          <UserAccount />
+        </ProtectedRoute>
+      </Route>
       <Route path="/admin">
         <ProtectedRoute adminOnly>
           <AdminDashboard />

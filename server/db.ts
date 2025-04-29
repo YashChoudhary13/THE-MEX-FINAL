@@ -94,6 +94,55 @@ export async function syncSchema() {
       );
       console.log('Admin user created successfully');
     }
+    
+    // Check if any menu categories exist
+    const categoriesExist = await db.execute(
+      `SELECT COUNT(*) FROM menu_categories`
+    );
+    
+    if (categoriesExist.rows && parseInt(categoriesExist.rows[0].count) === 0) {
+      console.log('No menu categories found. Creating default categories and menu items...');
+      
+      // Create categories
+      await db.execute(`
+        INSERT INTO menu_categories (name, slug) VALUES 
+        ('Starters', 'starters'),
+        ('Main Courses', 'main-courses'),
+        ('Sides', 'sides'),
+        ('Desserts', 'desserts'),
+        ('Drinks', 'drinks')
+      `);
+      
+      // Get the category IDs
+      const categories = await db.execute(`SELECT id, slug FROM menu_categories`);
+      const categoryMap = categories.rows.reduce((map, cat) => {
+        map[cat.slug] = cat.id;
+        return map;
+      }, {});
+      
+      // Create menu items
+      await db.execute(`
+        INSERT INTO menu_items (name, description, price, category_id, image, popular, label, rating, review_count) VALUES 
+        ('Loaded Nachos', 'Crispy tortilla chips topped with melted cheese, jalapeños, guacamole, and sour cream.', 8.99, ${categoryMap['starters']}, 'https://images.unsplash.com/photo-1559847844-5315695dadae', TRUE, 'Popular', 5.0, 126),
+        ('Crispy Calamari', 'Lightly battered calamari rings served with lemon aioli and marinara sauce.', 10.99, ${categoryMap['starters']}, 'https://images.unsplash.com/photo-1625944525533-473f1b3d9684', FALSE, NULL, 4.5, 84),
+        ('Spinach Artichoke Dip', 'Creamy spinach and artichoke dip served with toasted bread and vegetable crudités.', 9.99, ${categoryMap['starters']}, 'https://images.unsplash.com/photo-1576506295286-5cda18df43e7', FALSE, NULL, 4.8, 92),
+        
+        ('Grilled Salmon', 'Fresh Atlantic salmon fillet, grilled to perfection, served with asparagus and lemon butter sauce.', 18.99, ${categoryMap['main-courses']}, 'https://images.unsplash.com/photo-1565299507177-b0ac66763828', FALSE, 'Healthy', 5.0, 156),
+        ('Classic Burger', 'Juicy beef patty with lettuce, tomato, pickles, and our special sauce on a brioche bun. Served with fries.', 14.99, ${categoryMap['main-courses']}, 'https://images.unsplash.com/photo-1513104890138-7c749659a591', TRUE, 'Best Seller', 4.8, 209),
+        ('Margherita Pizza', 'Hand-tossed pizza with tomato sauce, fresh mozzarella, basil, and extra virgin olive oil.', 15.99, ${categoryMap['main-courses']}, 'https://images.unsplash.com/photo-1574071318508-1cdbab80d002', TRUE, NULL, 4.7, 178),
+        
+        ('Truffle Fries', 'Crispy French fries tossed with truffle oil, parmesan cheese, and fresh herbs.', 6.99, ${categoryMap['sides']}, 'https://images.unsplash.com/photo-1639744093327-1aecff9c17b8', FALSE, NULL, 4.9, 112),
+        ('Garlic Bread', 'Toasted bread with garlic butter and melted mozzarella cheese.', 5.99, ${categoryMap['sides']}, 'https://images.unsplash.com/photo-1619535860434-cf54aab1a60c', FALSE, NULL, 4.6, 87),
+        
+        ('Chocolate Lava Cake', 'Warm chocolate cake with a molten center, served with vanilla ice cream.', 7.99, ${categoryMap['desserts']}, 'https://images.unsplash.com/photo-1624353365286-3f8d62daad51', TRUE, 'Popular', 4.9, 143),
+        ('New York Cheesecake', 'Creamy classic cheesecake with graham cracker crust and berry compote.', 8.99, ${categoryMap['desserts']}, 'https://images.unsplash.com/photo-1567171466295-4afa63d45416', FALSE, NULL, 4.8, 124),
+        
+        ('Signature Cocktail', 'House special cocktail with premium spirits, fresh juice, and aromatic bitters.', 12.99, ${categoryMap['drinks']}, 'https://images.unsplash.com/photo-1514362545857-3bc16c4c7d1b', TRUE, 'Signature', 4.9, 98),
+        ('Fresh Berry Smoothie', 'Blend of seasonal berries, yogurt, and honey.', 6.99, ${categoryMap['drinks']}, 'https://images.unsplash.com/photo-1553530666-ba11a90a0868', FALSE, 'Healthy', 4.7, 76)
+      `);
+      
+      console.log('Default menu categories and items created successfully');
+    }
 
     console.log('Database schema synced successfully');
     return true;

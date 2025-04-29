@@ -2,7 +2,8 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { z } from "zod";
-import { insertOrderSchema } from "@shared/schema";
+import { insertOrderSchema, insertMenuItemSchema, insertMenuCategorySchema, insertSpecialOfferSchema } from "@shared/schema";
+import { setupAuth } from "./auth";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // API Routes for menu categories

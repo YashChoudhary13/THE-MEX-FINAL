@@ -309,7 +309,7 @@ export class MemStorage implements IStorage {
       price: 10.99,
       categoryId: starters.id,
       image: "https://images.unsplash.com/photo-1625944525533-473f1b3d9684",
-      popular: false,
+      featured: false,
       rating: 4.5,
       reviewCount: 84
     });
@@ -320,7 +320,7 @@ export class MemStorage implements IStorage {
       price: 9.99,
       categoryId: starters.id,
       image: "https://images.unsplash.com/photo-1576506295286-5cda18df43e7",
-      popular: false,
+      featured: false,
       rating: 4.8,
       reviewCount: 92
     });
@@ -332,7 +332,7 @@ export class MemStorage implements IStorage {
       price: 18.99,
       categoryId: mainCourses.id,
       image: "https://images.unsplash.com/photo-1565299507177-b0ac66763828",
-      popular: false,
+      featured: false,
       label: "Healthy",
       rating: 5.0,
       reviewCount: 156
@@ -344,7 +344,7 @@ export class MemStorage implements IStorage {
       price: 14.99,
       categoryId: mainCourses.id,
       image: "https://images.unsplash.com/photo-1513104890138-7c749659a591",
-      popular: true,
+      featured: true,
       label: "Best Seller",
       rating: 4.8,
       reviewCount: 209
@@ -356,7 +356,7 @@ export class MemStorage implements IStorage {
       price: 15.99,
       categoryId: mainCourses.id,
       image: "https://images.unsplash.com/photo-1574071318508-1cdbab80d002",
-      popular: true,
+      featured: true,
       rating: 4.7,
       reviewCount: 178
     });
@@ -368,7 +368,7 @@ export class MemStorage implements IStorage {
       price: 6.99,
       categoryId: sides.id,
       image: "https://images.unsplash.com/photo-1639744093327-1aecff9c17b8",
-      popular: false,
+      featured: false,
       rating: 4.9,
       reviewCount: 112
     });
@@ -379,7 +379,7 @@ export class MemStorage implements IStorage {
       price: 5.99,
       categoryId: sides.id,
       image: "https://images.unsplash.com/photo-1619535860434-cf54aab1a60c",
-      popular: false,
+      featured: false,
       rating: 4.6,
       reviewCount: 87
     });
@@ -391,7 +391,7 @@ export class MemStorage implements IStorage {
       price: 7.99,
       categoryId: desserts.id,
       image: "https://images.unsplash.com/photo-1624353365286-3f8d62daad51",
-      popular: true,
+      featured: true,
       label: "Popular",
       rating: 4.9,
       reviewCount: 143
@@ -403,7 +403,7 @@ export class MemStorage implements IStorage {
       price: 8.99,
       categoryId: desserts.id,
       image: "https://images.unsplash.com/photo-1567171466295-4afa63d45416",
-      popular: false,
+      featured: false,
       rating: 4.8,
       reviewCount: 124
     });
@@ -415,7 +415,7 @@ export class MemStorage implements IStorage {
       price: 12.99,
       categoryId: drinks.id,
       image: "https://images.unsplash.com/photo-1514362545857-3bc16c4c7d1b",
-      popular: true,
+      featured: true,
       label: "Signature",
       rating: 4.9,
       reviewCount: 98
@@ -427,7 +427,7 @@ export class MemStorage implements IStorage {
       price: 6.99,
       categoryId: drinks.id,
       image: "https://images.unsplash.com/photo-1553530666-ba11a90a0868",
-      popular: false,
+      featured: false,
       label: "Healthy",
       rating: 4.7,
       reviewCount: 76

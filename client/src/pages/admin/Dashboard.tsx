@@ -158,6 +158,7 @@ export default function AdminDashboard() {
       });
     },
     onError: (error) => {
+      console.error("Error updating special offer:", error);
       toast({
         title: "Failed to update special offer",
         description: error.message,
@@ -1195,16 +1196,26 @@ type UpdateSpecialFormProps = {
 function UpdateSpecialForm({ menuItems, onSubmit, isSubmitting }: UpdateSpecialFormProps) {
   const specialFormSchema = z.object({
     menuItemId: z.coerce.number().positive("Please select a menu item"),
-    discountPercent: z.coerce.number().min(1, "Min discount is 1%").max(100, "Max discount is 100%"),
+    discountType: z.string().default("percentage"),
+    discountValue: z.coerce.number().min(1, "Min discount is 1%").max(100, "Max discount is 100%"),
+    originalPrice: z.coerce.number().min(0, "Price cannot be negative"),
+    specialPrice: z.coerce.number().min(0, "Price cannot be negative"),
     active: z.boolean().default(true),
+    startDate: z.date().default(new Date()),
+    endDate: z.date().nullable().optional(),
   });
 
   const form = useForm<z.infer<typeof specialFormSchema>>({
     resolver: zodResolver(specialFormSchema),
     defaultValues: {
       menuItemId: 0,
-      discountPercent: 15,
+      discountType: "percentage",
+      discountValue: 15,
+      originalPrice: 0,
+      specialPrice: 0,
       active: true,
+      startDate: new Date(),
+      endDate: null,
     },
   });
 
@@ -1214,14 +1225,31 @@ function UpdateSpecialForm({ menuItems, onSubmit, isSubmitting }: UpdateSpecialF
 
   const [selectedMenuItem, setSelectedMenuItem] = useState<MenuItem | null>(null);
   const menuItemId = form.watch("menuItemId");
-  const discountPercent = form.watch("discountPercent");
+  const discountValue = form.watch("discountValue");
+  const discountType = form.watch("discountType");
 
   useEffect(() => {
     if (menuItemId) {
       const item = menuItems.find(item => item.id === menuItemId);
-      if (item) setSelectedMenuItem(item);
+      if (item) {
+        setSelectedMenuItem(item);
+        
+        // Calculate special price based on discount
+        if (item && discountValue) {
+          let specialPrice = item.price;
+          
+          if (discountType === "percentage") {
+            specialPrice = item.price * (1 - discountValue / 100);
+          } else if (discountType === "amount") {
+            specialPrice = Math.max(0, item.price - discountValue);
+          }
+          
+          form.setValue("originalPrice", item.price);
+          form.setValue("specialPrice", specialPrice);
+        }
+      }
     }
-  }, [menuItemId, menuItems]);
+  }, [menuItemId, discountValue, discountType, menuItems, form]);
 
   return (
     <Form {...form}>
@@ -1267,9 +1295,9 @@ function UpdateSpecialForm({ menuItems, onSubmit, isSubmitting }: UpdateSpecialF
               <div>
                 <h4 className="font-medium">{selectedMenuItem.name}</h4>
                 <p className="text-sm text-muted-foreground">Regular price: ${selectedMenuItem.price.toFixed(2)}</p>
-                {discountPercent > 0 && (
+                {discountValue > 0 && (
                   <p className="text-sm text-primary-foreground">
-                    Special price: ${(selectedMenuItem.price * (1 - discountPercent / 100)).toFixed(2)}
+                    Special price: ${form.watch("specialPrice").toFixed(2)}
                   </p>
                 )}
               </div>
@@ -1279,20 +1307,116 @@ function UpdateSpecialForm({ menuItems, onSubmit, isSubmitting }: UpdateSpecialF
         
         <FormField
           control={form.control}
-          name="discountPercent"
+          name="discountType"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Discount (%)</FormLabel>
+              <FormLabel>Discount Type</FormLabel>
+              <Select
+                onValueChange={field.onChange}
+                defaultValue={field.value}
+              >
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select discount type" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  <SelectItem value="percentage">Percentage (%)</SelectItem>
+                  <SelectItem value="amount">Fixed Amount ($)</SelectItem>
+                </SelectContent>
+              </Select>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        
+        <FormField
+          control={form.control}
+          name="discountValue"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>
+                {discountType === "percentage" ? "Discount (%)" : "Discount Amount ($)"}
+              </FormLabel>
               <div className="flex items-center gap-2">
                 <FormControl>
-                  <Input type="number" min="1" max="100" {...field} />
+                  <Input 
+                    type="number" 
+                    min="1" 
+                    max={discountType === "percentage" ? "100" : undefined} 
+                    {...field} 
+                  />
                 </FormControl>
-                <span>%</span>
+                <span>{discountType === "percentage" ? "%" : "$"}</span>
               </div>
               <FormMessage />
             </FormItem>
           )}
         />
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <FormField
+            control={form.control}
+            name="originalPrice"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Original Price ($)</FormLabel>
+                <FormControl>
+                  <Input type="number" step="0.01" {...field} readOnly />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          
+          <FormField
+            control={form.control}
+            name="specialPrice"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Special Price ($)</FormLabel>
+                <FormControl>
+                  <Input type="number" step="0.01" {...field} readOnly />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <FormField
+            control={form.control}
+            name="startDate"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Start Date</FormLabel>
+                <FormControl>
+                  <Input type="date" {...field} value={field.value ? new Date(field.value).toISOString().split('T')[0] : ''} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          
+          <FormField
+            control={form.control}
+            name="endDate"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>End Date (Optional)</FormLabel>
+                <FormControl>
+                  <Input 
+                    type="date" 
+                    {...field} 
+                    value={field.value ? new Date(field.value).toISOString().split('T')[0] : ''} 
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
         
         <FormField
           control={form.control}

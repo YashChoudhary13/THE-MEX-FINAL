@@ -13,6 +13,7 @@ import { db } from "./db";
 import bcrypt from "bcryptjs";
 import connectPg from "connect-pg-simple";
 import { pool } from "./db";
+import createMemoryStore from "memorystore";
 
 export interface IStorage {
   // Menu Categories
@@ -61,17 +62,28 @@ export class MemStorage implements IStorage {
   private menuCategories: Map<number, MenuCategory>;
   private menuItems: Map<number, MenuItem>;
   private orders: Map<number, Order>;
+  private users: Map<number, User>;
   private categoryIdCounter: number;
   private menuItemIdCounter: number;
   private orderIdCounter: number;
+  private userIdCounter: number;
+  sessionStore: session.Store;
 
   constructor() {
     this.menuCategories = new Map();
     this.menuItems = new Map();
     this.orders = new Map();
+    this.users = new Map();
     this.categoryIdCounter = 1;
     this.menuItemIdCounter = 1;
     this.orderIdCounter = 1;
+    this.userIdCounter = 1;
+    
+    // Create a memory session store
+    const MemoryStore = createMemoryStore(session);
+    this.sessionStore = new MemoryStore({
+      checkPeriod: 86400000 // 24 hours
+    });
 
     // Initialize with default data
     this.initializeDefaultData();
@@ -140,6 +152,88 @@ export class MemStorage implements IStorage {
     const updatedOrder: Order = { ...order, status };
     this.orders.set(id, updatedOrder);
     return updatedOrder;
+  }
+  
+  async deleteOrder(id: number): Promise<boolean> {
+    return this.orders.delete(id);
+  }
+
+  // Users
+  async getUser(id: number): Promise<User | undefined> {
+    return this.users.get(id);
+  }
+
+  async getUserByUsername(username: string): Promise<User | undefined> {
+    return Array.from(this.users.values()).find(
+      (user) => user.username === username
+    );
+  }
+  
+  async getUserByEmail(email: string): Promise<User | undefined> {
+    if (!email) return undefined;
+    
+    return Array.from(this.users.values()).find(
+      (user) => user.email === email
+    );
+  }
+
+  async createUser(user: InsertUser): Promise<User> {
+    const id = this.userIdCounter++;
+    const newUser: User = { 
+      ...user, 
+      id, 
+      role: user.role || 'user',
+      createdAt: new Date()
+    };
+    this.users.set(id, newUser);
+    return newUser;
+  }
+
+  async verifyUser(username: string, password: string): Promise<User | undefined> {
+    const user = await this.getUserByUsername(username);
+    if (!user) return undefined;
+    
+    // In a real app, we'd compare hashed passwords here
+    return user.password === password ? user : undefined;
+  }
+
+  async updateUserPassword(id: number, password: string): Promise<boolean> {
+    const user = this.users.get(id);
+    if (!user) return false;
+    
+    const updatedUser = { ...user, password };
+    this.users.set(id, updatedUser);
+    return true;
+  }
+  
+  async updateUserProfile(id: number, data: {username?: string, email?: string}): Promise<boolean> {
+    const user = this.users.get(id);
+    if (!user) return false;
+    
+    const updatedUser = { ...user, ...data };
+    this.users.set(id, updatedUser);
+    return true;
+  }
+  
+  // Special Offers
+  async getSpecialOffers(): Promise<SpecialOffer[]> {
+    return [];
+  }
+  
+  async getActiveSpecialOffer(): Promise<(SpecialOffer & { menuItem: MenuItem }) | undefined> {
+    return undefined;
+  }
+  
+  async createSpecialOffer(offer: InsertSpecialOffer): Promise<SpecialOffer> {
+    throw new Error("Not implemented in memory storage");
+  }
+  
+  async updateSpecialOffer(id: number, offer: Partial<InsertSpecialOffer>): Promise<SpecialOffer | undefined> {
+    throw new Error("Not implemented in memory storage");
+  }
+  
+  async deactivateAllSpecialOffers(): Promise<boolean> {
+    return true;
   }
 
   // Initialize with default data
@@ -445,6 +539,19 @@ export class DatabaseStorage implements IStorage {
       return true;
     } catch (error) {
       console.error("Error updating user password:", error);
+      return false;
+    }
+  }
+  
+  async updateUserProfile(id: number, data: {username?: string, email?: string}): Promise<boolean> {
+    try {
+      await db
+        .update(users)
+        .set(data)
+        .where(eq(users.id, id));
+      return true;
+    } catch (error) {
+      console.error("Error updating user profile:", error);
       return false;
     }
   }

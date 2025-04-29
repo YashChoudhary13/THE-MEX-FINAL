@@ -572,23 +572,28 @@ export default function AdminDashboard() {
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
                   <div className="flex gap-2 overflow-x-auto w-full sm:w-auto pb-2">
                     <Button 
-                      variant="secondary"
+                      variant={selectedCategory === null ? "secondary" : "ghost"}
                       size="sm"
+                      onClick={() => setSelectedCategory(null)}
                     >
                       All Items
                     </Button>
                     {categories?.map((category) => (
                       <Button 
                         key={category.id} 
-                        variant="ghost"
+                        variant={selectedCategory?.id === category.id ? "secondary" : "ghost"}
                         size="sm"
+                        onClick={() => setSelectedCategory(category)}
                       >
                         {category.name}
                       </Button>
                     ))}
                   </div>
                   
-                  <Button className="bg-primary hover:bg-primary/90">
+                  <Button 
+                    className="bg-primary hover:bg-primary/90"
+                    onClick={() => setIsAddMenuItemOpen(true)}
+                  >
                     <Plus className="h-4 w-4 mr-2" />
                     Add Menu Item
                   </Button>
@@ -606,7 +611,9 @@ export default function AdminDashboard() {
                       </tr>
                     </thead>
                     <tbody>
-                      {menuItems?.map((item) => {
+                      {menuItems
+                        ?.filter(item => selectedCategory ? item.categoryId === selectedCategory.id : true)
+                        .map((item) => {
                         const category = categories?.find(c => c.id === item.categoryId);
                         return (
                           <tr key={item.id} className="border-t">
@@ -619,12 +626,26 @@ export default function AdminDashboard() {
                                 />
                               </div>
                             </td>
-                            <td className="py-3 px-4 font-medium">{item.name}</td>
+                            <td className="py-3 px-4">
+                              <div>
+                                <p className="font-medium">{item.name}</p>
+                                {item.featured && (
+                                  <span className="text-xs bg-amber-500/10 text-amber-500 px-1.5 py-0.5 rounded">Featured</span>
+                                )}
+                              </div>
+                            </td>
                             <td className="py-3 px-4">{category?.name || "Unknown"}</td>
                             <td className="py-3 px-4">${item.price.toFixed(2)}</td>
                             <td className="py-3 px-4">
                               <div className="flex gap-2">
-                                <Button variant="outline" size="icon">
+                                <Button 
+                                  variant="outline" 
+                                  size="icon"
+                                  onClick={() => {
+                                    setSelectedMenuItem(item);
+                                    setIsEditMenuItemOpen(true);
+                                  }}
+                                >
                                   <Edit className="h-4 w-4" />
                                 </Button>
                                 <Button 
@@ -730,7 +751,572 @@ export default function AdminDashboard() {
             )}
           </div>
         </div>
+        
+        {/* Add Menu Item Dialog */}
+        <Dialog open={isAddMenuItemOpen} onOpenChange={setIsAddMenuItemOpen}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Add New Menu Item</DialogTitle>
+              <DialogDescription>
+                Create a new menu item to add to your restaurant menu.
+              </DialogDescription>
+            </DialogHeader>
+            <AddMenuItemForm
+              categories={categories || []}
+              onSubmit={(data) => createMenuItemMutation.mutate(data)}
+              isSubmitting={createMenuItemMutation.isPending}
+            />
+          </DialogContent>
+        </Dialog>
+        
+        {/* Edit Menu Item Dialog */}
+        <Dialog open={isEditMenuItemOpen} onOpenChange={setIsEditMenuItemOpen}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Edit Menu Item</DialogTitle>
+              <DialogDescription>
+                Update the details of this menu item.
+              </DialogDescription>
+            </DialogHeader>
+            {selectedMenuItem && (
+              <EditMenuItemForm
+                categories={categories || []}
+                menuItem={selectedMenuItem}
+                onSubmit={(data) => updateMenuItemMutation.mutate({ id: selectedMenuItem.id, data })}
+                isSubmitting={updateMenuItemMutation.isPending}
+              />
+            )}
+          </DialogContent>
+        </Dialog>
+        
+        {/* Add Category Dialog */}
+        <Dialog open={isAddCategoryOpen} onOpenChange={setIsAddCategoryOpen}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Add New Category</DialogTitle>
+              <DialogDescription>
+                Create a new category for organizing your menu items.
+              </DialogDescription>
+            </DialogHeader>
+            <AddCategoryForm 
+              onSubmit={(data) => createCategoryMutation.mutate(data)}
+              isSubmitting={createCategoryMutation.isPending}
+            />
+          </DialogContent>
+        </Dialog>
+        
+        {/* Update Special Offer Dialog */}
+        <Dialog open={isUpdateSpecialOpen} onOpenChange={setIsUpdateSpecialOpen}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Update Today's Special</DialogTitle>
+              <DialogDescription>
+                Select a menu item and set a discount for today's special offer.
+              </DialogDescription>
+            </DialogHeader>
+            <UpdateSpecialForm
+              menuItems={menuItems || []}
+              onSubmit={(data) => updateSpecialOfferMutation.mutate(data)}
+              isSubmitting={updateSpecialOfferMutation.isPending}
+            />
+          </DialogContent>
+        </Dialog>
       </main>
     </div>
+  );
+}
+
+// Form components for the admin dialogs
+type AddMenuItemFormProps = {
+  categories: MenuCategory[];
+  onSubmit: (data: InsertMenuItem) => void;
+  isSubmitting: boolean;
+};
+
+function AddMenuItemForm({ categories, onSubmit, isSubmitting }: AddMenuItemFormProps) {
+  const menuItemFormSchema = z.object({
+    name: z.string().min(2, "Name must be at least 2 characters"),
+    description: z.string().min(5, "Description must be at least 5 characters"),
+    price: z.coerce.number().positive("Price must be a positive number"),
+    image: z.string().url("Image must be a valid URL"),
+    categoryId: z.coerce.number().positive("Please select a category"),
+    featured: z.boolean().default(false),
+  });
+
+  const form = useForm<z.infer<typeof menuItemFormSchema>>({
+    resolver: zodResolver(menuItemFormSchema),
+    defaultValues: {
+      name: "",
+      description: "",
+      price: 0,
+      image: "",
+      categoryId: 0,
+      featured: false,
+    },
+  });
+
+  function handleSubmit(values: z.infer<typeof menuItemFormSchema>) {
+    onSubmit(values);
+  }
+
+  return (
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
+        <FormField
+          control={form.control}
+          name="name"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Item Name</FormLabel>
+              <FormControl>
+                <Input placeholder="Loaded Nachos" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="description"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Description</FormLabel>
+              <FormControl>
+                <Textarea placeholder="Crispy nachos topped with cheese, jalapeños, and guacamole" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <div className="grid grid-cols-2 gap-4">
+          <FormField
+            control={form.control}
+            name="price"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Price</FormLabel>
+                <FormControl>
+                  <Input type="number" step="0.01" placeholder="9.99" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="categoryId"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Category</FormLabel>
+                <Select 
+                  onValueChange={(value) => field.onChange(parseInt(value))}
+                  defaultValue={field.value.toString()}
+                >
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a category" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {categories.map((category) => (
+                      <SelectItem key={category.id} value={category.id.toString()}>
+                        {category.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
+        <FormField
+          control={form.control}
+          name="image"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Image URL</FormLabel>
+              <FormControl>
+                <Input placeholder="https://example.com/image.jpg" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="featured"
+          render={({ field }) => (
+            <FormItem className="flex items-center gap-2 space-y-0">
+              <FormControl>
+                <Switch 
+                  checked={field.value}
+                  onCheckedChange={field.onChange}
+                />
+              </FormControl>
+              <FormLabel>Featured Item</FormLabel>
+              <FormDescription className="text-xs ml-auto">Display prominently on the menu</FormDescription>
+            </FormItem>
+          )}
+        />
+        <DialogFooter>
+          <Button type="submit" disabled={isSubmitting}>
+            {isSubmitting ? "Creating..." : "Create Item"}
+          </Button>
+        </DialogFooter>
+      </form>
+    </Form>
+  );
+}
+
+type EditMenuItemFormProps = {
+  categories: MenuCategory[];
+  menuItem: MenuItem;
+  onSubmit: (data: Partial<InsertMenuItem>) => void;
+  isSubmitting: boolean;
+};
+
+function EditMenuItemForm({ categories, menuItem, onSubmit, isSubmitting }: EditMenuItemFormProps) {
+  const menuItemFormSchema = z.object({
+    name: z.string().min(2, "Name must be at least 2 characters"),
+    description: z.string().min(5, "Description must be at least 5 characters"),
+    price: z.coerce.number().positive("Price must be a positive number"),
+    image: z.string().url("Image must be a valid URL"),
+    categoryId: z.coerce.number().positive("Please select a category"),
+    featured: z.boolean().default(false),
+  });
+
+  const form = useForm<z.infer<typeof menuItemFormSchema>>({
+    resolver: zodResolver(menuItemFormSchema),
+    defaultValues: {
+      name: menuItem.name,
+      description: menuItem.description,
+      price: menuItem.price,
+      image: menuItem.image,
+      categoryId: menuItem.categoryId,
+      featured: menuItem.featured,
+    },
+  });
+
+  function handleSubmit(values: z.infer<typeof menuItemFormSchema>) {
+    onSubmit(values);
+  }
+
+  return (
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
+        <FormField
+          control={form.control}
+          name="name"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Item Name</FormLabel>
+              <FormControl>
+                <Input placeholder="Loaded Nachos" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="description"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Description</FormLabel>
+              <FormControl>
+                <Textarea placeholder="Crispy nachos topped with cheese, jalapeños, and guacamole" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <div className="grid grid-cols-2 gap-4">
+          <FormField
+            control={form.control}
+            name="price"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Price</FormLabel>
+                <FormControl>
+                  <Input type="number" step="0.01" placeholder="9.99" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="categoryId"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Category</FormLabel>
+                <Select 
+                  onValueChange={(value) => field.onChange(parseInt(value))}
+                  defaultValue={field.value.toString()}
+                >
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a category" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {categories.map((category) => (
+                      <SelectItem key={category.id} value={category.id.toString()}>
+                        {category.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
+        <FormField
+          control={form.control}
+          name="image"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Image URL</FormLabel>
+              <FormControl>
+                <Input placeholder="https://example.com/image.jpg" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="featured"
+          render={({ field }) => (
+            <FormItem className="flex items-center gap-2 space-y-0">
+              <FormControl>
+                <Switch 
+                  checked={field.value}
+                  onCheckedChange={field.onChange}
+                />
+              </FormControl>
+              <FormLabel>Featured Item</FormLabel>
+              <FormDescription className="text-xs ml-auto">Display prominently on the menu</FormDescription>
+            </FormItem>
+          )}
+        />
+        <DialogFooter>
+          <Button type="submit" disabled={isSubmitting}>
+            {isSubmitting ? "Updating..." : "Update Item"}
+          </Button>
+        </DialogFooter>
+      </form>
+    </Form>
+  );
+}
+
+type AddCategoryFormProps = {
+  onSubmit: (data: InsertMenuCategory) => void;
+  isSubmitting: boolean;
+};
+
+function AddCategoryForm({ onSubmit, isSubmitting }: AddCategoryFormProps) {
+  const categoryFormSchema = z.object({
+    name: z.string().min(2, "Name must be at least 2 characters"),
+    slug: z.string().min(2, "Slug must be at least 2 characters").regex(/^[a-z0-9-]+$/, "Slug can only contain lowercase letters, numbers, and hyphens"),
+  });
+
+  const form = useForm<z.infer<typeof categoryFormSchema>>({
+    resolver: zodResolver(categoryFormSchema),
+    defaultValues: {
+      name: "",
+      slug: "",
+    },
+  });
+
+  function handleSubmit(values: z.infer<typeof categoryFormSchema>) {
+    onSubmit(values);
+  }
+
+  // Auto-generate slug from name
+  const watchName = form.watch("name");
+  React.useEffect(() => {
+    if (watchName) {
+      const slug = watchName.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
+      form.setValue("slug", slug);
+    }
+  }, [watchName, form]);
+
+  return (
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
+        <FormField
+          control={form.control}
+          name="name"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Category Name</FormLabel>
+              <FormControl>
+                <Input placeholder="Main Dishes" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="slug"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Slug</FormLabel>
+              <FormControl>
+                <Input placeholder="main-dishes" {...field} />
+              </FormControl>
+              <FormDescription>
+                URL-friendly version of the name. Auto-generated from the name.
+              </FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <DialogFooter>
+          <Button type="submit" disabled={isSubmitting}>
+            {isSubmitting ? "Creating..." : "Create Category"}
+          </Button>
+        </DialogFooter>
+      </form>
+    </Form>
+  );
+}
+
+type UpdateSpecialFormProps = {
+  menuItems: MenuItem[];
+  onSubmit: (data: InsertSpecialOffer) => void;
+  isSubmitting: boolean;
+};
+
+function UpdateSpecialForm({ menuItems, onSubmit, isSubmitting }: UpdateSpecialFormProps) {
+  const specialFormSchema = z.object({
+    menuItemId: z.coerce.number().positive("Please select a menu item"),
+    discountPercent: z.coerce.number().min(1, "Min discount is 1%").max(100, "Max discount is 100%"),
+    active: z.boolean().default(true),
+  });
+
+  const form = useForm<z.infer<typeof specialFormSchema>>({
+    resolver: zodResolver(specialFormSchema),
+    defaultValues: {
+      menuItemId: 0,
+      discountPercent: 15,
+      active: true,
+    },
+  });
+
+  function handleSubmit(values: z.infer<typeof specialFormSchema>) {
+    onSubmit(values);
+  }
+
+  const [selectedMenuItem, setSelectedMenuItem] = useState<MenuItem | null>(null);
+  const menuItemId = form.watch("menuItemId");
+  const discountPercent = form.watch("discountPercent");
+
+  useEffect(() => {
+    if (menuItemId) {
+      const item = menuItems.find(item => item.id === menuItemId);
+      if (item) setSelectedMenuItem(item);
+    }
+  }, [menuItemId, menuItems]);
+
+  return (
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
+        <FormField
+          control={form.control}
+          name="menuItemId"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Menu Item</FormLabel>
+              <Select 
+                onValueChange={(value) => field.onChange(parseInt(value))}
+                defaultValue={field.value ? field.value.toString() : undefined}
+              >
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a menu item" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  {menuItems.map((item) => (
+                    <SelectItem key={item.id} value={item.id.toString()}>
+                      {item.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        
+        {selectedMenuItem && (
+          <div className="border rounded-md p-3 bg-muted/20">
+            <div className="flex gap-3 items-center">
+              <div className="w-16 h-16 rounded overflow-hidden bg-muted">
+                <img 
+                  src={selectedMenuItem.image} 
+                  alt={selectedMenuItem.name} 
+                  className="w-full h-full object-cover"
+                />
+              </div>
+              <div>
+                <h4 className="font-medium">{selectedMenuItem.name}</h4>
+                <p className="text-sm text-muted-foreground">Regular price: ${selectedMenuItem.price.toFixed(2)}</p>
+                {discountPercent > 0 && (
+                  <p className="text-sm text-primary-foreground">
+                    Special price: ${(selectedMenuItem.price * (1 - discountPercent / 100)).toFixed(2)}
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+        
+        <FormField
+          control={form.control}
+          name="discountPercent"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Discount (%)</FormLabel>
+              <div className="flex items-center gap-2">
+                <FormControl>
+                  <Input type="number" min="1" max="100" {...field} />
+                </FormControl>
+                <span>%</span>
+              </div>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        
+        <FormField
+          control={form.control}
+          name="active"
+          render={({ field }) => (
+            <FormItem className="flex items-center gap-2 space-y-0">
+              <FormControl>
+                <Switch 
+                  checked={field.value}
+                  onCheckedChange={field.onChange}
+                />
+              </FormControl>
+              <FormLabel>Active</FormLabel>
+              <FormDescription className="text-xs ml-auto">Display this special offer on the website</FormDescription>
+            </FormItem>
+          )}
+        />
+        
+        <DialogFooter>
+          <Button type="submit" disabled={isSubmitting}>
+            {isSubmitting ? "Updating..." : "Update Special"}
+          </Button>
+        </DialogFooter>
+      </form>
+    </Form>
   );
 }

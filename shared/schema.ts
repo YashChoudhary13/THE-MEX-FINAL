@@ -25,7 +25,7 @@ export const menuItems = pgTable("menu_items", {
   price: doublePrecision("price").notNull(),
   categoryId: integer("category_id").notNull(),
   image: text("image").notNull(),
-  popular: boolean("popular").default(false),
+  featured: boolean("featured").default(false),
   label: text("label"), // For tags like "Healthy", "Best Seller", etc.
   rating: doublePrecision("rating").default(5.0),
   reviewCount: integer("review_count").default(0),
@@ -41,7 +41,7 @@ export const insertMenuItemSchema = createInsertSchema(menuItems).pick({
   price: true,
   categoryId: true,
   image: true,
-  popular: true,
+  featured: true,
   label: true,
   rating: true,
   reviewCount: true,

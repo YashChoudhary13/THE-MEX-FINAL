@@ -17,7 +17,25 @@ async function hashPassword(password: string) {
 }
 
 export async function comparePasswords(supplied: string, stored: string) {
-  return await bcrypt.compare(supplied, stored);
+  // Check if this is a bcrypt hash (starts with $2b$)
+  if (stored.startsWith('$2b$')) {
+    return await bcrypt.compare(supplied, stored);
+  } 
+  // Check if this is a scrypt hash (contains a period separating hash and salt)
+  else if (stored.includes('.')) {
+    const [hash, salt] = stored.split('.');
+    const crypto = require('crypto');
+    const { promisify } = require('util');
+    const scryptAsync = promisify(crypto.scrypt);
+    
+    const suppliedBuffer = (await scryptAsync(supplied, salt, 64)) as Buffer;
+    const storedBuffer = Buffer.from(hash, 'hex');
+    
+    return crypto.timingSafeEqual(suppliedBuffer, storedBuffer);
+  }
+  
+  // If neither format matches, return false
+  return false;
 }
 
 export function setupAuth(app: Express) {

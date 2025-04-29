@@ -340,6 +340,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // API Route for testing auth
+  app.get("/api/auth/test", isAuthenticated, (req, res) => {
+    res.json({ 
+      message: "You are authenticated!",
+      user: req.user
+    });
+  });
+  
+  // API Route for testing admin auth
+  app.get("/api/admin/test", isAdmin, (req, res) => {
+    res.json({ 
+      message: "You are authenticated as admin!",
+      user: req.user 
+    });
+  });
+
   const httpServer = createServer(app);
 
   return httpServer;

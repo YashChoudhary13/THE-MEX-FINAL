@@ -37,6 +37,7 @@ export default function AuthPage() {
   const [activeTab, setActiveTab] = useState<string>("login");
   const [showResetForm, setShowResetForm] = useState(false);
   const [resetSuccess, setResetSuccess] = useState(false);
+  const [isResettingPassword, setIsResettingPassword] = useState(false);
   const [loginError, setLoginError] = useState<string | null>(null);
   const [registerError, setRegisterError] = useState<string | null>(null);
   const [, navigate] = useLocation();
@@ -102,14 +103,41 @@ export default function AuthPage() {
     });
   };
 
-  const onResetPasswordSubmit = (data: ResetPasswordFormValues) => {
-    // In a real implementation, this would send an email with a reset link
-    // For now, we'll just show a success message
-    setResetSuccess(true);
-    toast({
-      title: "Password reset requested",
-      description: "If an account with this email exists, you will receive instructions to reset your password.",
-    });
+  const onResetPasswordSubmit = async (data: ResetPasswordFormValues) => {
+    setIsResettingPassword(true);
+    try {
+      const response = await fetch('/api/password-reset/request', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email: data.email }),
+      });
+      
+      if (response.ok) {
+        setResetSuccess(true);
+        toast({
+          title: "Password reset requested",
+          description: "If an account with this email exists, you will receive instructions to reset your password.",
+        });
+      } else {
+        const errorData = await response.json();
+        toast({
+          title: "Error",
+          description: errorData.message || "Failed to request password reset. Please try again.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error("Password reset request error:", error);
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsResettingPassword(false);
+    }
   };
 
   return (
@@ -229,7 +257,11 @@ export default function AuthPage() {
                               <Button 
                                 type="submit" 
                                 className="flex-1"
+                                disabled={isResettingPassword}
                               >
+                                {isResettingPassword ? (
+                                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                ) : null}
                                 Reset Password
                               </Button>
                               <Button 

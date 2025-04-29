@@ -34,6 +34,7 @@ function Router() {
       <Route path="/about" component={About} />
       <Route path="/contact" component={Contact} />
       <Route path="/auth" component={AuthPage} />
+      <Route path="/reset-password/:token" component={ResetPasswordPage} />
       <Route path="/admin">
         <ProtectedRoute adminOnly>
           <AdminDashboard />

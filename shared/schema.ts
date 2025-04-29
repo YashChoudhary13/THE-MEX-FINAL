@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, boolean, jsonb, doublePrecision } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, jsonb, doublePrecision, timestamp } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -90,6 +90,53 @@ export const insertOrderSchema = createInsertSchema(orders).pick({
 
 export type InsertOrder = z.infer<typeof insertOrderSchema>;
 export type Order = typeof orders.$inferSelect;
+
+// Users
+export const users = pgTable("users", {
+  id: serial("id").primaryKey(),
+  username: text("username").notNull().unique(),
+  password: text("password").notNull(),
+  email: text("email"),
+  role: text("role").notNull().default("user"), // user, admin
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const insertUserSchema = createInsertSchema(users).pick({
+  username: true,
+  password: true,
+  email: true,
+  role: true,
+});
+
+export type InsertUser = z.infer<typeof insertUserSchema>;
+export type User = typeof users.$inferSelect;
+
+// Special Offers
+export const specialOffers = pgTable("special_offers", {
+  id: serial("id").primaryKey(),
+  menuItemId: integer("menu_item_id").notNull(),
+  discountType: text("discount_type").notNull().default("percentage"), // percentage, amount
+  discountValue: doublePrecision("discount_value").notNull(),
+  originalPrice: doublePrecision("original_price").notNull(),
+  specialPrice: doublePrecision("special_price").notNull(),
+  active: boolean("active").notNull().default(true),
+  startDate: timestamp("start_date").defaultNow(),
+  endDate: timestamp("end_date"),
+});
+
+export const insertSpecialOfferSchema = createInsertSchema(specialOffers).pick({
+  menuItemId: true,
+  discountType: true,
+  discountValue: true,
+  originalPrice: true,
+  specialPrice: true,
+  active: true,
+  startDate: true,
+  endDate: true,
+});
+
+export type InsertSpecialOffer = z.infer<typeof insertSpecialOfferSchema>;
+export type SpecialOffer = typeof specialOffers.$inferSelect;
 
 // Cart Item (client-side type only)
 export type CartItem = {

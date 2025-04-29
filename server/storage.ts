@@ -1,26 +1,57 @@
 import { 
-  MenuCategory, InsertMenuCategory, 
+  MenuCategory, InsertMenuCategory,
   MenuItem, InsertMenuItem,
-  Order, InsertOrder
+  Order, InsertOrder,
+  User, InsertUser,
+  SpecialOffer, InsertSpecialOffer,
+  users, menuCategories, menuItems, orders, specialOffers
 } from "@shared/schema";
+
+import session from "express-session";
+import { eq, and } from "drizzle-orm";
+import { db } from "./db";
+import bcrypt from "bcryptjs";
+import connectPg from "connect-pg-simple";
+import { pool } from "./db";
 
 export interface IStorage {
   // Menu Categories
   getMenuCategories(): Promise<MenuCategory[]>;
   getMenuCategoryBySlug(slug: string): Promise<MenuCategory | undefined>;
   createMenuCategory(category: InsertMenuCategory): Promise<MenuCategory>;
+  updateMenuCategory(id: number, category: Partial<InsertMenuCategory>): Promise<MenuCategory | undefined>;
+  deleteMenuCategory(id: number): Promise<boolean>;
 
   // Menu Items
   getMenuItems(): Promise<MenuItem[]>;
   getMenuItemsByCategory(categoryId: number): Promise<MenuItem[]>;
   getMenuItem(id: number): Promise<MenuItem | undefined>;
   createMenuItem(item: InsertMenuItem): Promise<MenuItem>;
+  updateMenuItem(id: number, item: Partial<InsertMenuItem>): Promise<MenuItem | undefined>;
+  deleteMenuItem(id: number): Promise<boolean>;
 
   // Orders
   getOrders(): Promise<Order[]>;
   getOrder(id: number): Promise<Order | undefined>;
   createOrder(order: InsertOrder): Promise<Order>;
   updateOrderStatus(id: number, status: string): Promise<Order | undefined>;
+  deleteOrder(id: number): Promise<boolean>;
+
+  // Users
+  getUser(id: number): Promise<User | undefined>;
+  getUserByUsername(username: string): Promise<User | undefined>;
+  createUser(user: InsertUser): Promise<User>;
+  verifyUser(username: string, password: string): Promise<User | undefined>;
+  
+  // Special Offers
+  getSpecialOffers(): Promise<SpecialOffer[]>;
+  getActiveSpecialOffer(): Promise<(SpecialOffer & { menuItem: MenuItem }) | undefined>;
+  createSpecialOffer(offer: InsertSpecialOffer): Promise<SpecialOffer>;
+  updateSpecialOffer(id: number, offer: Partial<InsertSpecialOffer>): Promise<SpecialOffer | undefined>;
+  deactivateAllSpecialOffers(): Promise<boolean>;
+  
+  // Session store
+  sessionStore: session.Store;
 }
 
 export class MemStorage implements IStorage {
@@ -263,4 +294,189 @@ export class MemStorage implements IStorage {
   }
 }
 
-export const storage = new MemStorage();
+// Database storage implementation
+export class DatabaseStorage implements IStorage {
+  sessionStore: session.Store;
+
+  constructor() {
+    const PostgresStore = connectPg(session);
+    this.sessionStore = new PostgresStore({
+      pool,
+      tableName: 'session',
+      createTableIfMissing: true
+    });
+  }
+  
+  // Menu Categories
+  async getMenuCategories(): Promise<MenuCategory[]> {
+    return await db.select().from(menuCategories);
+  }
+
+  async getMenuCategoryBySlug(slug: string): Promise<MenuCategory | undefined> {
+    const [category] = await db.select().from(menuCategories).where(eq(menuCategories.slug, slug));
+    return category;
+  }
+
+  async createMenuCategory(category: InsertMenuCategory): Promise<MenuCategory> {
+    const [newCategory] = await db.insert(menuCategories).values(category).returning();
+    return newCategory;
+  }
+
+  async updateMenuCategory(id: number, category: Partial<InsertMenuCategory>): Promise<MenuCategory | undefined> {
+    const [updatedCategory] = await db
+      .update(menuCategories)
+      .set(category)
+      .where(eq(menuCategories.id, id))
+      .returning();
+    return updatedCategory;
+  }
+
+  async deleteMenuCategory(id: number): Promise<boolean> {
+    const result = await db.delete(menuCategories).where(eq(menuCategories.id, id));
+    return true;
+  }
+
+  // Menu Items
+  async getMenuItems(): Promise<MenuItem[]> {
+    return await db.select().from(menuItems);
+  }
+
+  async getMenuItemsByCategory(categoryId: number): Promise<MenuItem[]> {
+    return await db.select().from(menuItems).where(eq(menuItems.categoryId, categoryId));
+  }
+
+  async getMenuItem(id: number): Promise<MenuItem | undefined> {
+    const [item] = await db.select().from(menuItems).where(eq(menuItems.id, id));
+    return item;
+  }
+
+  async createMenuItem(item: InsertMenuItem): Promise<MenuItem> {
+    const [newItem] = await db.insert(menuItems).values(item).returning();
+    return newItem;
+  }
+
+  async updateMenuItem(id: number, item: Partial<InsertMenuItem>): Promise<MenuItem | undefined> {
+    const [updatedItem] = await db
+      .update(menuItems)
+      .set(item)
+      .where(eq(menuItems.id, id))
+      .returning();
+    return updatedItem;
+  }
+
+  async deleteMenuItem(id: number): Promise<boolean> {
+    await db.delete(menuItems).where(eq(menuItems.id, id));
+    return true;
+  }
+
+  // Orders
+  async getOrders(): Promise<Order[]> {
+    return await db.select().from(orders);
+  }
+
+  async getOrder(id: number): Promise<Order | undefined> {
+    const [order] = await db.select().from(orders).where(eq(orders.id, id));
+    return order;
+  }
+
+  async createOrder(order: InsertOrder): Promise<Order> {
+    const [newOrder] = await db.insert(orders).values(order).returning();
+    return newOrder;
+  }
+
+  async updateOrderStatus(id: number, status: string): Promise<Order | undefined> {
+    const [updatedOrder] = await db
+      .update(orders)
+      .set({ status })
+      .where(eq(orders.id, id))
+      .returning();
+    return updatedOrder;
+  }
+
+  async deleteOrder(id: number): Promise<boolean> {
+    await db.delete(orders).where(eq(orders.id, id));
+    return true;
+  }
+
+  // Users
+  async getUser(id: number): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.id, id));
+    return user;
+  }
+
+  async getUserByUsername(username: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.username, username));
+    return user;
+  }
+
+  async createUser(user: InsertUser): Promise<User> {
+    const hashedPassword = await bcrypt.hash(user.password, 10);
+    const [newUser] = await db
+      .insert(users)
+      .values({ ...user, password: hashedPassword })
+      .returning();
+    return newUser;
+  }
+
+  async verifyUser(username: string, password: string): Promise<User | undefined> {
+    const user = await this.getUserByUsername(username);
+    if (!user) return undefined;
+    
+    const isValidPassword = await bcrypt.compare(password, user.password);
+    return isValidPassword ? user : undefined;
+  }
+
+  // Special Offers
+  async getSpecialOffers(): Promise<SpecialOffer[]> {
+    return await db.select().from(specialOffers);
+  }
+
+  async getActiveSpecialOffer(): Promise<(SpecialOffer & { menuItem: MenuItem }) | undefined> {
+    const [specialOffer] = await db
+      .select()
+      .from(specialOffers)
+      .where(eq(specialOffers.active, true));
+    
+    if (!specialOffer) return undefined;
+    
+    const [menuItem] = await db
+      .select()
+      .from(menuItems)
+      .where(eq(menuItems.id, specialOffer.menuItemId));
+    
+    return { ...specialOffer, menuItem };
+  }
+
+  async createSpecialOffer(offer: InsertSpecialOffer): Promise<SpecialOffer> {
+    // First deactivate all other special offers
+    await this.deactivateAllSpecialOffers();
+    
+    const [newOffer] = await db
+      .insert(specialOffers)
+      .values(offer)
+      .returning();
+    
+    return newOffer;
+  }
+
+  async updateSpecialOffer(id: number, offer: Partial<InsertSpecialOffer>): Promise<SpecialOffer | undefined> {
+    const [updatedOffer] = await db
+      .update(specialOffers)
+      .set(offer)
+      .where(eq(specialOffers.id, id))
+      .returning();
+    
+    return updatedOffer;
+  }
+
+  async deactivateAllSpecialOffers(): Promise<boolean> {
+    await db
+      .update(specialOffers)
+      .set({ active: false });
+    
+    return true;
+  }
+}
+
+// Use DatabaseStorage instead of MemStorage
+export const storage = new DatabaseStorage();

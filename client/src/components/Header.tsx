@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { useLocation } from "wouter";
 import { useCart } from "@/context/CartContext";
-import { MenuIcon, Search, ShoppingBag, ChevronRight, Flame, Star } from "lucide-react";
+import { useAuth } from "@/hooks/use-auth";
+import { MenuIcon, Search, ShoppingBag, ChevronRight, Flame, LogOut, User, LayoutDashboard } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { 
@@ -10,6 +11,14 @@ import {
   SheetContent, 
   SheetClose 
 } from "@/components/ui/sheet";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger
+} from "@/components/ui/dropdown-menu";
 
 interface HeaderProps {
   onCartToggle?: () => void;
@@ -24,6 +33,7 @@ export default function Header({
 }: HeaderProps) {
   const [, navigate] = useLocation();
   const { cart, calculateTotals } = useCart();
+  const { user, isAdmin, logoutMutation } = useAuth();
   const [searchQuery, setSearchQuery] = useState("");
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -175,9 +185,38 @@ export default function Header({
           )}
           
           <div className="hidden md:block">
-            <Button variant="default" className="bg-primary hover:bg-primary/90 font-menu">
-              SIGN IN
-            </Button>
+            {user ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" className="gap-2 border-primary/20 hover:bg-primary/10">
+                    <User className="h-4 w-4 text-primary" />
+                    <span className="font-menu">{user.username}</span>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuLabel>My Account</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  {isAdmin && (
+                    <DropdownMenuItem onClick={() => navigate("/admin")}>
+                      <LayoutDashboard className="h-4 w-4 mr-2" />
+                      <span>Admin Dashboard</span>
+                    </DropdownMenuItem>
+                  )}
+                  <DropdownMenuItem onClick={() => logoutMutation.mutate()}>
+                    <LogOut className="h-4 w-4 mr-2" />
+                    <span>Logout</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : (
+              <Button 
+                variant="default" 
+                className="bg-primary hover:bg-primary/90 font-menu"
+                onClick={() => navigate("/auth")}
+              >
+                SIGN IN
+              </Button>
+            )}
           </div>
         </div>
       </div>

@@ -97,6 +97,18 @@ export default function Header({
                       Checkout
                     </Button>
                   </SheetClose>
+                  {user && (
+                  <SheetClose asChild>
+                    <Button
+                      variant="ghost"
+                      className="w-full justify-start font-menu"
+                      onClick={() => navigate("/account")}
+                    >
+                      <User className="h-4 w-4 mr-2 text-primary" />
+                      My Account
+                    </Button>
+                  </SheetClose>
+                  )}
 {isAdmin && (
                   <SheetClose asChild>
                     <Button
@@ -200,12 +212,17 @@ export default function Header({
                 <DropdownMenuContent align="end">
                   <DropdownMenuLabel>My Account</DropdownMenuLabel>
                   <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => navigate("/account")}>
+                    <User className="h-4 w-4 mr-2" />
+                    <span>Account Settings</span>
+                  </DropdownMenuItem>
                   {isAdmin && (
                     <DropdownMenuItem onClick={() => navigate("/admin")}>
                       <LayoutDashboard className="h-4 w-4 mr-2" />
                       <span>Admin Dashboard</span>
                     </DropdownMenuItem>
                   )}
+                  <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={() => logoutMutation.mutate()}>
                     <LogOut className="h-4 w-4 mr-2" />
                     <span>Logout</span>

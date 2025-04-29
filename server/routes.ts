@@ -361,6 +361,79 @@ export async function registerRoutes(app: Express): Promise<Server> {
       user: req.user 
     });
   });
+  
+  // User profile routes
+  app.put("/api/user/profile", isAuthenticated, async (req, res) => {
+    try {
+      const { username, email } = req.body;
+      
+      if (!username) {
+        return res.status(400).json({ message: "Username is required" });
+      }
+      
+      // Check if username is already taken by a different user
+      if (username !== req.user.username) {
+        const existingUser = await storage.getUserByUsername(username);
+        if (existingUser && existingUser.id !== req.user.id) {
+          return res.status(400).json({ message: "Username is already taken" });
+        }
+      }
+      
+      // Check if email is already taken
+      if (email && email !== req.user.email) {
+        const existingUser = await storage.getUserByEmail(email);
+        if (existingUser && existingUser.id !== req.user.id) {
+          return res.status(400).json({ message: "Email is already in use" });
+        }
+      }
+      
+      // Update user profile
+      const updated = await storage.updateUserProfile(req.user.id, { username, email });
+      
+      if (updated) {
+        // Get updated user to return
+        const updatedUser = await storage.getUser(req.user.id);
+        res.status(200).json(updatedUser);
+      } else {
+        res.status(500).json({ message: "Failed to update profile" });
+      }
+    } catch (error) {
+      console.error("Profile update error:", error);
+      res.status(500).json({ message: "An error occurred while updating your profile" });
+    }
+  });
+
+  app.put("/api/user/password", isAuthenticated, async (req, res) => {
+    try {
+      const { currentPassword, newPassword } = req.body;
+      
+      if (!currentPassword || !newPassword) {
+        return res.status(400).json({ message: "Current password and new password are required" });
+      }
+      
+      // Verify current password
+      const user = await storage.getUser(req.user.id);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      if (!await comparePasswords(currentPassword, user.password)) {
+        return res.status(400).json({ message: "Current password is incorrect" });
+      }
+      
+      // Update password
+      const updated = await storage.updateUserPassword(user.id, newPassword);
+      
+      if (updated) {
+        res.status(200).json({ message: "Password has been updated successfully" });
+      } else {
+        res.status(500).json({ message: "Failed to update password" });
+      }
+    } catch (error) {
+      console.error("Password update error:", error);
+      res.status(500).json({ message: "An error occurred while updating your password" });
+    }
+  });
 
   // Password reset request route
   app.post("/api/password-reset/request", async (req, res) => {

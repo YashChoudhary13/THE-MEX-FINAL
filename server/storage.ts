@@ -44,6 +44,7 @@ export interface IStorage {
   createUser(user: InsertUser): Promise<User>;
   verifyUser(username: string, password: string): Promise<User | undefined>;
   updateUserPassword(id: number, password: string): Promise<boolean>;
+  updateUserProfile(id: number, data: {username?: string, email?: string}): Promise<boolean>;
   
   // Special Offers
   getSpecialOffers(): Promise<SpecialOffer[]>;

@@ -40,8 +40,10 @@ export interface IStorage {
   // Users
   getUser(id: number): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
+  getUserByEmail(email: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
   verifyUser(username: string, password: string): Promise<User | undefined>;
+  updateUserPassword(id: number, password: string): Promise<boolean>;
   
   // Special Offers
   getSpecialOffers(): Promise<SpecialOffer[]>;
@@ -424,6 +426,26 @@ export class DatabaseStorage implements IStorage {
     
     const isValidPassword = await bcrypt.compare(password, user.password);
     return isValidPassword ? user : undefined;
+  }
+  
+  async getUserByEmail(email: string): Promise<User | undefined> {
+    if (!email) return undefined;
+    const [user] = await db.select().from(users).where(eq(users.email, email));
+    return user;
+  }
+  
+  async updateUserPassword(id: number, password: string): Promise<boolean> {
+    try {
+      const hashedPassword = await bcrypt.hash(password, 10);
+      await db
+        .update(users)
+        .set({ password: hashedPassword })
+        .where(eq(users.id, id));
+      return true;
+    } catch (error) {
+      console.error("Error updating user password:", error);
+      return false;
+    }
   }
 
   // Special Offers

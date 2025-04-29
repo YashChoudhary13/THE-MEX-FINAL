@@ -15,6 +15,7 @@ import Contact from "@/pages/Contact";
 import NotFound from "@/pages/not-found";
 import AdminDashboard from "@/pages/admin/Dashboard";
 import AuthPage from "@/pages/AuthPage";
+import ResetPasswordPage from "@/pages/ResetPasswordPage";
 
 function Router() {
   return (

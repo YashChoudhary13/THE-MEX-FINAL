@@ -12,23 +12,15 @@ async function hashPassword(password: string) {
 
 async function createAdminUser() {
   try {
-    // Check if admin already exists
-    const existingAdmin = await storage.getUserByUsername("admin");
-    
-    if (existingAdmin) {
-      console.log("Admin user already exists.");
-      return;
-    }
-    
-    // Create admin user
+    // Create admin user with a different username
     const adminUser = await storage.createUser({
-      username: "admin",
-      password: await hashPassword("admin"),
+      username: "superadmin",
+      password: await hashPassword("superadmin123"),
       role: "admin",
       email: "admin@themex.com",
     });
     
-    console.log("Admin user created successfully:", adminUser.username);
+    console.log("New admin user created successfully:", adminUser.username);
   } catch (error) {
     console.error("Error creating admin user:", error);
   } finally {

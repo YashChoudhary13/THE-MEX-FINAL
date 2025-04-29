@@ -4,6 +4,12 @@ import { storage } from "./storage";
 import { z } from "zod";
 import { insertOrderSchema, insertMenuItemSchema, insertMenuCategorySchema, insertSpecialOfferSchema } from "@shared/schema";
 import { setupAuth } from "./auth";
+import { 
+  generatePasswordResetToken, 
+  validatePasswordResetToken, 
+  clearPasswordResetToken,
+  sendPasswordResetEmail 
+} from "./email";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Set up authentication and get middleware
@@ -354,6 +360,114 @@ export async function registerRoutes(app: Express): Promise<Server> {
       message: "You are authenticated as admin!",
       user: req.user 
     });
+  });
+
+  // Password reset request route
+  app.post("/api/password-reset/request", async (req, res) => {
+    try {
+      const { email } = req.body;
+      
+      if (!email || typeof email !== "string") {
+        return res.status(400).json({ message: "Valid email is required" });
+      }
+      
+      // Find user by email
+      const user = await storage.getUserByEmail(email);
+      
+      // For security reasons, always return the same response regardless of whether the email exists
+      // This prevents user enumeration attacks
+      
+      if (user) {
+        // Generate token
+        const token = generatePasswordResetToken(email);
+        
+        // Create reset URL
+        const resetUrl = `${req.protocol}://${req.get('host')}/reset-password/${token}`;
+        
+        // Send email
+        await sendPasswordResetEmail(email, resetUrl);
+      }
+      
+      // Always return success to prevent user enumeration
+      res.json({ 
+        message: "If an account with this email exists, a password reset link has been sent."
+      });
+      
+    } catch (error) {
+      console.error("Error requesting password reset:", error);
+      res.status(500).json({ message: "Failed to process password reset request" });
+    }
+  });
+  
+  // Password reset validation route
+  app.get("/api/password-reset/validate/:token", (req, res) => {
+    try {
+      const { token } = req.params;
+      
+      if (!token) {
+        return res.status(400).json({ message: "Token is required" });
+      }
+      
+      // Validate token
+      const email = validatePasswordResetToken(token);
+      
+      if (!email) {
+        return res.status(400).json({ message: "Invalid or expired token" });
+      }
+      
+      // Token is valid
+      res.json({ 
+        message: "Token is valid",
+        email
+      });
+      
+    } catch (error) {
+      console.error("Error validating reset token:", error);
+      res.status(500).json({ message: "Failed to validate reset token" });
+    }
+  });
+  
+  // Password reset completion route
+  app.post("/api/password-reset/reset", async (req, res) => {
+    try {
+      const { token, password } = req.body;
+      
+      if (!token || !password) {
+        return res.status(400).json({ message: "Token and password are required" });
+      }
+      
+      // Validate token and get email
+      const email = validatePasswordResetToken(token);
+      
+      if (!email) {
+        return res.status(400).json({ message: "Invalid or expired token" });
+      }
+      
+      // Find user by email
+      const user = await storage.getUserByEmail(email);
+      
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      // Update password
+      const updated = await storage.updateUserPassword(user.id, password);
+      
+      if (!updated) {
+        return res.status(500).json({ message: "Failed to update password" });
+      }
+      
+      // Clear token so it can't be used again
+      clearPasswordResetToken(token);
+      
+      res.json({ 
+        message: "Password has been successfully reset"
+      });
+      
+    } catch (error) {
+      console.error("Error resetting password:", error);
+      res.status(500).json({ message: "Failed to reset password" });
+    }
   });
 
   const httpServer = createServer(app);

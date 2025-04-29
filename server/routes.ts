@@ -10,6 +10,7 @@ import {
   clearPasswordResetToken,
   sendPasswordResetEmail 
 } from "./email";
+import { comparePasswords } from './auth';
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Set up authentication and get middleware
@@ -365,6 +366,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // User profile routes
   app.put("/api/user/profile", isAuthenticated, async (req, res) => {
     try {
+      if (!req.user) {
+        return res.status(401).json({ message: "User not authenticated" });
+      }
+
       const { username, email } = req.body;
       
       if (!username) {
@@ -405,6 +410,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.put("/api/user/password", isAuthenticated, async (req, res) => {
     try {
+      if (!req.user) {
+        return res.status(401).json({ message: "User not authenticated" });
+      }
+
       const { currentPassword, newPassword } = req.body;
       
       if (!currentPassword || !newPassword) {

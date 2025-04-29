@@ -106,6 +106,19 @@ export class MemStorage implements IStorage {
     this.menuCategories.set(id, newCategory);
     return newCategory;
   }
+  
+  async updateMenuCategory(id: number, category: Partial<InsertMenuCategory>): Promise<MenuCategory | undefined> {
+    const existingCategory = this.menuCategories.get(id);
+    if (!existingCategory) return undefined;
+    
+    const updatedCategory = { ...existingCategory, ...category };
+    this.menuCategories.set(id, updatedCategory);
+    return updatedCategory;
+  }
+  
+  async deleteMenuCategory(id: number): Promise<boolean> {
+    return this.menuCategories.delete(id);
+  }
 
   // Menu Items
   async getMenuItems(): Promise<MenuItem[]> {
@@ -124,9 +137,33 @@ export class MemStorage implements IStorage {
 
   async createMenuItem(item: InsertMenuItem): Promise<MenuItem> {
     const id = this.menuItemIdCounter++;
-    const newItem: MenuItem = { ...item, id };
+    const newItem: MenuItem = { 
+      ...item, 
+      id,
+      popular: item.popular || null,
+      label: item.label || null,
+      rating: item.rating || null,
+      reviewCount: item.reviewCount || null,
+      ingredients: item.ingredients || null,
+      calories: item.calories || null,
+      allergens: item.allergens || null,
+      dietaryInfo: item.dietaryInfo || null
+    };
     this.menuItems.set(id, newItem);
     return newItem;
+  }
+  
+  async updateMenuItem(id: number, item: Partial<InsertMenuItem>): Promise<MenuItem | undefined> {
+    const existingItem = this.menuItems.get(id);
+    if (!existingItem) return undefined;
+    
+    const updatedItem = { ...existingItem, ...item };
+    this.menuItems.set(id, updatedItem);
+    return updatedItem;
+  }
+  
+  async deleteMenuItem(id: number): Promise<boolean> {
+    return this.menuItems.delete(id);
   }
 
   // Orders
@@ -140,7 +177,13 @@ export class MemStorage implements IStorage {
 
   async createOrder(order: InsertOrder): Promise<Order> {
     const id = this.orderIdCounter++;
-    const newOrder: Order = { ...order, id };
+    const newOrder: Order = { 
+      ...order, 
+      id,
+      status: order.status || 'pending',
+      customerEmail: order.customerEmail || null,
+      deliveryInstructions: order.deliveryInstructions || null
+    };
     this.orders.set(id, newOrder);
     return newOrder;
   }
@@ -183,6 +226,7 @@ export class MemStorage implements IStorage {
       ...user, 
       id, 
       role: user.role || 'user',
+      email: user.email || null,
       createdAt: new Date()
     };
     this.users.set(id, newUser);

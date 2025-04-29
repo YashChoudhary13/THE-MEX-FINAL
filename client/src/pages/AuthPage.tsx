@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLocation, Redirect } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -10,7 +10,9 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Loader2 } from "lucide-react";
+import { Loader2, AlertCircle } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { useToast } from "@/hooks/use-toast";
 
 const loginSchema = z.object({
   username: z.string().min(1, "Username is required"),
@@ -23,18 +25,40 @@ const registerSchema = z.object({
   email: z.string().email("Invalid email address").optional().or(z.literal('')),
 });
 
+const resetPasswordSchema = z.object({
+  email: z.string().email("Invalid email address"),
+});
+
 type LoginFormValues = z.infer<typeof loginSchema>;
 type RegisterFormValues = z.infer<typeof registerSchema>;
+type ResetPasswordFormValues = z.infer<typeof resetPasswordSchema>;
 
 export default function AuthPage() {
   const [activeTab, setActiveTab] = useState<string>("login");
+  const [showResetForm, setShowResetForm] = useState(false);
+  const [resetSuccess, setResetSuccess] = useState(false);
+  const [loginError, setLoginError] = useState<string | null>(null);
+  const [registerError, setRegisterError] = useState<string | null>(null);
   const [, navigate] = useLocation();
   const { user, loginMutation, registerMutation } = useAuth();
+  const { toast } = useToast();
+
+  // Clear errors when switching tabs
+  useEffect(() => {
+    setLoginError(null);
+    setRegisterError(null);
+    setShowResetForm(false);
+    setResetSuccess(false);
+  }, [activeTab]);
 
   // Redirect if already logged in
-  if (user) {
-    return <Redirect to="/" />;
-  }
+  useEffect(() => {
+    if (user && user.role === 'admin') {
+      navigate('/admin');
+    } else if (user) {
+      navigate('/');
+    }
+  }, [user, navigate]);
 
   const loginForm = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
@@ -53,12 +77,39 @@ export default function AuthPage() {
     },
   });
 
+  const resetForm = useForm<ResetPasswordFormValues>({
+    resolver: zodResolver(resetPasswordSchema),
+    defaultValues: {
+      email: "",
+    },
+  });
+
   const onLoginSubmit = (data: LoginFormValues) => {
-    loginMutation.mutate(data);
+    setLoginError(null);
+    loginMutation.mutate(data, {
+      onError: (error) => {
+        setLoginError(error.message);
+      }
+    });
   };
 
   const onRegisterSubmit = (data: RegisterFormValues) => {
-    registerMutation.mutate(data);
+    setRegisterError(null);
+    registerMutation.mutate(data, {
+      onError: (error) => {
+        setRegisterError(error.message);
+      }
+    });
+  };
+
+  const onResetPasswordSubmit = (data: ResetPasswordFormValues) => {
+    // In a real implementation, this would send an email with a reset link
+    // For now, we'll just show a success message
+    setResetSuccess(true);
+    toast({
+      title: "Password reset requested",
+      description: "If an account with this email exists, you will receive instructions to reset your password.",
+    });
   };
 
   return (
@@ -136,15 +187,85 @@ export default function AuthPage() {
                   </Form>
                 </CardContent>
                 <CardFooter className="flex flex-col space-y-4">
-                  <div className="text-sm text-gray-400 text-center">
-                    <span>Don't have an account? </span>
-                    <button
-                      onClick={() => setActiveTab("register")}
-                      className="text-primary underline underline-offset-4 hover:text-primary/90"
-                    >
-                      Register
-                    </button>
-                  </div>
+                  {loginError && (
+                    <Alert variant="destructive" className="bg-red-900/40 border-red-900 text-white">
+                      <AlertCircle className="h-4 w-4" />
+                      <AlertTitle>Login Error</AlertTitle>
+                      <AlertDescription>{loginError}</AlertDescription>
+                    </Alert>
+                  )}
+                  
+                  {showResetForm ? (
+                    <div className="space-y-4 w-full">
+                      {resetSuccess ? (
+                        <Alert className="bg-green-900/40 border-green-900 text-white">
+                          <AlertTitle>Check Your Email</AlertTitle>
+                          <AlertDescription>
+                            If an account with this email exists, you will receive instructions to reset your password.
+                          </AlertDescription>
+                        </Alert>
+                      ) : (
+                        <Form {...resetForm}>
+                          <form onSubmit={resetForm.handleSubmit(onResetPasswordSubmit)} className="space-y-4">
+                            <FormField
+                              control={resetForm.control}
+                              name="email"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Email</FormLabel>
+                                  <FormControl>
+                                    <Input 
+                                      type="email" 
+                                      placeholder="Enter your email address" 
+                                      {...field} 
+                                      className="bg-gray-700 border-gray-600"
+                                    />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                            <div className="flex gap-2">
+                              <Button 
+                                type="submit" 
+                                className="flex-1"
+                              >
+                                Reset Password
+                              </Button>
+                              <Button 
+                                type="button" 
+                                variant="outline"
+                                className="flex-1"
+                                onClick={() => setShowResetForm(false)}
+                              >
+                                Cancel
+                              </Button>
+                            </div>
+                          </form>
+                        </Form>
+                      )}
+                    </div>
+                  ) : (
+                    <>
+                      <div className="text-sm text-gray-400 text-center">
+                        <span>Don't have an account? </span>
+                        <button
+                          onClick={() => setActiveTab("register")}
+                          className="text-primary underline underline-offset-4 hover:text-primary/90"
+                        >
+                          Register
+                        </button>
+                      </div>
+                      <div className="text-sm text-gray-400 text-center">
+                        <button
+                          onClick={() => setShowResetForm(true)}
+                          className="text-primary underline underline-offset-4 hover:text-primary/90"
+                        >
+                          Forgot password?
+                        </button>
+                      </div>
+                    </>
+                  )}
                 </CardFooter>
               </Card>
             </TabsContent>
@@ -227,6 +348,13 @@ export default function AuthPage() {
                   </Form>
                 </CardContent>
                 <CardFooter className="flex flex-col space-y-4">
+                  {registerError && (
+                    <Alert variant="destructive" className="bg-red-900/40 border-red-900 text-white">
+                      <AlertCircle className="h-4 w-4" />
+                      <AlertTitle>Registration Error</AlertTitle>
+                      <AlertDescription>{registerError}</AlertDescription>
+                    </Alert>
+                  )}
                   <div className="text-sm text-gray-400 text-center">
                     <span>Already have an account? </span>
                     <button

@@ -97,16 +97,18 @@ export default function Header({
                       Checkout
                     </Button>
                   </SheetClose>
+{isAdmin && (
                   <SheetClose asChild>
                     <Button
                       variant="ghost"
                       className="w-full justify-start font-menu"
                       onClick={() => navigate("/admin")}
                     >
-                      <ChevronRight className="h-4 w-4 mr-2 text-primary" />
-                      Admin
+                      <LayoutDashboard className="h-4 w-4 mr-2 text-primary" />
+                      Admin Dashboard
                     </Button>
                   </SheetClose>
+                )}
                 </nav>
               </div>
             </SheetContent>
@@ -157,13 +159,15 @@ export default function Header({
             >
               CONTACT
             </Button>
-            <Button 
-              variant="link" 
-              className="font-menu text-foreground hover:text-primary"
-              onClick={() => navigate("/admin")}
-            >
-              ADMIN
-            </Button>
+            {isAdmin && (
+              <Button 
+                variant="link" 
+                className="font-menu text-foreground hover:text-primary"
+                onClick={() => navigate("/admin")}
+              >
+                DASHBOARD
+              </Button>
+            )}
           </div>
         
           {onCartToggle && (

@@ -123,14 +123,21 @@
 }
 
 /* 3D-like food image hover effect - optimized for performance */
+.perspective-1000 {
+  perspective: 1000px;
+}
+
 .food-3d-effect {
-  transition: transform 0.3s ease;
+  transition: transform 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
   transform: translateZ(0); /* Force GPU acceleration */
   will-change: transform; /* Hint to browser for optimization */
+  transform-style: preserve-3d;
+  backface-visibility: hidden;
 }
 
 .food-3d-effect:hover {
-  transform: translateY(-5px) scale(1.03);
+  transform: translateY(-5px) translateZ(20px) rotateX(5deg) rotateY(-5deg) scale(1.03);
+  filter: drop-shadow(0 20px 30px rgba(0, 0, 0, 0.3));
 }
 
 .cart-badge-animation {

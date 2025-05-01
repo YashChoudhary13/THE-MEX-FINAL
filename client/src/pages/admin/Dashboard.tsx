@@ -18,6 +18,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import OrderManager from "./OrderManager";
 
 // We'll wrap the admin component sections in conditional rendering
 // to avoid errors when the component files are being loaded

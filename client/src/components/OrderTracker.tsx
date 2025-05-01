@@ -1,10 +1,11 @@
-import { useEffect, useState } from 'react';
+import React from 'react';
 import { useOrderTracker, OrderStatus } from '@/hooks/use-order-tracker';
-import { Separator } from '@/components/ui/separator';
-import { Progress } from '@/components/ui/progress';
-import { CheckCircle2, Clock, ChefHat, Truck, Package, XCircle, RefreshCw } from 'lucide-react';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { formatDistanceToNow } from 'date-fns';
+import { Progress } from '@/components/ui/progress';
+import { Badge } from '@/components/ui/badge';
+import { Loader2, RefreshCcw, ShoppingBag, Check, ChefHat, Clock, XCircle, AlertTriangle } from 'lucide-react';
+import { format, formatDistance } from 'date-fns';
 
 interface OrderTrackerProps {
   orderId: number;
@@ -12,215 +13,238 @@ interface OrderTrackerProps {
 }
 
 export default function OrderTracker({ orderId, onRefresh }: OrderTrackerProps) {
-  const { order, status, isConnected, error } = useOrderTracker(orderId);
-  const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
+  const { order, isLoading, error, isConnected, refreshOrder } = useOrderTracker(orderId);
   
-  // Update the last updated time whenever order updates
-  useEffect(() => {
-    if (order) {
-      setLastUpdated(new Date());
-    }
-  }, [order]);
-
-  // Calculate progress based on status
-  const getProgress = (): number => {
-    switch (status) {
+  const getProgressValue = (): number => {
+    if (!order || !order.status) return 0;
+    
+    switch (order.status) {
       case OrderStatus.PENDING:
-        return 0;
+        return 10;
       case OrderStatus.CONFIRMED:
-        return 25;
+        return 30;
       case OrderStatus.PREPARING:
-        return 50;
+        return 60;
       case OrderStatus.READY:
-        return 75;
+        return 90;
       case OrderStatus.DELIVERED:
         return 100;
       case OrderStatus.CANCELLED:
-        return 100;
+        return 0;
       default:
         return 0;
     }
   };
-
-  // Get status-specific properties (icon, color, label)
-  const getStatusProps = () => {
-    switch (status) {
+  
+  const getStatusText = (): string => {
+    if (!order || !order.status) return 'Loading order information...';
+    
+    switch (order.status) {
       case OrderStatus.PENDING:
-        return {
-          icon: <Clock className="h-8 w-8 text-amber-500" />,
-          color: 'text-amber-500',
-          bgColor: 'bg-amber-500',
-          label: 'Order Received',
-          description: 'We\'ve received your order and will confirm it shortly.'
-        };
+        return 'Your order has been received and is awaiting confirmation.';
       case OrderStatus.CONFIRMED:
-        return {
-          icon: <CheckCircle2 className="h-8 w-8 text-blue-500" />,
-          color: 'text-blue-500',
-          bgColor: 'bg-blue-500',
-          label: 'Order Confirmed',
-          description: 'Your order has been confirmed and will be prepared soon.'
-        };
+        return 'Your order has been confirmed and will be prepared soon.';
       case OrderStatus.PREPARING:
-        return {
-          icon: <ChefHat className="h-8 w-8 text-orange-500" />,
-          color: 'text-orange-500',
-          bgColor: 'bg-orange-500',
-          label: 'Preparing Your Order',
-          description: 'Our chefs are preparing your delicious meal.'
-        };
+        return 'Your order is being prepared by our chefs.';
       case OrderStatus.READY:
-        return {
-          icon: <Package className="h-8 w-8 text-green-500" />,
-          color: 'text-green-500',
-          bgColor: 'bg-green-500',
-          label: 'Ready for Pickup',
-          description: 'Your order is ready and waiting for you to pick up.'
-        };
+        return 'Your order is ready for pickup!';
       case OrderStatus.DELIVERED:
-        return {
-          icon: <Truck className="h-8 w-8 text-green-700" />,
-          color: 'text-green-700',
-          bgColor: 'bg-green-700',
-          label: 'Delivered',
-          description: 'Your order has been delivered. Enjoy your meal!'
-        };
+        return 'Your order has been delivered. Enjoy your meal!';
       case OrderStatus.CANCELLED:
-        return {
-          icon: <XCircle className="h-8 w-8 text-red-500" />,
-          color: 'text-red-500',
-          bgColor: 'bg-red-500',
-          label: 'Cancelled',
-          description: 'Your order has been cancelled.'
-        };
+        return 'Your order has been cancelled.';
       default:
-        return {
-          icon: <Clock className="h-8 w-8 text-muted-foreground" />,
-          color: 'text-muted-foreground',
-          bgColor: 'bg-muted-foreground',
-          label: 'Status Unknown',
-          description: 'We\'re having trouble tracking your order.'
-        };
+        return 'Order status unknown';
     }
   };
-
-  const statusProps = getStatusProps();
-
-  // Format expected delivery time
-  const getExpectedDeliveryTime = () => {
-    if (!order || status === OrderStatus.CANCELLED) return 'Not available';
+  
+  const getStatusEmoji = () => {
+    if (!order || !order.status) return <Loader2 className="h-6 w-6 animate-spin" />;
     
-    // For this demo, add 30 minutes to the order time for delivery estimate
-    // If createdAt is not available (for older orders), use current time
-    const orderDate = order.createdAt ? new Date(order.createdAt) : new Date();
-    const estimatedTime = new Date(orderDate);
-    estimatedTime.setMinutes(estimatedTime.getMinutes() + 30);
+    switch (order.status) {
+      case OrderStatus.PENDING:
+        return <Clock className="h-6 w-6 text-secondary" />;
+      case OrderStatus.CONFIRMED:
+        return <Check className="h-6 w-6 text-primary" />;
+      case OrderStatus.PREPARING:
+        return <ChefHat className="h-6 w-6 text-primary" />;
+      case OrderStatus.READY:
+        return <ShoppingBag className="h-6 w-6 text-primary" />;
+      case OrderStatus.DELIVERED:
+        return <Check className="h-6 w-6 text-primary" />;
+      case OrderStatus.CANCELLED:
+        return <XCircle className="h-6 w-6 text-destructive" />;
+      default:
+        return <AlertTriangle className="h-6 w-6 text-secondary" />;
+    }
+  };
+  
+  const formatTimeDisplay = (dateString?: string) => {
+    if (!dateString) return 'N/A';
     
-    return formatDistanceToNow(estimatedTime, { addSuffix: true });
+    try {
+      const date = new Date(dateString);
+      return format(date, 'h:mm a');
+    } catch (e) {
+      return 'Invalid time';
+    }
+  };
+  
+  const formatTimeSince = (dateString?: string) => {
+    if (!dateString) return '';
+    
+    try {
+      const date = new Date(dateString);
+      return formatDistance(date, new Date(), { addSuffix: true });
+    } catch (e) {
+      return '';
+    }
+  };
+  
+  const handleRefresh = () => {
+    refreshOrder();
+    if (onRefresh) onRefresh();
   };
 
-  if (!orderId) {
-    return null;
+  if (isLoading) {
+    return (
+      <Card className="w-full">
+        <CardHeader className="pb-4">
+          <CardTitle className="text-2xl">Tracking Order #{orderId}</CardTitle>
+          <CardDescription>Loading order information...</CardDescription>
+        </CardHeader>
+        <CardContent className="flex justify-center py-10">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (error) {
+    return (
+      <Card className="w-full">
+        <CardHeader className="pb-4">
+          <CardTitle className="text-2xl">Tracking Order #{orderId}</CardTitle>
+          <CardDescription>Error loading order</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="text-destructive flex flex-col items-center py-6 space-y-4">
+            <AlertTriangle className="h-12 w-12" />
+            <p>There was an error loading your order. Please try again.</p>
+            <Button onClick={handleRefresh} variant="outline">
+              <RefreshCcw className="mr-2 h-4 w-4" />
+              Retry
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (!order) {
+    return (
+      <Card className="w-full">
+        <CardHeader className="pb-4">
+          <CardTitle className="text-2xl">Tracking Order #{orderId}</CardTitle>
+          <CardDescription>Order not found</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="text-muted-foreground flex flex-col items-center py-6 space-y-4">
+            <ShoppingBag className="h-12 w-12" />
+            <p>We couldn't find this order. Please check your order number and try again.</p>
+          </div>
+        </CardContent>
+      </Card>
+    );
   }
 
   return (
-    <div className="border rounded-lg shadow-sm overflow-hidden bg-card">
-      <div className="p-4 border-b">
-        <div className="flex justify-between items-center">
-          <h3 className="text-lg font-semibold text-primary">Order Status</h3>
-          <div className="flex items-center gap-2">
-            {isConnected ? (
-              <span className="text-xs bg-green-500/20 text-green-500 px-2 py-1 rounded-full flex items-center gap-1">
-                <span className="h-2 w-2 rounded-full bg-green-500"></span> Live
-              </span>
-            ) : (
-              <span className="text-xs bg-red-500/20 text-red-500 px-2 py-1 rounded-full flex items-center gap-1">
-                <span className="h-2 w-2 rounded-full bg-red-500"></span> Disconnected
-              </span>
+    <Card className="w-full">
+      <CardHeader className="pb-4">
+        <div className="flex justify-between items-start">
+          <div>
+            <CardTitle className="text-2xl">Order #{order.id}</CardTitle>
+            <CardDescription>
+              Placed {formatTimeSince(order.createdAt)}
+            </CardDescription>
+          </div>
+          <Badge variant={order.status === OrderStatus.CANCELLED ? 'destructive' : 'default'}>
+            {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
+          </Badge>
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {/* Order status indicator */}
+        <div className="space-y-2">
+          <div className="flex items-center justify-between mb-1">
+            <div className="flex items-center gap-2">
+              {getStatusEmoji()}
+              <span className="font-medium">{getStatusText()}</span>
+            </div>
+            {order.estimatedReadyTime && order.status !== OrderStatus.CANCELLED && (
+              <div className="text-xs font-medium text-muted-foreground">
+                Est. ready by {formatTimeDisplay(order.estimatedReadyTime)}
+              </div>
             )}
-            <Button size="sm" variant="ghost" onClick={onRefresh} disabled={!onRefresh}>
-              <RefreshCw className="h-4 w-4" />
-            </Button>
           </div>
-        </div>
-        <p className="text-xs text-muted-foreground">
-          Last updated: {formatDistanceToNow(lastUpdated, { addSuffix: true })}
-        </p>
-      </div>
-
-      <div className="p-4">
-        {error && (
-          <div className="mb-4 p-3 bg-red-500/10 text-red-500 rounded-md text-sm">
-            {error}
-          </div>
-        )}
-
-        <div className="space-y-6">
-          {/* Status display */}
-          <div className="flex items-center gap-4">
-            {statusProps.icon}
-            <div>
-              <h4 className={`font-semibold ${statusProps.color}`}>
-                {statusProps.label}
-              </h4>
-              <p className="text-sm text-muted-foreground">
-                {statusProps.description}
-              </p>
-            </div>
-          </div>
-
-          {/* Progress bar */}
-          {status !== OrderStatus.CANCELLED && (
-            <div className="space-y-2">
-              <Progress value={getProgress()} className="h-2" />
-            </div>
-          )}
-
-          <Separator />
-
-          {/* Order details */}
-          {order && (
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Order Number</p>
-                  <p className="font-medium">{order.id}</p>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Expected Delivery</p>
-                  <p className="font-medium">{getExpectedDeliveryTime()}</p>
-                </div>
-              </div>
-
-              <div>
-                <p className="text-sm font-medium text-muted-foreground mb-2">Order Items</p>
-                <div className="space-y-2">
-                  {(() => {
-                    // Parse items from JSON string if needed
-                    const parsedItems = typeof order.items === 'string'
-                      ? JSON.parse(order.items)
-                      : (Array.isArray(order.items) ? order.items : []);
-                    
-                    return parsedItems.map((item: any, index: number) => (
-                      <div key={index} className="flex justify-between text-sm">
-                        <span>{item.quantity}x {item.name}</span>
-                        <span className="font-medium">${(item.price * item.quantity).toFixed(2)}</span>
-                      </div>
-                    ));
-                  })()}
-                </div>
-              </div>
-
-              <Separator />
-
-              <div className="flex justify-between font-medium">
-                <span>Total</span>
-                <span>${order.total?.toFixed(2) || 0}</span>
-              </div>
-            </div>
+          
+          {order.status !== OrderStatus.CANCELLED && (
+            <Progress value={getProgressValue()} className="h-2" />
           )}
         </div>
-      </div>
-    </div>
+        
+        {/* Order details */}
+        <div className="border rounded-lg divide-y">
+          <div className="p-3 bg-muted/50">
+            <h3 className="font-semibold text-sm">Order Summary</h3>
+          </div>
+          
+          {/* Order items */}
+          <div className="p-3 divide-y">
+            {order.items.map((item) => (
+              <div key={item.id} className="py-2 flex justify-between">
+                <div className="flex gap-2">
+                  <span>{item.quantity}x</span>
+                  <span>{item.name}</span>
+                </div>
+                <span className="font-medium">${(item.price * item.quantity).toFixed(2)}</span>
+              </div>
+            ))}
+          </div>
+          
+          {/* Order total */}
+          <div className="p-3 bg-muted/30 flex justify-between">
+            <span className="font-semibold">Total</span>
+            <span className="font-bold">${order.total.toFixed(2)}</span>
+          </div>
+        </div>
+        
+        {/* Pickup information */}
+        <div className="border rounded-lg p-3 space-y-2">
+          <h3 className="font-semibold text-sm">Pickup Information</h3>
+          <div className="space-y-1 text-sm">
+            <p><span className="text-muted-foreground">Name:</span> {order.customerName}</p>
+            <p><span className="text-muted-foreground">Phone:</span> {order.customerPhone}</p>
+            <p className="text-muted-foreground text-xs mt-2">
+              Please bring your order number with you for pickup. Payment will be collected at the restaurant.
+            </p>
+          </div>
+        </div>
+        
+        {/* Connection status */}
+        <div className="flex items-center gap-2 text-xs text-muted-foreground justify-end">
+          <div className={`h-2 w-2 rounded-full ${isConnected ? 'bg-green-500' : 'bg-amber-500'}`}></div>
+          <span>{isConnected ? 'Live updates active' : 'Waiting for connection...'}</span>
+        </div>
+      </CardContent>
+      <CardFooter className="flex justify-between border-t pt-4">
+        <Button variant="outline" size="sm" onClick={handleRefresh}>
+          <RefreshCcw className="h-3.5 w-3.5 mr-2" />
+          Refresh
+        </Button>
+        <Button variant="default" size="sm" onClick={() => window.location.href = '/'}>
+          Return to Menu
+        </Button>
+      </CardFooter>
+    </Card>
   );
 }

@@ -79,7 +79,7 @@ export default function OrderManager() {
     order.customerPhone.includes(searchQuery)
   );
   
-  // Get status badge color
+  // Get status badge color based on order status
   const getStatusBadgeVariant = (status: string) => {
     switch (status) {
       case OrderStatus.PENDING:
@@ -87,11 +87,11 @@ export default function OrderManager() {
       case OrderStatus.CONFIRMED:
         return 'default';
       case OrderStatus.PREPARING:
-        return 'warning';
+        return 'secondary';
       case OrderStatus.READY:
-        return 'success';
+        return 'default';
       case OrderStatus.DELIVERED:
-        return 'success';
+        return 'default';
       case OrderStatus.CANCELLED:
         return 'destructive';
       default:

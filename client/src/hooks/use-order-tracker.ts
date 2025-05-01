@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react';
-import { Order } from '@shared/schema';
+import { useState, useEffect, useCallback } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { useToast } from '@/hooks/use-toast';
 
-// Define order status types
 export enum OrderStatus {
   PENDING = 'pending',
   CONFIRMED = 'confirmed',
@@ -11,129 +11,109 @@ export enum OrderStatus {
   CANCELLED = 'cancelled'
 }
 
-// Define types for WebSocket messages
-type OrderUpdateMessage = {
-  type: 'ORDER_UPDATE';
-  orderId: number;
-  order: Order;
-};
+export interface OrderDetails {
+  id: number;
+  status: OrderStatus;
+  customerName: string;
+  customerPhone: string;
+  items: {
+    id: number;
+    name: string;
+    quantity: number;
+    price: number;
+  }[];
+  total: number;
+  createdAt: string;
+  estimatedReadyTime?: string;
+}
 
-type SubscriptionConfirmedMessage = {
-  type: 'SUBSCRIPTION_CONFIRMED';
-  orderId: number;
-};
+export function useOrderTracker(orderId: number) {
+  const [socket, setSocket] = useState<WebSocket | null>(null);
+  const [isConnected, setIsConnected] = useState(false);
+  const { toast } = useToast();
 
-type WebSocketMessage = OrderUpdateMessage | SubscriptionConfirmedMessage;
-
-/**
- * Custom hook for tracking real-time order status
- * @param orderId The ID of the order to track
- */
-export function useOrderTracker(orderId: number | null) {
-  const [order, setOrder] = useState<Order | null>(null);
-  const [status, setStatus] = useState<OrderStatus | null>(null);
-  const [isConnected, setIsConnected] = useState<boolean>(false);
-  const [error, setError] = useState<string | null>(null);
-
+  // Fetch initial order details
+  const { 
+    data: order, 
+    isLoading,
+    error,
+    refetch 
+  } = useQuery<OrderDetails>({
+    queryKey: [`/api/orders/${orderId}`],
+  });
+  
+  // Connect to WebSocket for real-time updates
   useEffect(() => {
+    // Only connect if we have an order ID
     if (!orderId) return;
-
-    let socket: WebSocket | null = null;
-    let reconnectTimer: NodeJS.Timeout | null = null;
-
-    // Function to establish WebSocket connection
-    const connect = () => {
-      try {
-        // Clear any existing error
-        setError(null);
-        
-        // Create WebSocket connection
-        const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-        const wsUrl = `${protocol}//${window.location.host}/ws`;
-        
-        socket = new WebSocket(wsUrl);
-
-        // Set up event handlers
-        socket.onopen = () => {
-          console.log('WebSocket connected!');
-          setIsConnected(true);
-          
-          // Subscribe to order updates
-          if (socket) {
-            socket.send(JSON.stringify({
-              type: 'SUBSCRIBE_TO_ORDER',
-              orderId
-            }));
-          }
-        };
-
-        socket.onmessage = (event) => {
-          try {
-            const message = JSON.parse(event.data) as WebSocketMessage;
-            
-            switch (message.type) {
-              case 'SUBSCRIPTION_CONFIRMED':
-                console.log(`Subscription confirmed for order ${message.orderId}`);
-                break;
-                
-              case 'ORDER_UPDATE':
-                console.log(`Received update for order ${message.orderId}`, message.order);
-                
-                if (message.orderId === orderId) {
-                  setOrder(message.order);
-                  setStatus(message.order.status as OrderStatus);
-                }
-                break;
-            }
-          } catch (err) {
-            console.error('Error processing WebSocket message:', err);
-          }
-        };
-
-        socket.onclose = (event) => {
-          console.log(`WebSocket disconnected: ${event.reason}`);
-          setIsConnected(false);
-          
-          // Attempt to reconnect after a delay, unless we closed it intentionally
-          if (!event.wasClean) {
-            setError('Connection lost. Attempting to reconnect...');
-            reconnectTimer = setTimeout(connect, 3000);
-          }
-        };
-
-        socket.onerror = (event) => {
-          console.error('WebSocket error:', event);
-          setError('Connection error occurred');
-        };
-
-      } catch (err) {
-        console.error('Error setting up WebSocket:', err);
-        setError('Failed to establish connection');
-        
-        // Attempt to reconnect after a delay
-        reconnectTimer = setTimeout(connect, 3000);
-      }
-    };
-
-    // Initial connection
-    connect();
-
-    // Cleanup on unmount
-    return () => {
-      if (socket) {
-        socket.close();
-      }
+    
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const wsUrl = `${protocol}//${window.location.host}/ws`;
+    
+    // Create WebSocket connection
+    const newSocket = new WebSocket(wsUrl);
+    
+    newSocket.onopen = () => {
+      setIsConnected(true);
+      console.log('WebSocket connected');
       
-      if (reconnectTimer) {
-        clearTimeout(reconnectTimer);
+      // Subscribe to updates for this specific order
+      newSocket.send(JSON.stringify({
+        type: 'subscribe',
+        orderId: orderId
+      }));
+    };
+    
+    newSocket.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        
+        // Only process updates for our specific order
+        if (data.type === 'order_update' && data.orderId === orderId) {
+          // Automatically refetch the order data to get the latest
+          refetch();
+          
+          // Show a toast notification about the status change
+          toast({
+            title: 'Order Status Updated',
+            description: `Your order is now ${data.status}`,
+          });
+        }
+      } catch (e) {
+        console.error('Error parsing WebSocket message:', e);
       }
     };
-  }, [orderId]);
+    
+    newSocket.onclose = () => {
+      console.log('WebSocket connection closed');
+      setIsConnected(false);
+    };
+    
+    newSocket.onerror = (error) => {
+      console.error('WebSocket error:', error);
+      setIsConnected(false);
+    };
+    
+    setSocket(newSocket);
+    
+    // Clean up the WebSocket connection when the component unmounts
+    return () => {
+      if (newSocket.readyState === WebSocket.OPEN) {
+        newSocket.close();
+      }
+    };
+  }, [orderId, refetch, toast]);
+  
+  // Function to manually request a refresh of the order data
+  const refreshOrder = useCallback(() => {
+    refetch();
+  }, [refetch]);
 
   return {
     order,
-    status,
+    isLoading,
+    error,
     isConnected,
-    error
+    refreshOrder
   };
 }

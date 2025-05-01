@@ -83,7 +83,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const orderData = insertOrderSchema.parse(req.body);
       
       // Add user ID to order if authenticated
-      if (req.user) {
+      if (req.user && req.isAuthenticated()) {
         orderData.userId = req.user.id;
       }
       
@@ -102,8 +102,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // API Route for getting an order by ID
-  app.get("/api/orders/:id", isAuthenticated, async (req, res) => {
+  // API Route for getting an order by ID (supports both authenticated and guest users)
+  app.get("/api/orders/:id", async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       
@@ -115,6 +115,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       if (!order) {
         return res.status(404).json({ message: "Order not found" });
+      }
+      
+      // If user is authenticated and not admin, check if they own this order
+      if (req.isAuthenticated() && req.user && req.user.role !== 'admin') {
+        // Check if order has a userId and it's different from the authenticated user
+        // The user_id comes from database as a string in the order object
+        const orderUserId = order.user_id ? Number(order.user_id) : null;
+        if (orderUserId && orderUserId !== req.user.id) {
+          return res.status(403).json({ message: "Access denied to this order" });
+        }
       }
       
       res.json(order);

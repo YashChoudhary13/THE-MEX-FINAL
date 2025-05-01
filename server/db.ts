@@ -19,6 +19,16 @@ export async function syncSchema() {
   try {
     console.log('Syncing database schema...');
     
+    // Add user_id column to orders table if it doesn't exist
+    try {
+      await db.execute(`
+        ALTER TABLE orders ADD COLUMN IF NOT EXISTS user_id INTEGER;
+      `);
+      console.log('Ensured user_id column exists in orders table');
+    } catch (error) {
+      console.error('Error adding user_id column to orders table:', error);
+    }
+    
     // Create the tables if they don't exist
     await db.execute(`
       CREATE TABLE IF NOT EXISTS menu_categories (
@@ -58,7 +68,8 @@ export async function syncSchema() {
         tax DOUBLE PRECISION NOT NULL,
         total DOUBLE PRECISION NOT NULL,
         status TEXT NOT NULL DEFAULT 'pending',
-        items JSONB NOT NULL
+        items JSONB NOT NULL,
+        user_id INTEGER
       );
 
       CREATE TABLE IF NOT EXISTS users (

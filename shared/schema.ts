@@ -70,6 +70,7 @@ export const orders = pgTable("orders", {
   total: doublePrecision("total").notNull(),
   status: text("status").notNull().default("pending"), // pending, confirmed, delivered, cancelled
   items: jsonb("items").notNull(), // Serialized cart items
+  userId: integer("user_id"), // Optional: links to users table for authenticated orders
 });
 
 export const insertOrderSchema = createInsertSchema(orders).pick({
@@ -86,6 +87,7 @@ export const insertOrderSchema = createInsertSchema(orders).pick({
   total: true,
   status: true,
   items: true,
+  userId: true,
 });
 
 export type InsertOrder = z.infer<typeof insertOrderSchema>;

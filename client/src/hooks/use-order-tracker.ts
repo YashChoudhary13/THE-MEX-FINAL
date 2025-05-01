@@ -59,7 +59,7 @@ export function useOrderTracker(orderId: number) {
       
       // Subscribe to updates for this specific order
       newSocket.send(JSON.stringify({
-        type: 'subscribe',
+        type: 'SUBSCRIBE_TO_ORDER',
         orderId: orderId
       }));
     };

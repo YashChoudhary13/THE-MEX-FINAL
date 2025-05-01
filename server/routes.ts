@@ -628,7 +628,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   });
 
-  // Update the order status update endpoint to broadcast changes
+  // Admin route for updating order status
   app.patch("/api/orders/:id/status", isAdmin, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
@@ -651,6 +651,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Broadcast the update to all subscribed clients
       broadcastOrderUpdate(id, updatedOrder);
+      
+      res.json(updatedOrder);
+    } catch (error) {
+      console.error("Error updating order status:", error);
+      res.status(500).json({ message: "Failed to update order status" });
+    }
+  });
+  
+  // Test route for updating order status (for testing WebSocket without admin auth)
+  app.patch("/api/test/orders/:id/status", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "Invalid order ID" });
+      }
+      
+      const { status } = req.body;
+      
+      if (!status || typeof status !== "string") {
+        return res.status(400).json({ message: "Invalid status value" });
+      }
+      
+      const updatedOrder = await storage.updateOrderStatus(id, status);
+      
+      if (!updatedOrder) {
+        return res.status(404).json({ message: "Order not found" });
+      }
+      
+      // Broadcast the update to all subscribed clients
+      broadcastOrderUpdate(id, updatedOrder);
+      
+      console.log(`Broadcasting update for order ${id} with status ${status}`);
       
       res.json(updatedOrder);
     } catch (error) {

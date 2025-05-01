@@ -19,14 +19,15 @@ export async function syncSchema() {
   try {
     console.log('Syncing database schema...');
     
-    // Add user_id column to orders table if it doesn't exist
+    // Add user_id and created_at columns to orders table if they don't exist
     try {
       await db.execute(`
         ALTER TABLE orders ADD COLUMN IF NOT EXISTS user_id INTEGER;
+        ALTER TABLE orders ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT NOW();
       `);
-      console.log('Ensured user_id column exists in orders table');
+      console.log('Ensured user_id and created_at columns exist in orders table');
     } catch (error) {
-      console.error('Error adding user_id column to orders table:', error);
+      console.error('Error adding columns to orders table:', error);
     }
     
     // Create the tables if they don't exist
@@ -69,7 +70,8 @@ export async function syncSchema() {
         total DOUBLE PRECISION NOT NULL,
         status TEXT NOT NULL DEFAULT 'pending',
         items JSONB NOT NULL,
-        user_id INTEGER
+        user_id INTEGER,
+        created_at TIMESTAMP DEFAULT NOW()
       );
 
       CREATE TABLE IF NOT EXISTS users (

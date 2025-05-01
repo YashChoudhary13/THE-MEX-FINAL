@@ -497,75 +497,7 @@ export default function AdminDashboard() {
             
             {activeTab === "orders" && (
               <div className="p-6 bg-card rounded-lg">
-                <h2 className="text-xl font-semibold mb-4">Order Management</h2>
-                <div className="flex flex-col md:flex-row gap-4 items-end mb-6">
-                  <div className="w-full md:w-1/3">
-                    <label className="text-sm font-medium mb-2 block">Search Orders</label>
-                    <input 
-                      className="w-full px-3 py-2 border rounded-md bg-background"
-                      placeholder="Search by name or order number..." 
-                    />
-                  </div>
-                  <div className="w-full md:w-1/3">
-                    <label className="text-sm font-medium mb-2 block">Filter by Status</label>
-                    <select className="w-full px-3 py-2 border rounded-md bg-background">
-                      <option value="all">All Orders</option>
-                      <option value="pending">Pending</option>
-                      <option value="processing">Processing</option>
-                      <option value="completed">Completed</option>
-                      <option value="cancelled">Cancelled</option>
-                    </select>
-                  </div>
-                  <Button className="bg-primary hover:bg-primary/90">
-                    Export Orders
-                  </Button>
-                </div>
-                
-                <div className="border rounded-md overflow-hidden">
-                  <table className="w-full">
-                    <thead className="bg-muted/50">
-                      <tr>
-                        <th className="py-3 px-4 text-left">Order ID</th>
-                        <th className="py-3 px-4 text-left">Customer</th>
-                        <th className="py-3 px-4 text-left">Date</th>
-                        <th className="py-3 px-4 text-left">Total</th>
-                        <th className="py-3 px-4 text-left">Status</th>
-                        <th className="py-3 px-4 text-left">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {orders?.map((order) => (
-                        <tr key={order.id} className="border-t">
-                          <td className="py-3 px-4">#{order.id}</td>
-                          <td className="py-3 px-4">{order.customerName}</td>
-                          <td className="py-3 px-4">Apr 28, 2025</td>
-                          <td className="py-3 px-4">${order.total.toFixed(2)}</td>
-                          <td className="py-3 px-4">
-                            <span className={`text-xs px-2 py-1 rounded-full ${
-                              order.status === 'completed' 
-                                ? 'bg-green-500/10 text-green-500' 
-                                : order.status === 'processing' 
-                                  ? 'bg-blue-500/10 text-blue-500'
-                                  : 'bg-orange-500/10 text-orange-500'
-                            }`}>
-                              {order.status.toUpperCase()}
-                            </span>
-                          </td>
-                          <td className="py-3 px-4">
-                            <Button variant="ghost" size="sm">View Details</Button>
-                          </td>
-                        </tr>
-                      ))}
-                      {!orders || orders.length === 0 && (
-                        <tr>
-                          <td colSpan={6} className="py-8 text-center text-muted-foreground">
-                            No orders found
-                          </td>
-                        </tr>
-                      )}
-                    </tbody>
-                  </table>
-                </div>
+                <OrderManager />
               </div>
             )}
             

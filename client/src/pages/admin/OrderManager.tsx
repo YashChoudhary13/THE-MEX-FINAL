@@ -96,7 +96,7 @@ export default function OrderManager() {
   
   // Update order status handler
   const handleStatusUpdate = (orderId: number, newStatus: string) => {
-    updateOrderStatusMutation.mutate({ orderId, newStatus });
+    updateOrderStatusMutation.mutate({ orderId, status: newStatus });
   };
   
   // Format date string
@@ -110,16 +110,16 @@ export default function OrderManager() {
   };
   
   // Get status badge color
-  const getStatusBadgeVariant = (status: string) => {
+  const getStatusBadgeVariant = (status: string): "default" | "destructive" | "outline" | "secondary" => {
     switch (status) {
       case OrderStatus.PENDING:
         return 'secondary';
       case OrderStatus.CONFIRMED:
-        return 'primary';
+        return 'default';
       case OrderStatus.PREPARING:
         return 'default';
       case OrderStatus.READY:
-        return 'success';
+        return 'default';
       case OrderStatus.DELIVERED:
         return 'outline';
       case OrderStatus.CANCELLED:
@@ -275,7 +275,7 @@ export default function OrderManager() {
                 <div>
                   <h4 className="text-sm font-medium text-muted-foreground">Items</h4>
                   <ul className="text-sm border rounded-md divide-y">
-                    {order.items.map((item, index) => (
+                    {order.items && Array.isArray(order.items) && order.items.map((item: any, index: number) => (
                       <li key={index} className="flex justify-between p-2">
                         <span>{item.quantity}x {item.name}</span>
                         <span>${(item.price * item.quantity).toFixed(2)}</span>

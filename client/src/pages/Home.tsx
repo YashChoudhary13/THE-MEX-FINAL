@@ -118,8 +118,8 @@ export default function Home() {
         onSearch={handleSearch} 
       />
       
-      {/* Hero Section with 3D Food */}
-      <section className="py-14 md:py-28 bg-gradient-to-b from-secondary/30 to-background relative overflow-hidden">
+      {/* Hero Section with Enhanced 3D Food Effect */}
+      <section className="py-14 md:py-28 bg-gradient-to-b from-secondary/40 via-secondary/20 to-background relative overflow-hidden">
         <div className="container mx-auto px-4 flex flex-col lg:flex-row items-center">
           {/* Left Text Content */}
           <motion.div 
@@ -199,7 +199,7 @@ export default function Home() {
             </div>
           </motion.div>
           
-          {/* Right 3D Food Images - Only visible on larger screens */}
+          {/* Right 3D Food Images - Enhanced version for larger screens */}
           {!isMobile ? (
             <motion.div 
               className="lg:w-1/2 relative"
@@ -208,13 +208,20 @@ export default function Home() {
               variants={heroImagesVariants}
             >
               <div className="relative h-80 md:h-[32rem] w-full perspective-1000">
-                {/* Main Burger Image */}
-                <div className="food-3d-effect absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 md:w-80 md:h-80 z-20 cursor-pointer hover:scale-105 transition-transform duration-300"
+                {/* Decorative Light Effects */}
+                <div className="absolute w-full h-full">
+                  <div className="absolute top-1/4 left-1/3 w-40 h-40 rounded-full bg-primary/10 blur-3xl"></div>
+                  <div className="absolute bottom-1/3 right-1/4 w-32 h-32 rounded-full bg-primary/15 blur-3xl"></div>
+                </div>
+                
+                {/* Main Burger Image - Featured focal point */}
+                <div className="food-3d-effect absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 md:w-80 md:h-80 z-20 cursor-pointer"
                      onClick={() => {
                        setActiveCategory("burgers");
                        scrollToMenu();
                      }}
                 >
+                  <div className="absolute -inset-5 bg-gradient-to-r from-primary/20 to-transparent rounded-full blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
                   <img 
                     src="https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=800" 
                     alt="Delicious Burger" 
@@ -222,9 +229,9 @@ export default function Home() {
                   />
                 </div>
                 
-                {/* Secondary food images positioned around */}
+                {/* Secondary food images with enhanced positioning and effects */}
                 <div 
-                  className="absolute left-0 top-1/4 w-32 h-32 md:w-48 md:h-48 rotate-12 opacity-70 z-10 food-3d-effect cursor-pointer hover:scale-105 transition-transform duration-300"
+                  className="absolute left-0 top-1/4 w-32 h-32 md:w-48 md:h-48 rotate-12 z-10 food-3d-effect cursor-pointer"
                   onClick={() => {
                     setActiveCategory("sides");
                     scrollToMenu();
@@ -238,7 +245,7 @@ export default function Home() {
                 </div>
                 
                 <div 
-                  className="absolute right-0 top-2/3 w-24 h-24 md:w-40 md:h-40 -rotate-6 opacity-80 z-10 food-3d-effect cursor-pointer hover:scale-105 transition-transform duration-300"
+                  className="absolute right-0 top-2/3 w-24 h-24 md:w-40 md:h-40 -rotate-6 z-10 food-3d-effect cursor-pointer"
                   onClick={() => {
                     setActiveCategory("drinks");
                     scrollToMenu();
@@ -252,11 +259,12 @@ export default function Home() {
                 </div>
               </div>
               
-              {/* Simplified decorative gradient in the background for better performance */}
-              <div className="absolute inset-0 opacity-20 bg-gradient-radial from-primary/20 via-transparent to-transparent"></div>
+              {/* Enhanced background effects */}
+              <div className="absolute inset-0 bg-gradient-radial from-primary/10 via-transparent to-transparent opacity-60"></div>
+              <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-primary/5 via-transparent to-transparent opacity-70"></div>
             </motion.div>
           ) : (
-            // Simplified mobile hero image (single focused image)
+            // Enhanced mobile hero image with improved effects
             <motion.div 
               className="w-full relative mb-6"
               initial="initial"
@@ -264,7 +272,12 @@ export default function Home() {
               variants={heroImagesVariants}
             >
               <div className="relative h-64 w-full">
-                <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-56 h-56 z-20 cursor-pointer hover:scale-105 transition-transform duration-300"
+                {/* Light effect for mobile */}
+                <div className="absolute w-full h-full overflow-hidden">
+                  <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-40 h-40 rounded-full bg-primary/10 blur-3xl"></div>
+                </div>
+                
+                <div className="food-3d-effect absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-56 h-56 z-20 cursor-pointer"
                   onClick={() => {
                     setActiveCategory("burgers");
                     scrollToMenu();
@@ -273,7 +286,7 @@ export default function Home() {
                   <img 
                     src="https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=800" 
                     alt="Delicious Burger" 
-                    className="w-full h-full object-contain drop-shadow-[0_10px_25px_rgba(255,80,0,0.4)]"
+                    className="w-full h-full object-contain drop-shadow-[0_15px_30px_rgba(255,80,0,0.5)]"
                   />
                 </div>
               </div>

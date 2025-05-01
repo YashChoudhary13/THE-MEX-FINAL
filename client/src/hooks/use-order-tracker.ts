@@ -69,15 +69,19 @@ export function useOrderTracker(orderId: number) {
         const data = JSON.parse(event.data);
         
         // Only process updates for our specific order
-        if (data.type === 'order_update' && data.orderId === orderId) {
+        if (data.type === 'ORDER_UPDATE' && data.orderId === orderId) {
           // Automatically refetch the order data to get the latest
           refetch();
           
           // Show a toast notification about the status change
-          toast({
-            title: 'Order Status Updated',
-            description: `Your order is now ${data.status}`,
-          });
+          if (data.order && data.order.status) {
+            toast({
+              title: 'Order Status Updated',
+              description: `Your order is now ${data.order.status}`,
+            });
+          }
+        } else if (data.type === 'SUBSCRIPTION_CONFIRMED' && data.orderId === orderId) {
+          console.log('Successfully subscribed to order updates');
         }
       } catch (e) {
         console.error('Error parsing WebSocket message:', e);

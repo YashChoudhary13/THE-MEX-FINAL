@@ -55,21 +55,26 @@ export function useOrderTracker(orderId: number) {
     
     newSocket.onopen = () => {
       setIsConnected(true);
-      console.log('WebSocket connected');
+      console.log('WebSocket connected for order tracking');
       
       // Subscribe to updates for this specific order
-      newSocket.send(JSON.stringify({
+      const subscriptionMessage = {
         type: 'SUBSCRIBE_TO_ORDER',
         orderId: orderId
-      }));
+      };
+      console.log('Sending subscription message:', subscriptionMessage);
+      newSocket.send(JSON.stringify(subscriptionMessage));
     };
     
     newSocket.onmessage = (event) => {
       try {
+        console.log('WebSocket message received:', event.data);
         const data = JSON.parse(event.data);
+        console.log('Parsed WebSocket data:', data);
         
         // Only process updates for our specific order
         if (data.type === 'ORDER_UPDATE' && data.orderId === orderId) {
+          console.log('Received order update for order:', orderId);
           // Automatically refetch the order data to get the latest
           refetch();
           
@@ -81,7 +86,9 @@ export function useOrderTracker(orderId: number) {
             });
           }
         } else if (data.type === 'SUBSCRIPTION_CONFIRMED' && data.orderId === orderId) {
-          console.log('Successfully subscribed to order updates');
+          console.log('Successfully subscribed to order updates for order:', orderId);
+        } else {
+          console.log('Received message with unhandled type or different order ID');
         }
       } catch (e) {
         console.error('Error parsing WebSocket message:', e);

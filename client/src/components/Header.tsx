@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useLocation } from "wouter";
 import { useCart } from "@/context/CartContext";
 import { useAuth } from "@/hooks/use-auth";
-import { MenuIcon, Search, ShoppingBag, ChevronRight, Flame, LogOut, User, LayoutDashboard } from "lucide-react";
+import { MenuIcon, Search, ShoppingBag, ChevronRight, Flame, LogOut, User, LayoutDashboard, MapPin } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { 
@@ -97,6 +97,16 @@ export default function Header({
                       Checkout
                     </Button>
                   </SheetClose>
+                  <SheetClose asChild>
+                    <Button
+                      variant="ghost"
+                      className="w-full justify-start font-menu"
+                      onClick={() => navigate("/track-order")}
+                    >
+                      <MapPin className="h-4 w-4 mr-2 text-primary" />
+                      Track Order
+                    </Button>
+                  </SheetClose>
                   {user && (
                   <SheetClose asChild>
                     <Button
@@ -170,6 +180,14 @@ export default function Header({
               onClick={() => navigate("/contact")}
             >
               CONTACT
+            </Button>
+            <Button 
+              variant="link" 
+              className="font-menu text-foreground hover:text-primary flex items-center"
+              onClick={() => navigate("/track-order")}
+            >
+              <MapPin className="h-4 w-4 mr-1 text-primary" />
+              TRACK ORDER
             </Button>
             {isAdmin && (
               <Button 

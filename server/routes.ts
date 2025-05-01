@@ -1,5 +1,6 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
+import { WebSocketServer, WebSocket } from 'ws';
 import { storage } from "./storage";
 import { z } from "zod";
 import { insertOrderSchema, insertMenuItemSchema, insertMenuCategorySchema, insertSpecialOfferSchema } from "@shared/schema";
@@ -11,6 +12,27 @@ import {
   sendPasswordResetEmail 
 } from "./email";
 import { comparePasswords } from './auth';
+
+// Map to keep track of WebSocket connections by order ID
+const orderSocketConnections = new Map<number, Set<WebSocket>>();
+
+// Function to broadcast order status updates to all connected clients for a specific order
+function broadcastOrderUpdate(orderId: number, orderData: any) {
+  const connections = orderSocketConnections.get(orderId);
+  if (connections) {
+    const message = JSON.stringify({
+      type: 'ORDER_UPDATE',
+      orderId,
+      order: orderData
+    });
+    
+    connections.forEach(client => {
+      if (client.readyState === WebSocket.OPEN) {
+        client.send(message);
+      }
+    });
+  }
+}
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Set up authentication and get middleware
@@ -133,33 +155,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // API Route for updating order status
-  app.patch("/api/orders/:id/status", isAdmin, async (req, res) => {
-    try {
-      const id = parseInt(req.params.id);
-      
-      if (isNaN(id)) {
-        return res.status(400).json({ message: "Invalid order ID" });
-      }
-      
-      const { status } = req.body;
-      
-      if (!status || typeof status !== "string") {
-        return res.status(400).json({ message: "Invalid status value" });
-      }
-      
-      const updatedOrder = await storage.updateOrderStatus(id, status);
-      
-      if (!updatedOrder) {
-        return res.status(404).json({ message: "Order not found" });
-      }
-      
-      res.json(updatedOrder);
-    } catch (error) {
-      console.error("Error updating order status:", error);
-      res.status(500).json({ message: "Failed to update order status" });
-    }
-  });
+  // (Order status update route is defined below with WebSocket integration)
 
   // API Route for getting all orders (admin only)
   app.get("/api/admin/orders", isAdmin, async (req, res) => {
@@ -567,6 +563,101 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   const httpServer = createServer(app);
+  
+  // Setup WebSocket server for real-time order tracking
+  const wss = new WebSocketServer({ server: httpServer, path: '/ws' });
+  
+  wss.on('connection', (ws) => {
+    console.log('WebSocket client connected');
+    
+    // Handle client messages (e.g., when they subscribe to an order)
+    ws.on('message', (message) => {
+      try {
+        const data = JSON.parse(message.toString());
+        
+        // Handle subscription to order updates
+        if (data.type === 'SUBSCRIBE_TO_ORDER' && data.orderId) {
+          const orderId = parseInt(data.orderId);
+          
+          if (!isNaN(orderId)) {
+            // Store connection for this order
+            if (!orderSocketConnections.has(orderId)) {
+              orderSocketConnections.set(orderId, new Set());
+            }
+            
+            orderSocketConnections.get(orderId)?.add(ws);
+            
+            // Send confirmation
+            ws.send(JSON.stringify({
+              type: 'SUBSCRIPTION_CONFIRMED',
+              orderId
+            }));
+            
+            // Send current order data immediately if available
+            storage.getOrder(orderId).then(order => {
+              if (order && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({
+                  type: 'ORDER_UPDATE',
+                  orderId,
+                  order
+                }));
+              }
+            }).catch(err => {
+              console.error(`Error fetching order ${orderId}:`, err);
+            });
+          }
+        }
+      } catch (error) {
+        console.error('Error processing WebSocket message:', error);
+      }
+    });
+    
+    // Handle disconnection
+    ws.on('close', () => {
+      console.log('WebSocket client disconnected');
+      
+      // Remove this connection from all order subscriptions
+      orderSocketConnections.forEach((connections, orderId) => {
+        connections.delete(ws);
+        
+        // Clean up empty sets
+        if (connections.size === 0) {
+          orderSocketConnections.delete(orderId);
+        }
+      });
+    });
+  });
+
+  // Update the order status update endpoint to broadcast changes
+  app.patch("/api/orders/:id/status", isAdmin, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "Invalid order ID" });
+      }
+      
+      const { status } = req.body;
+      
+      if (!status || typeof status !== "string") {
+        return res.status(400).json({ message: "Invalid status value" });
+      }
+      
+      const updatedOrder = await storage.updateOrderStatus(id, status);
+      
+      if (!updatedOrder) {
+        return res.status(404).json({ message: "Order not found" });
+      }
+      
+      // Broadcast the update to all subscribed clients
+      broadcastOrderUpdate(id, updatedOrder);
+      
+      res.json(updatedOrder);
+    } catch (error) {
+      console.error("Error updating order status:", error);
+      res.status(500).json({ message: "Failed to update order status" });
+    }
+  });
 
   return httpServer;
 }

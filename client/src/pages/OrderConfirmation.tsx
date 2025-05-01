@@ -155,9 +155,19 @@ export default function OrderConfirmation() {
                 </div>
               </div>
               
-              <div className="mt-8 text-center">
-                <p className="text-gray-600 mb-4">Questions about your order? Contact us at</p>
-                <p className="text-primary font-medium">(555) 123-4567 or info@flavorhaven.com</p>
+              <div className="mt-8 text-center space-y-4">
+                <div>
+                  <Button 
+                    className="w-full bg-primary hover:bg-primary/90"
+                    onClick={() => navigate(`/tracking/${order.id}`)}
+                  >
+                    Track Your Order
+                  </Button>
+                </div>
+                <div>
+                  <p className="text-gray-600 mb-2">Questions about your order? Contact us at</p>
+                  <p className="text-primary font-medium">(555) 123-4567 or info@themex.com</p>
+                </div>
               </div>
             </div>
           </div>

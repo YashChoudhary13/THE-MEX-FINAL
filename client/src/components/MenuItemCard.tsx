@@ -97,8 +97,14 @@ export default function MenuItemCard({ item }: MenuItemCardProps) {
   // Menu Item Detail Modal
   const MenuItemDetailModal = () => (
     <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-      <DialogContent className="absolute bottom-0 left-0 right-0 max-h-[75vh] p-0 border-t border-border rounded-t-xl rounded-b-none shadow-[0_-4px_20px_rgba(0,0,0,0.1)] overflow-y-auto">
-        <div className="flex flex-col w-full bg-background">
+      <DialogContent 
+        className="fixed bottom-0 left-0 right-0 h-[75vh] p-0 border-t border-border rounded-t-xl rounded-b-none shadow-[0_-4px_20px_rgba(0,0,0,0.1)] overflow-hidden"
+        style={{ scrollbarWidth: 'none' }}
+      >
+        <DialogTitle className="sr-only">{item.name}</DialogTitle>
+        <DialogDescription className="sr-only">Menu item details</DialogDescription>
+        
+        <div className="flex flex-col w-full h-full bg-background overflow-auto no-scrollbar">
           {/* Back button at the top */}
           <div className="sticky top-0 z-10 bg-background p-4 flex items-center border-b">
             <Button
@@ -117,7 +123,7 @@ export default function MenuItemCard({ item }: MenuItemCardProps) {
           </div>
           
           {/* Content area */}
-          <div className="px-4 pt-4 pb-24">
+          <div className="px-4 pt-4 pb-24 flex-1 overflow-auto no-scrollbar">
             {/* Image section */}
             <div className="relative w-full h-48 rounded-lg overflow-hidden mb-4">
               <img 
@@ -173,7 +179,7 @@ export default function MenuItemCard({ item }: MenuItemCardProps) {
           </div>
           
           {/* Add to cart section - fixed to bottom */}
-          <div className="fixed bottom-0 left-0 right-0 bg-background border-t border-border p-4 flex justify-between items-center">
+          <div className="sticky bottom-0 left-0 right-0 bg-background border-t border-border p-4 flex justify-between items-center">
             <div className="flex items-center bg-muted rounded-lg">
               <Button 
                 variant="ghost"

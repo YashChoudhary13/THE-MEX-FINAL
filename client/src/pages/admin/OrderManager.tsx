@@ -281,6 +281,9 @@ export default function OrderManager() {
                         <span>${(item.price * item.quantity).toFixed(2)}</span>
                       </li>
                     ))}
+                    {(!order.items || !Array.isArray(order.items)) && (
+                      <li className="p-2 text-muted-foreground text-sm">No items available</li>
+                    )}
                     <li className="flex justify-between p-2 font-medium">
                       <span>Total</span>
                       <span>${order.total.toFixed(2)}</span>

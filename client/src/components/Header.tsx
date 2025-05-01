@@ -45,9 +45,9 @@ export default function Header({
 
   return (
     <header className="sticky top-0 z-50 bg-card border-b border-border">
-      <div className="container mx-auto px-4 py-3 flex items-center">
+      <div className="container mx-auto px-4 py-3 flex items-center justify-between">
         {/* Left section with mobile menu and logo */}
-        <div className="flex items-center flex-shrink-0 w-1/4">
+        <div className="flex items-center">
           <Sheet>
             <SheetTrigger asChild>
               <Button variant="ghost" size="icon" className="mr-2 lg:hidden text-foreground">
@@ -159,7 +159,7 @@ export default function Header({
         </div>
         
         {/* Center section with navigation links */}
-        <div className="hidden md:flex justify-center flex-grow items-center">
+        <div className="hidden md:flex justify-center items-center">
           <div className="flex items-center space-x-8">
             <Button 
               variant="link" 
@@ -203,7 +203,7 @@ export default function Header({
         </div>
         
         {/* Right section with cart and account */}
-        <div className="flex items-center justify-end flex-shrink-0 w-1/4">
+        <div className="flex items-center justify-end">
           {onCartToggle && (
             <div className="relative mr-4">
               <Button

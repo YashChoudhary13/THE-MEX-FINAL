@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { motion, useScroll, useTransform } from "framer-motion";
-import { ArrowDownCircle, Sparkles, Star, Award, ChevronDown } from "lucide-react";
+import { ArrowDownCircle, Sparkles, Star, Award, ChevronDown, ShoppingBag } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import Header from "@/components/Header";
 import CategorySidebar from "@/components/CategorySidebar";
@@ -30,23 +30,27 @@ export default function Home() {
   // Animation values to make the menu "open up" as user scrolls
   const [menuOpen, setMenuOpen] = useState(false);
   
-  // Update menu open state based on scroll position
+  // Simplified scroll position detection with debounce for performance
   useEffect(() => {
+    // Set menu to open by default to avoid expensive animations
+    setMenuOpen(true);
+    
     const handleScroll = () => {
       const scrollPosition = window.scrollY;
       const windowHeight = window.innerHeight;
       
-      // Menu starts opening at 20% of window height scroll
-      if (scrollPosition > windowHeight * 0.2) {
+      // Only toggle menu if needed (already at correct state, do nothing)
+      if (scrollPosition > windowHeight * 0.2 && !menuOpen) {
         setMenuOpen(true);
-      } else {
+      } else if (scrollPosition <= windowHeight * 0.2 && menuOpen) {
         setMenuOpen(false);
       }
     };
     
-    window.addEventListener("scroll", handleScroll);
+    // Use passive event listener for better scroll performance
+    window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
+  }, [menuOpen]);
 
   // Fetch menu categories
   const { data: categories, isLoading: categoriesLoading } = useQuery<MenuCategory[]>({
@@ -118,228 +122,176 @@ export default function Home() {
         onSearch={handleSearch} 
       />
       
-      {/* Hero Section with Enhanced 3D Food Effect */}
-      <section className="py-14 md:py-28 bg-gradient-to-b from-secondary/40 via-secondary/20 to-background relative overflow-hidden">
-        <div className="container mx-auto px-4 flex flex-col lg:flex-row items-center">
-          {/* Left Text Content */}
-          <motion.div 
-            className="lg:w-1/2 z-10 mb-16 lg:mb-0"
-            initial="initial"
-            animate="animate"
-            variants={heroTextVariants}
-          >
-            <div className="inline-flex items-center bg-primary/10 text-primary px-4 py-2 rounded-full mb-6">
-              <Sparkles className="w-4 h-4 mr-2" />
-              <span className="font-menu text-sm tracking-wider">NEW SMASH BURGERS JUST DROPPED</span>
-            </div>
-            <h1 className="text-5xl md:text-7xl font-heading text-foreground mb-6 leading-tight">
-              <span className="text-primary">FLAME-GRILLED</span> <br />
-              PERFECTION IN <br />
-              EVERY BITE.
-            </h1>
-            <p className="text-lg text-muted-foreground mb-8 max-w-md">
-              Discover our handcrafted burgers made with premium ingredients and a side of attitude. Your cravings don't stand a chance.
-            </p>
-            <div className="flex flex-wrap gap-4">
-              <Button 
-                size="lg" 
-                className="bg-primary hover:bg-primary/90 font-menu text-lg"
-                onClick={scrollToMenu}
-              >
-                VIEW MENU
-              </Button>
-              <Button 
-                variant="outline" 
-                size="lg"
-                className="border-primary text-primary hover:bg-primary/10 font-menu text-lg"
-                onClick={toggleCart}
-              >
-                VIEW CART
-              </Button>
-            </div>
-            <div className="flex items-center mt-10 gap-8">
-              <div className="flex -space-x-3">
-                <div className="w-8 h-8 rounded-full border-2 border-background overflow-hidden">
-                  <img 
-                    src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=100" 
-                    alt="User" 
-                    className="w-full h-full object-cover"
-                  />
-                </div>
-                <div className="w-8 h-8 rounded-full border-2 border-background overflow-hidden">
-                  <img 
-                    src="https://images.unsplash.com/photo-1580489944761-15a19d654956?auto=format&fit=crop&w=100" 
-                    alt="User" 
-                    className="w-full h-full object-cover"
-                  />
-                </div>
-                <div className="w-8 h-8 rounded-full border-2 border-background overflow-hidden">
-                  <img 
-                    src="https://images.unsplash.com/photo-1633332755192-727a05c4013d?auto=format&fit=crop&w=100" 
-                    alt="User" 
-                    className="w-full h-full object-cover"
-                  />
-                </div>
-              </div>
-              <div className="flex flex-col">
-                <div className="flex items-center">
-                  <Star className="h-4 w-4 text-primary fill-primary" />
-                  <Star className="h-4 w-4 text-primary fill-primary" />
-                  <Star className="h-4 w-4 text-primary fill-primary" />
-                  <Star className="h-4 w-4 text-primary fill-primary" />
-                  <Star className="h-4 w-4 text-primary fill-primary" />
-                  <span className="ml-2 text-sm text-foreground font-medium">4.9</span>
-                </div>
-                <span className="text-xs text-muted-foreground">1,200+ ratings</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Award className="h-5 w-5 text-primary" />
-                <span className="text-sm text-foreground">Award Winner 2024</span>
-              </div>
-            </div>
-          </motion.div>
-          
-          {/* Right 3D Food Images - Enhanced version for larger screens */}
-          {!isMobile ? (
-            <motion.div 
-              className="lg:w-1/2 relative"
-              initial="initial"
-              animate="animate"
-              variants={heroImagesVariants}
-            >
-              <div className="relative h-80 md:h-[32rem] w-full perspective-1000">
-                {/* Decorative Light Effects */}
-                <div className="absolute w-full h-full">
-                  <div className="absolute top-1/4 left-1/3 w-40 h-40 rounded-full bg-primary/10 blur-3xl"></div>
-                  <div className="absolute bottom-1/3 right-1/4 w-32 h-32 rounded-full bg-primary/15 blur-3xl"></div>
-                </div>
-                
-                {/* Main Burger Image - Featured focal point */}
-                <div className="food-3d-effect absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 md:w-80 md:h-80 z-20 cursor-pointer"
-                     onClick={() => {
-                       setActiveCategory("burgers");
-                       scrollToMenu();
-                     }}
-                >
-                  <div className="absolute -inset-5 bg-gradient-to-r from-primary/20 to-transparent rounded-full blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-                  <img 
-                    src="https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=800" 
-                    alt="Delicious Burger" 
-                    className="w-full h-full object-contain drop-shadow-[0_20px_50px_rgba(255,80,0,0.5)]"
-                  />
-                </div>
-                
-                {/* Secondary food images with enhanced positioning and effects */}
-                <div 
-                  className="absolute left-0 top-1/4 w-32 h-32 md:w-48 md:h-48 rotate-12 z-10 food-3d-effect cursor-pointer"
-                  onClick={() => {
-                    setActiveCategory("sides");
-                    scrollToMenu();
-                  }}
-                >
-                  <img 
-                    src="https://images.unsplash.com/photo-1619881590738-a111d176d906?auto=format&fit=crop&w=400" 
-                    alt="French Fries" 
-                    className="w-full h-full object-contain drop-shadow-xl"
-                  />
-                </div>
-                
-                <div 
-                  className="absolute right-0 top-2/3 w-24 h-24 md:w-40 md:h-40 -rotate-6 z-10 food-3d-effect cursor-pointer"
-                  onClick={() => {
-                    setActiveCategory("drinks");
-                    scrollToMenu();
-                  }}
-                >
-                  <img 
-                    src="https://images.unsplash.com/photo-1629203432180-71e9b18d33f3?auto=format&fit=crop&w=400" 
-                    alt="Soda drink" 
-                    className="w-full h-full object-contain drop-shadow-xl"
-                  />
-                </div>
-              </div>
-              
-              {/* Enhanced background effects */}
-              <div className="absolute inset-0 bg-gradient-radial from-primary/10 via-transparent to-transparent opacity-60"></div>
-              <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-primary/5 via-transparent to-transparent opacity-70"></div>
-            </motion.div>
-          ) : (
-            // Enhanced mobile hero image with improved effects
-            <motion.div 
-              className="w-full relative mb-6"
-              initial="initial"
-              animate="animate"
-              variants={heroImagesVariants}
-            >
-              <div className="relative h-64 w-full">
-                {/* Light effect for mobile */}
-                <div className="absolute w-full h-full overflow-hidden">
-                  <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-40 h-40 rounded-full bg-primary/10 blur-3xl"></div>
-                </div>
-                
-                <div className="food-3d-effect absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-56 h-56 z-20 cursor-pointer"
-                  onClick={() => {
-                    setActiveCategory("burgers");
-                    scrollToMenu();
-                  }}
-                >
-                  <img 
-                    src="https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=800" 
-                    alt="Delicious Burger" 
-                    className="w-full h-full object-contain drop-shadow-[0_15px_30px_rgba(255,80,0,0.5)]"
-                  />
-                </div>
-              </div>
-            </motion.div>
-          )}
-        </div>
+      {/* Hero Section - Professional Static Design */}
+      <section className="py-16 bg-gradient-to-b from-secondary/50 via-secondary/20 to-background relative">
+        <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1561758033-d89a9ad46330?auto=format&fit=crop&q=80')] opacity-10 bg-cover bg-center"></div>
         
-        {/* Scroll Down Indicator */}
-        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 text-center">
-          <button 
-            onClick={scrollToMenu}
-            className="flex flex-col items-center text-muted-foreground hover:text-primary transition-colors"
-          >
-            <span className="text-sm mb-2">Scroll to See Menu</span>
-            <ChevronDown className="h-6 w-6 animate-bounce" />
-          </button>
+        <div className="container mx-auto px-4">
+          {/* Featured Banner */}
+          <div className="flex justify-center mb-12">
+            <div className="bg-primary/10 text-primary px-4 py-2 rounded-full inline-flex items-center">
+              <Sparkles className="w-4 h-4 mr-2" />
+              <span className="font-menu text-sm tracking-wider">TODAY'S SPECIAL: DOUBLE SMASH BURGER - 20% OFF</span>
+            </div>
+          </div>
+          
+          {/* Hero Content */}
+          <div className="flex flex-col lg:flex-row items-center gap-10 mb-10">
+            {/* Left Content */}
+            <div className="lg:w-1/2 z-10 flex flex-col items-center lg:items-start text-center lg:text-left">
+              <h1 className="text-5xl md:text-7xl font-heading text-foreground mb-6 leading-tight">
+                <span className="text-primary">FLAME-GRILLED</span> <br />
+                PERFECTION IN <br />
+                EVERY BITE.
+              </h1>
+              <p className="text-lg text-muted-foreground mb-8 max-w-md">
+                Discover our handcrafted burgers made with premium ingredients and a side of attitude. Your cravings don't stand a chance.
+              </p>
+              <div className="flex flex-wrap gap-4 justify-center lg:justify-start">
+                <Button 
+                  size="lg" 
+                  className="bg-primary hover:bg-primary/90 font-menu text-lg"
+                  onClick={scrollToMenu}
+                >
+                  VIEW MENU
+                </Button>
+                <Button 
+                  variant="outline" 
+                  size="lg"
+                  className="border-primary text-primary hover:bg-primary/10 font-menu text-lg"
+                  onClick={toggleCart}
+                >
+                  VIEW CART
+                </Button>
+              </div>
+            </div>
+            
+            {/* Right Content - Static Food Display */}
+            <div className="lg:w-1/2 rounded-2xl overflow-hidden relative">
+              <div className="relative w-full">
+                {/* Main hero image */}
+                <img 
+                  src="https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=800"
+                  alt="Signature Burger"
+                  className="w-full h-auto rounded-2xl shadow-2xl"
+                />
+                
+                {/* Floating cards with additional menu categories */}
+                <div className="absolute -bottom-6 -left-6 bg-card p-4 rounded-xl shadow-xl border border-primary/20 hidden md:block">
+                  <div className="flex items-center gap-3">
+                    <img 
+                      src="https://images.unsplash.com/photo-1619881590738-a111d176d906?auto=format&fit=crop&w=120" 
+                      alt="French Fries" 
+                      className="w-16 h-16 rounded-lg object-cover"
+                    />
+                    <div>
+                      <p className="font-bold">Classic Sides</p>
+                      <button 
+                        className="text-sm text-primary flex items-center" 
+                        onClick={() => {
+                          setActiveCategory("sides");
+                          scrollToMenu();
+                        }}
+                      >
+                        View Selection
+                      </button>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="absolute -top-4 -right-4 bg-card p-4 rounded-xl shadow-xl border border-primary/20 hidden md:block">
+                  <div className="flex items-center gap-3">
+                    <img 
+                      src="https://images.unsplash.com/photo-1629203432180-71e9b18d33f3?auto=format&fit=crop&w=120" 
+                      alt="Drinks" 
+                      className="w-16 h-16 rounded-lg object-cover"
+                    />
+                    <div>
+                      <p className="font-bold">Fresh Drinks</p>
+                      <button 
+                        className="text-sm text-primary flex items-center" 
+                        onClick={() => {
+                          setActiveCategory("drinks");
+                          scrollToMenu();
+                        }}
+                      >
+                        View Selection
+                      </button>
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Price badge */}
+                <div className="absolute top-4 left-4 bg-primary text-white font-bold px-4 py-2 rounded-full">
+                  FROM $9.99
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          {/* Trust indicators */}
+          <div className="flex flex-wrap justify-center gap-8 mt-12 mb-6">
+            <div className="flex items-center gap-2">
+              <div className="p-2 bg-primary/10 rounded-full">
+                <Star className="h-5 w-5 text-primary fill-primary" />
+              </div>
+              <div>
+                <p className="font-bold">4.9 Star Rating</p>
+                <p className="text-xs text-muted-foreground">1,200+ reviews</p>
+              </div>
+            </div>
+            
+            <div className="flex items-center gap-2">
+              <div className="p-2 bg-primary/10 rounded-full">
+                <Award className="h-5 w-5 text-primary" />
+              </div>
+              <div>
+                <p className="font-bold">Award Winner 2024</p>
+                <p className="text-xs text-muted-foreground">Best burger in town</p>
+              </div>
+            </div>
+            
+            <div className="flex items-center gap-2">
+              <div className="p-2 bg-primary/10 rounded-full">
+                <ShoppingBag className="h-5 w-5 text-primary" />
+              </div>
+              <div>
+                <p className="font-bold">Fast Pickup</p>
+                <p className="text-xs text-muted-foreground">Ready in 15 minutes</p>
+              </div>
+            </div>
+          </div>
+          
+          {/* Scroll Down Indicator */}
+          <div className="text-center mt-10">
+            <button 
+              onClick={scrollToMenu}
+              className="flex flex-col items-center text-muted-foreground hover:text-primary transition-colors"
+            >
+              <span className="text-sm mb-2">Scroll to See Menu</span>
+              <ChevronDown className="h-6 w-6 animate-bounce" />
+            </button>
+          </div>
         </div>
       </section>
       
-      {/* Menu Section with open animation */}
+      {/* Menu Section - Simplified for better performance */}
       <section ref={menuScrollRef} className="w-full relative py-8">
-        <motion.div 
+        <div 
           ref={menuRef}
           className="container mx-auto px-4 py-6 flex flex-col lg:flex-row flex-grow"
-          initial={{ opacity: 0, height: 0, scale: 0.9 }}
-          animate={{ 
-            opacity: menuOpen ? 1 : 0, 
-            height: menuOpen ? "auto" : 0,
-            scale: menuOpen ? 1 : 0.9,
-            transition: { duration: 0.5, ease: [0.22, 1, 0.36, 1] }
-          }}
         >
           {isMobile ? (
             // Mobile-specific layout
-            <motion.div
-              className="w-full"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: menuOpen ? 1 : 0 }}
-              transition={{ delay: 0.2, duration: 0.3 }}
-            >
+            <div className="w-full">
               <MobileMenuContent 
                 activeCategory={activeCategory} 
                 searchQuery={searchQuery}
               />
-            </motion.div>
+            </div>
           ) : (
             // Desktop layout
-            <motion.div 
-              className="flex flex-col lg:flex-row w-full"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: menuOpen ? 1 : 0 }}
-              transition={{ delay: 0.2, duration: 0.3 }}
-            >
+            <div className="flex flex-col lg:flex-row w-full">
               <CategorySidebar 
                 categories={categories as MenuCategory[] || []} 
                 isLoading={categoriesLoading}
@@ -351,9 +303,9 @@ export default function Home() {
                 activeCategory={activeCategory} 
                 searchQuery={searchQuery}
               />
-            </motion.div>
+            </div>
           )}
-        </motion.div>
+        </div>
       </section>
       
       {/* Mobile floating menu button */}

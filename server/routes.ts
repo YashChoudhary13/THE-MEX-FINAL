@@ -76,11 +76,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // API Route for creating an order
-  app.post("/api/orders", isAuthenticated, async (req, res) => {
+  // API Route for creating an order (supports both authenticated and guest users)
+  app.post("/api/orders", async (req, res) => {
     try {
       // Validate request body
       const orderData = insertOrderSchema.parse(req.body);
+      
+      // Add user ID to order if authenticated
+      if (req.user) {
+        orderData.userId = req.user.id;
+      }
       
       // Create the order
       const order = await storage.createOrder(orderData);

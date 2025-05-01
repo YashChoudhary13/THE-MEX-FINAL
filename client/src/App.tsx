@@ -22,16 +22,8 @@ function Router() {
   return (
     <Switch>
       <Route path="/" component={Home} />
-      <Route path="/checkout">
-        <ProtectedRoute>
-          <Checkout />
-        </ProtectedRoute>
-      </Route>
-      <Route path="/order-confirmation/:id">
-        <ProtectedRoute>
-          <OrderConfirmation />
-        </ProtectedRoute>
-      </Route>
+      <Route path="/checkout" component={Checkout} />
+      <Route path="/order-confirmation/:id" component={OrderConfirmation} />
       <Route path="/about" component={About} />
       <Route path="/contact" component={Contact} />
       <Route path="/auth" component={AuthPage} />

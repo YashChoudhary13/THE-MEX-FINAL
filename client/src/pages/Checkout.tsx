@@ -189,7 +189,7 @@ export default function Checkout() {
           <div className="p-6">
             {currentStep === CheckoutStep.Delivery && (
               <div>
-                <h2 className="font-heading text-lg font-bold mb-4 text-secondary">Delivery Information</h2>
+                <h2 className="font-heading text-lg font-bold mb-4 text-primary">Delivery Information</h2>
                 <Form {...form}>
                   <form className="space-y-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -303,7 +303,7 @@ export default function Checkout() {
 
             {currentStep === CheckoutStep.Payment && (
               <div>
-                <h2 className="font-heading text-lg font-bold mb-4 text-secondary">Payment Method</h2>
+                <h2 className="font-heading text-lg font-bold mb-4 text-primary">Payment Method</h2>
                 <div className="bg-primary/10 p-4 rounded-lg mb-6 border border-border">
                   <p className="text-center text-foreground">This is a demo application. No payment will be processed.</p>
                   <p className="text-center text-muted-foreground mt-2">In a real application, you would see payment options here.</p>
@@ -317,7 +317,7 @@ export default function Checkout() {
 
             {currentStep === CheckoutStep.Confirmation && (
               <div>
-                <h2 className="font-heading text-lg font-bold mb-4 text-secondary">Order Summary</h2>
+                <h2 className="font-heading text-lg font-bold mb-4 text-primary">Order Summary</h2>
                 <div className="space-y-4">
                   <div className="border rounded-lg overflow-hidden bg-card">
                     <div className="bg-primary/10 p-3 border-b">
@@ -341,12 +341,12 @@ export default function Checkout() {
                       <h3 className="font-medium text-primary">Delivery Details</h3>
                     </div>
                     <div className="p-3 space-y-2 text-sm">
-                      <p><span className="font-medium text-secondary">Name:</span> <span className="text-foreground">{form.getValues("customerName")}</span></p>
-                      <p><span className="font-medium text-secondary">Phone:</span> <span className="text-foreground">{form.getValues("customerPhone")}</span></p>
-                      <p><span className="font-medium text-secondary">Address:</span> <span className="text-foreground">{form.getValues("deliveryAddress")}</span></p>
-                      <p><span className="font-medium text-secondary">City:</span> <span className="text-foreground">{form.getValues("city")}, {form.getValues("zipCode")}</span></p>
+                      <p><span className="font-medium text-primary">Name:</span> <span className="text-foreground">{form.getValues("customerName")}</span></p>
+                      <p><span className="font-medium text-primary">Phone:</span> <span className="text-foreground">{form.getValues("customerPhone")}</span></p>
+                      <p><span className="font-medium text-primary">Address:</span> <span className="text-foreground">{form.getValues("deliveryAddress")}</span></p>
+                      <p><span className="font-medium text-primary">City:</span> <span className="text-foreground">{form.getValues("city")}, {form.getValues("zipCode")}</span></p>
                       {form.getValues("deliveryInstructions") && (
-                        <p><span className="font-medium text-secondary">Instructions:</span> <span className="text-foreground">{form.getValues("deliveryInstructions")}</span></p>
+                        <p><span className="font-medium text-primary">Instructions:</span> <span className="text-foreground">{form.getValues("deliveryInstructions")}</span></p>
                       )}
                     </div>
                   </div>

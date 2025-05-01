@@ -1,97 +1,127 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
-import { 
-  Table, 
-  TableBody, 
-  TableCaption, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
-} from '@/components/ui/table';
-import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
-} from '@/components/ui/select';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Loader2, Search, RefreshCw, Calendar, Clock, CheckCheck } from 'lucide-react';
-import { Order } from '@shared/schema';
-import { apiRequest, queryClient } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
-import { OrderStatus } from '@/hooks/use-order-tracker';
+import { Order } from '@shared/schema';
+import { queryClient, apiRequest } from '@/lib/queryClient';
+import { 
+  CheckCircle, 
+  Clock, 
+  ChefHat, 
+  ShoppingBag, 
+  AlertCircle,
+  Loader2,
+  RefreshCcw,
+  Clipboard 
+} from 'lucide-react';
+import { 
+  Card, 
+  CardContent, 
+  CardDescription, 
+  CardFooter, 
+  CardHeader, 
+  CardTitle 
+} from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from '@/components/ui/tabs';
 import { format } from 'date-fns';
+
+enum OrderStatus {
+  PENDING = 'pending',
+  CONFIRMED = 'confirmed',
+  PREPARING = 'preparing',
+  READY = 'ready',
+  DELIVERED = 'delivered',
+  CANCELLED = 'cancelled'
+}
 
 export default function OrderManager() {
   const { toast } = useToast();
-  const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState<string | null>(null);
   
   // Fetch all orders
-  const { 
-    data: orders = [], 
-    isLoading, 
-    error, 
-    refetch 
-  } = useQuery<Order[]>({
-    queryKey: ['/api/admin/orders'],
-    staleTime: 1000 * 60, // 1 minute
+  const { data: orders, isLoading, error, refetch } = useQuery<Order[]>({
+    queryKey: ['/api/orders'],
+    refetchInterval: 5000, // auto refresh every 5 seconds
   });
   
   // Update order status mutation
-  const updateStatusMutation = useMutation({
-    mutationFn: async ({ 
-      orderId, 
-      status 
-    }: { 
-      orderId: number, 
-      status: string 
-    }) => {
-      const res = await apiRequest('PATCH', `/api/orders/${orderId}/status`, { status });
-      return await res.json();
+  const updateOrderStatusMutation = useMutation({
+    mutationFn: async ({ orderId, status }: { orderId: number, status: string }) => {
+      const response = await apiRequest('PATCH', `/api/orders/${orderId}/status`, { status });
+      return response.json();
     },
-    onSuccess: (data) => {
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/orders'] });
       toast({
         title: 'Order updated',
-        description: `Order #${data.id} status changed to ${data.status}`,
+        description: 'The order status has been updated successfully.',
       });
-      
-      // Invalidate orders query to refresh the list
-      queryClient.invalidateQueries({ queryKey: ['/api/admin/orders'] });
     },
     onError: (error: Error) => {
       toast({
-        title: 'Error updating order',
+        title: 'Failed to update order',
         description: error.message,
         variant: 'destructive',
       });
-    },
+    }
   });
   
-  // Filter orders based on search query
-  const filteredOrders = orders.filter(order => 
-    order.id.toString().includes(searchQuery) || 
-    order.customerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    order.customerPhone.includes(searchQuery)
-  );
+  // Filter orders based on status
+  const filteredOrders = statusFilter
+    ? orders?.filter(order => order.status === statusFilter)
+    : orders;
   
-  // Get status badge color based on order status
+  // Get counts for each status
+  const statusCounts = {
+    pending: orders?.filter(order => order.status === OrderStatus.PENDING).length || 0,
+    confirmed: orders?.filter(order => order.status === OrderStatus.CONFIRMED).length || 0,
+    preparing: orders?.filter(order => order.status === OrderStatus.PREPARING).length || 0,
+    ready: orders?.filter(order => order.status === OrderStatus.READY).length || 0,
+    delivered: orders?.filter(order => order.status === OrderStatus.DELIVERED).length || 0,
+    cancelled: orders?.filter(order => order.status === OrderStatus.CANCELLED).length || 0,
+  };
+  
+  // Update order status handler
+  const handleStatusUpdate = (orderId: number, newStatus: string) => {
+    updateOrderStatusMutation.mutate({ orderId, newStatus });
+  };
+  
+  // Format date string
+  const formatOrderDate = (order: Order) => {
+    try {
+      if (!order.createdAt) return 'Unknown date';
+      return format(new Date(order.createdAt), 'MMM dd, yyyy h:mm a');
+    } catch (e) {
+      return 'Invalid date';
+    }
+  };
+  
+  // Get status badge color
   const getStatusBadgeVariant = (status: string) => {
     switch (status) {
       case OrderStatus.PENDING:
         return 'secondary';
       case OrderStatus.CONFIRMED:
-        return 'default';
+        return 'primary';
       case OrderStatus.PREPARING:
-        return 'secondary';
+        return 'default';
       case OrderStatus.READY:
-        return 'default';
+        return 'success';
       case OrderStatus.DELIVERED:
-        return 'default';
+        return 'outline';
       case OrderStatus.CANCELLED:
         return 'destructive';
       default:
@@ -99,162 +129,220 @@ export default function OrderManager() {
     }
   };
   
-  // Format date from order
-  const formatOrderDate = (order: Order) => {
-    if (!order.createdAt) return 'N/A';
-    
-    try {
-      const date = new Date(order.createdAt);
-      return format(date, 'MMM d, yyyy h:mm a');
-    } catch (e) {
-      return 'Invalid date';
+  // Get status icon
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case OrderStatus.PENDING:
+        return <Clock className="h-4 w-4" />;
+      case OrderStatus.CONFIRMED:
+        return <CheckCircle className="h-4 w-4" />;
+      case OrderStatus.PREPARING:
+        return <ChefHat className="h-4 w-4" />;
+      case OrderStatus.READY:
+        return <ShoppingBag className="h-4 w-4" />;
+      case OrderStatus.DELIVERED:
+        return <CheckCircle className="h-4 w-4" />;
+      case OrderStatus.CANCELLED:
+        return <AlertCircle className="h-4 w-4" />;
+      default:
+        return <Clock className="h-4 w-4" />;
     }
   };
   
-  // Handle status change
-  const handleStatusChange = (orderId: number, status: string) => {
-    updateStatusMutation.mutate({ orderId, status });
-  };
-
-  if (error) {
+  if (isLoading) {
     return (
-      <Card className="mb-6">
-        <CardHeader className="pb-3">
-          <CardTitle>Orders</CardTitle>
-          <CardDescription>Error loading orders</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <p className="text-red-500">Failed to load orders. Please try again.</p>
-          <Button 
-            onClick={() => refetch()} 
-            variant="outline" 
-            className="mt-2"
-          >
-            Retry
-          </Button>
-        </CardContent>
-      </Card>
+      <div className="flex items-center justify-center h-96">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
     );
   }
-
+  
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center h-96 space-y-4">
+        <AlertCircle className="h-10 w-10 text-destructive" />
+        <h3 className="text-lg font-semibold">Failed to load orders</h3>
+        <p className="text-muted-foreground text-center max-w-md">
+          There was an error loading the order data. Please try again.
+        </p>
+        <Button onClick={() => refetch()} variant="outline">
+          <RefreshCcw className="h-4 w-4 mr-2" />
+          Retry
+        </Button>
+      </div>
+    );
+  }
+  
   return (
-    <Card className="mb-6">
-      <CardHeader className="pb-3">
-        <div className="flex items-center justify-between">
-          <div>
-            <CardTitle className="text-2xl">Order Management</CardTitle>
-            <CardDescription>View and update order statuses</CardDescription>
-          </div>
-          <Button 
-            onClick={() => refetch()} 
-            variant="outline" 
-            size="icon" 
-            className="ml-auto" 
-            disabled={isLoading}
-          >
-            {isLoading ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <RefreshCw className="h-4 w-4" />
-            )}
-          </Button>
-        </div>
-      </CardHeader>
-      <CardContent>
-        <div className="flex items-center mb-4">
-          <div className="relative flex-1">
-            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input
-              type="search"
-              placeholder="Search orders by ID, name or phone..."
-              className="pl-8"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-          </div>
-        </div>
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h2 className="text-2xl font-bold">Order Management</h2>
+        <Button onClick={() => refetch()} variant="outline" size="sm">
+          <RefreshCcw className="h-4 w-4 mr-2" />
+          Refresh
+        </Button>
+      </div>
+      
+      <Tabs defaultValue="all" className="w-full">
+        <TabsList className="grid grid-cols-7 mb-6">
+          <TabsTrigger value="all" onClick={() => setStatusFilter(null)}>
+            All ({orders?.length || 0})
+          </TabsTrigger>
+          <TabsTrigger value="pending" onClick={() => setStatusFilter(OrderStatus.PENDING)}>
+            Pending ({statusCounts.pending})
+          </TabsTrigger>
+          <TabsTrigger value="confirmed" onClick={() => setStatusFilter(OrderStatus.CONFIRMED)}>
+            Confirmed ({statusCounts.confirmed})
+          </TabsTrigger>
+          <TabsTrigger value="preparing" onClick={() => setStatusFilter(OrderStatus.PREPARING)}>
+            Preparing ({statusCounts.preparing})
+          </TabsTrigger>
+          <TabsTrigger value="ready" onClick={() => setStatusFilter(OrderStatus.READY)}>
+            Ready ({statusCounts.ready})
+          </TabsTrigger>
+          <TabsTrigger value="delivered" onClick={() => setStatusFilter(OrderStatus.DELIVERED)}>
+            Delivered ({statusCounts.delivered})
+          </TabsTrigger>
+          <TabsTrigger value="cancelled" onClick={() => setStatusFilter(OrderStatus.CANCELLED)}>
+            Cancelled ({statusCounts.cancelled})
+          </TabsTrigger>
+        </TabsList>
         
-        {isLoading ? (
-          <div className="flex justify-center py-8">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          </div>
-        ) : filteredOrders.length === 0 ? (
-          <div className="text-center py-8 text-muted-foreground">
-            {searchQuery ? 'No orders match your search' : 'No orders found'}
-          </div>
-        ) : (
-          <div className="border rounded-md overflow-hidden">
-            <Table>
-              <TableCaption>
-                {searchQuery 
-                  ? `Found ${filteredOrders.length} of ${orders.length} orders` 
-                  : `Showing ${orders.length} orders`
-                }
-              </TableCaption>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Order #</TableHead>
-                  <TableHead>Customer</TableHead>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Amount</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredOrders.map((order) => (
-                  <TableRow key={order.id}>
-                    <TableCell className="font-medium">#{order.id}</TableCell>
-                    <TableCell>
-                      <div>
-                        <div className="font-medium">{order.customerName}</div>
-                        <div className="text-sm text-muted-foreground">{order.customerPhone}</div>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center">
-                        <Calendar className="mr-1 h-3 w-3 text-muted-foreground" />
-                        <span className="text-sm">{formatOrderDate(order)}</span>
-                      </div>
-                    </TableCell>
-                    <TableCell>${order.total?.toFixed(2)}</TableCell>
-                    <TableCell>
-                      <Badge variant={getStatusBadgeVariant(order.status)}>
-                        {order.status}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <Select
-                        defaultValue={order.status}
-                        onValueChange={(value) => handleStatusChange(order.id, value)}
-                        disabled={updateStatusMutation.isPending}
-                      >
-                        <SelectTrigger className="w-[140px]">
-                          <SelectValue placeholder="Update status" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value={OrderStatus.PENDING}>Pending</SelectItem>
-                          <SelectItem value={OrderStatus.CONFIRMED}>Confirmed</SelectItem>
-                          <SelectItem value={OrderStatus.PREPARING}>Preparing</SelectItem>
-                          <SelectItem value={OrderStatus.READY}>Ready</SelectItem>
-                          <SelectItem value={OrderStatus.DELIVERED}>Delivered</SelectItem>
-                          <SelectItem value={OrderStatus.CANCELLED}>Cancelled</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-        )}
-        {updateStatusMutation.isPending && (
-          <div className="flex items-center justify-center mt-4 gap-2 text-sm text-muted-foreground">
-            <Loader2 className="h-3 w-3 animate-spin" />
-            <span>Updating order status...</span>
-          </div>
-        )}
-      </CardContent>
-    </Card>
+        <TabsContent value="all" className="space-y-4">
+          {renderOrderCards(filteredOrders || [])}
+        </TabsContent>
+        <TabsContent value="pending" className="space-y-4">
+          {renderOrderCards(filteredOrders || [])}
+        </TabsContent>
+        <TabsContent value="confirmed" className="space-y-4">
+          {renderOrderCards(filteredOrders || [])}
+        </TabsContent>
+        <TabsContent value="preparing" className="space-y-4">
+          {renderOrderCards(filteredOrders || [])}
+        </TabsContent>
+        <TabsContent value="ready" className="space-y-4">
+          {renderOrderCards(filteredOrders || [])}
+        </TabsContent>
+        <TabsContent value="delivered" className="space-y-4">
+          {renderOrderCards(filteredOrders || [])}
+        </TabsContent>
+        <TabsContent value="cancelled" className="space-y-4">
+          {renderOrderCards(filteredOrders || [])}
+        </TabsContent>
+      </Tabs>
+      
+      {(!filteredOrders || filteredOrders.length === 0) && (
+        <div className="flex flex-col items-center justify-center h-60 border rounded-lg bg-muted/10">
+          <Clipboard className="h-8 w-8 text-muted-foreground mb-2" />
+          <h3 className="text-lg font-medium">No orders found</h3>
+          <p className="text-sm text-muted-foreground">
+            {statusFilter ? `There are no orders with status "${statusFilter}"` : 'There are no orders in the system yet'}
+          </p>
+        </div>
+      )}
+    </div>
   );
+  
+  function renderOrderCards(orders: Order[]) {
+    return (
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {orders.map(order => (
+          <Card key={order.id} className={order.status === OrderStatus.READY ? 'border-primary' : ''}>
+            <CardHeader className="pb-2">
+              <div className="flex justify-between items-center">
+                <div>
+                  <CardTitle>Order #{order.id}</CardTitle>
+                  <CardDescription>
+                    {formatOrderDate(order)}
+                  </CardDescription>
+                </div>
+                <Badge variant={getStatusBadgeVariant(order.status)}>
+                  <span className="flex items-center">
+                    {getStatusIcon(order.status)}
+                    <span className="ml-1">{order.status.charAt(0).toUpperCase() + order.status.slice(1)}</span>
+                  </span>
+                </Badge>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                <div>
+                  <h4 className="text-sm font-medium text-muted-foreground">Customer</h4>
+                  <p>{order.customerName}</p>
+                  <p className="text-sm">{order.customerPhone}</p>
+                </div>
+                
+                <div>
+                  <h4 className="text-sm font-medium text-muted-foreground">Items</h4>
+                  <ul className="text-sm border rounded-md divide-y">
+                    {order.items.map((item, index) => (
+                      <li key={index} className="flex justify-between p-2">
+                        <span>{item.quantity}x {item.name}</span>
+                        <span>${(item.price * item.quantity).toFixed(2)}</span>
+                      </li>
+                    ))}
+                    <li className="flex justify-between p-2 font-medium">
+                      <span>Total</span>
+                      <span>${order.total.toFixed(2)}</span>
+                    </li>
+                  </ul>
+                </div>
+              </div>
+            </CardContent>
+            <CardFooter className="pt-2">
+              <div className="w-full space-y-2">
+                <p className="text-sm font-medium mb-1">Update Status</p>
+                <div className="grid grid-cols-2 gap-2">
+                  {order.status === OrderStatus.PENDING && (
+                    <>
+                      <Button size="sm" onClick={() => handleStatusUpdate(order.id, OrderStatus.CONFIRMED)}>
+                        Confirm
+                      </Button>
+                      <Button size="sm" variant="destructive" onClick={() => handleStatusUpdate(order.id, OrderStatus.CANCELLED)}>
+                        Cancel
+                      </Button>
+                    </>
+                  )}
+                  
+                  {order.status === OrderStatus.CONFIRMED && (
+                    <>
+                      <Button size="sm" onClick={() => handleStatusUpdate(order.id, OrderStatus.PREPARING)}>
+                        Start Preparing
+                      </Button>
+                      <Button size="sm" variant="destructive" onClick={() => handleStatusUpdate(order.id, OrderStatus.CANCELLED)}>
+                        Cancel
+                      </Button>
+                    </>
+                  )}
+                  
+                  {order.status === OrderStatus.PREPARING && (
+                    <>
+                      <Button size="sm" onClick={() => handleStatusUpdate(order.id, OrderStatus.READY)}>
+                        Mark Ready
+                      </Button>
+                      <Button size="sm" variant="destructive" onClick={() => handleStatusUpdate(order.id, OrderStatus.CANCELLED)}>
+                        Cancel
+                      </Button>
+                    </>
+                  )}
+                  
+                  {order.status === OrderStatus.READY && (
+                    <Button size="sm" className="col-span-2" onClick={() => handleStatusUpdate(order.id, OrderStatus.DELIVERED)}>
+                      Mark as Delivered
+                    </Button>
+                  )}
+                  
+                  {(order.status === OrderStatus.DELIVERED || order.status === OrderStatus.CANCELLED) && (
+                    <Button size="sm" variant="outline" className="col-span-2" disabled>
+                      Order Completed
+                    </Button>
+                  )}
+                </div>
+              </div>
+            </CardFooter>
+          </Card>
+        ))}
+      </div>
+    );
+  }
 }

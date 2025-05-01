@@ -304,13 +304,13 @@ export default function Checkout() {
             {currentStep === CheckoutStep.Payment && (
               <div>
                 <h2 className="font-heading text-lg font-bold mb-4 text-secondary">Payment Method</h2>
-                <div className="bg-gray-50 p-4 rounded-lg mb-6">
-                  <p className="text-center text-gray-600">This is a demo application. No payment will be processed.</p>
-                  <p className="text-center text-gray-600 mt-2">In a real application, you would see payment options here.</p>
+                <div className="bg-primary/10 p-4 rounded-lg mb-6 border border-border">
+                  <p className="text-center text-foreground">This is a demo application. No payment will be processed.</p>
+                  <p className="text-center text-muted-foreground mt-2">In a real application, you would see payment options here.</p>
                 </div>
-                <div className="border p-4 rounded-lg">
-                  <h3 className="font-medium text-secondary mb-2">Cash on Delivery</h3>
-                  <p className="text-sm text-gray-600">Pay with cash upon delivery</p>
+                <div className="border p-4 rounded-lg bg-card">
+                  <h3 className="font-medium text-primary mb-2">Cash on Delivery</h3>
+                  <p className="text-sm text-foreground">Pay with cash upon delivery</p>
                 </div>
               </div>
             )}
@@ -319,34 +319,34 @@ export default function Checkout() {
               <div>
                 <h2 className="font-heading text-lg font-bold mb-4 text-secondary">Order Summary</h2>
                 <div className="space-y-4">
-                  <div className="border rounded-lg overflow-hidden">
-                    <div className="bg-gray-50 p-3 border-b">
-                      <h3 className="font-medium">Items in your order</h3>
+                  <div className="border rounded-lg overflow-hidden bg-card">
+                    <div className="bg-primary/10 p-3 border-b">
+                      <h3 className="font-medium text-primary">Items in your order</h3>
                     </div>
-                    <div className="p-3 divide-y">
+                    <div className="p-3 divide-y divide-border">
                       {cart.map((item) => (
                         <div key={item.id} className="py-2 flex justify-between items-center">
                           <div className="flex items-center">
-                            <span className="font-medium text-secondary">{item.quantity}x</span>
-                            <span className="ml-2">{item.name}</span>
+                            <span className="font-medium text-primary">{item.quantity}x</span>
+                            <span className="ml-2 text-foreground">{item.name}</span>
                           </div>
-                          <span className="font-medium">${(item.price * item.quantity).toFixed(2)}</span>
+                          <span className="font-medium text-foreground">${(item.price * item.quantity).toFixed(2)}</span>
                         </div>
                       ))}
                     </div>
                   </div>
 
-                  <div className="border rounded-lg overflow-hidden">
-                    <div className="bg-gray-50 p-3 border-b">
-                      <h3 className="font-medium">Delivery Details</h3>
+                  <div className="border rounded-lg overflow-hidden bg-card">
+                    <div className="bg-primary/10 p-3 border-b">
+                      <h3 className="font-medium text-primary">Delivery Details</h3>
                     </div>
                     <div className="p-3 space-y-2 text-sm">
-                      <p><span className="font-medium">Name:</span> {form.getValues("customerName")}</p>
-                      <p><span className="font-medium">Phone:</span> {form.getValues("customerPhone")}</p>
-                      <p><span className="font-medium">Address:</span> {form.getValues("deliveryAddress")}</p>
-                      <p><span className="font-medium">City:</span> {form.getValues("city")}, {form.getValues("zipCode")}</p>
+                      <p><span className="font-medium text-secondary">Name:</span> <span className="text-foreground">{form.getValues("customerName")}</span></p>
+                      <p><span className="font-medium text-secondary">Phone:</span> <span className="text-foreground">{form.getValues("customerPhone")}</span></p>
+                      <p><span className="font-medium text-secondary">Address:</span> <span className="text-foreground">{form.getValues("deliveryAddress")}</span></p>
+                      <p><span className="font-medium text-secondary">City:</span> <span className="text-foreground">{form.getValues("city")}, {form.getValues("zipCode")}</span></p>
                       {form.getValues("deliveryInstructions") && (
-                        <p><span className="font-medium">Instructions:</span> {form.getValues("deliveryInstructions")}</p>
+                        <p><span className="font-medium text-secondary">Instructions:</span> <span className="text-foreground">{form.getValues("deliveryInstructions")}</span></p>
                       )}
                     </div>
                   </div>
@@ -356,24 +356,24 @@ export default function Checkout() {
 
             {/* Order Summary (visible in all steps) */}
             <div className="mt-8 border-t pt-4">
-              <h3 className="font-medium text-secondary mb-3">Order Total</h3>
+              <h3 className="font-medium text-primary mb-3">Order Total</h3>
               <div className="space-y-2">
                 <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">Subtotal</span>
-                  <span className="font-medium">${subtotal.toFixed(2)}</span>
+                  <span className="text-muted-foreground">Subtotal</span>
+                  <span className="font-medium text-foreground">${subtotal.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">Delivery Fee</span>
-                  <span className="font-medium">${deliveryFee.toFixed(2)}</span>
+                  <span className="text-muted-foreground">Delivery Fee</span>
+                  <span className="font-medium text-foreground">${deliveryFee.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">Tax</span>
-                  <span className="font-medium">${tax.toFixed(2)}</span>
+                  <span className="text-muted-foreground">Tax</span>
+                  <span className="font-medium text-foreground">${tax.toFixed(2)}</span>
                 </div>
                 <Separator />
-                <div className="flex justify-between font-bold text-secondary">
-                  <span>Total</span>
-                  <span>${total.toFixed(2)}</span>
+                <div className="flex justify-between font-bold">
+                  <span className="text-primary">Total</span>
+                  <span className="text-foreground">${total.toFixed(2)}</span>
                 </div>
               </div>
             </div>

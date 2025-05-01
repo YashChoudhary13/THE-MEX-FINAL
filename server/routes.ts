@@ -120,8 +120,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // If user is authenticated and not admin, check if they own this order
       if (req.isAuthenticated() && req.user && req.user.role !== 'admin') {
         // Check if order has a userId and it's different from the authenticated user
-        // The user_id comes from database as a string in the order object
-        const orderUserId = order.user_id ? Number(order.user_id) : null;
+        const orderUserId = order.userId ? Number(order.userId) : null;
         if (orderUserId && orderUserId !== req.user.id) {
           return res.status(403).json({ message: "Access denied to this order" });
         }

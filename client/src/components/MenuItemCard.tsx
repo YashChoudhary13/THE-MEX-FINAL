@@ -95,22 +95,21 @@ export default function MenuItemCard({ item }: MenuItemCardProps) {
   const prepTime = Math.floor(Math.random() * 16) + 10;
 
   // Menu Item Detail Modal
-  const MenuItemDetailModal = () => (
-    <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-      <div className="fixed inset-0 z-50 flex items-end justify-center">
+  const MenuItemDetailModal = () => {
+    if (!isModalOpen) return null;
+    
+    return (
+      <div className="fixed inset-0 z-50 flex items-end justify-center" style={{ touchAction: "none" }}>
         {/* Overlay - top 25% can be clicked to close */}
         <div 
-          className="absolute inset-0 bg-black/50" 
+          className="absolute inset-0 bg-black/50 transition-opacity duration-300 ease-in-out" 
           onClick={() => setIsModalOpen(false)}
         />
         
         {/* Modal content - bottom 75% */}
         <div 
-          className="relative w-full h-[75vh] bg-background rounded-t-xl border-t border-border shadow-lg z-10 overflow-hidden" 
+          className="relative w-full h-[75vh] bg-background rounded-t-xl border-t border-border shadow-lg z-10 overflow-hidden animate-in slide-in-from-bottom duration-300"
         >
-          <DialogTitle className="sr-only">{item.name}</DialogTitle>
-          <DialogDescription className="sr-only">Menu item details</DialogDescription>
-          
           {/* Back button at the top */}
           <div className="sticky top-0 z-10 bg-background p-4 flex items-center border-b">
             <Button
@@ -136,6 +135,7 @@ export default function MenuItemCard({ item }: MenuItemCardProps) {
                 src={item.image} 
                 alt={item.name} 
                 className="w-full h-full object-cover"
+                loading="eager"
               />
               
               {/* Labels */}
@@ -222,8 +222,8 @@ export default function MenuItemCard({ item }: MenuItemCardProps) {
           </div>
         </div>
       </div>
-    </Dialog>
-  );
+    );
+  };
 
   // If mobile, use a horizontal layout that's clickable
   if (isMobile) {

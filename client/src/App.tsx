@@ -10,6 +10,7 @@ import { ProtectedRoute } from "./components/ProtectedRoute";
 import Home from "@/pages/Home";
 import Checkout from "@/pages/Checkout";
 import OrderConfirmation from "@/pages/OrderConfirmation";
+import OrderTracking from "@/pages/OrderTracking";
 import About from "@/pages/About";
 import Contact from "@/pages/Contact";
 import NotFound from "@/pages/not-found";
@@ -24,6 +25,7 @@ function Router() {
       <Route path="/" component={Home} />
       <Route path="/checkout" component={Checkout} />
       <Route path="/order-confirmation/:id" component={OrderConfirmation} />
+      <Route path="/tracking/:orderId" component={OrderTracking} />
       <Route path="/about" component={About} />
       <Route path="/contact" component={Contact} />
       <Route path="/auth" component={AuthPage} />

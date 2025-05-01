@@ -180,7 +180,7 @@ export default function Header({
           {/* Logo on desktop and tablet */}
           <Button
             variant="ghost"
-            className="flex items-center p-0"
+            className="flex items-center p-0 hover:bg-transparent"
             onClick={() => navigate("/")}
           >
             <svg 
@@ -251,7 +251,7 @@ export default function Header({
               <Button
                 variant="ghost"
                 size="icon"
-                className="text-foreground hover:text-primary transition-colors"
+                className="text-foreground hover:text-primary hover:bg-transparent transition-colors"
                 onClick={onCartToggle}
               >
                 <ShoppingBag className="h-6 w-6" />

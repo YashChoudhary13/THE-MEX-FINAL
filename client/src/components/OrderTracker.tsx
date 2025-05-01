@@ -111,7 +111,8 @@ export default function OrderTracker({ orderId, onRefresh }: OrderTrackerProps) 
     if (!order || status === OrderStatus.CANCELLED) return 'Not available';
     
     // For this demo, add 30 minutes to the order time for delivery estimate
-    const orderDate = new Date(order.createdAt);
+    // If createdAt is not available (for older orders), use current time
+    const orderDate = order.createdAt ? new Date(order.createdAt) : new Date();
     const estimatedTime = new Date(orderDate);
     estimatedTime.setMinutes(estimatedTime.getMinutes() + 30);
     
@@ -194,12 +195,19 @@ export default function OrderTracker({ orderId, onRefresh }: OrderTrackerProps) 
               <div>
                 <p className="text-sm font-medium text-muted-foreground mb-2">Order Items</p>
                 <div className="space-y-2">
-                  {order.items?.map((item, index) => (
-                    <div key={index} className="flex justify-between text-sm">
-                      <span>{item.quantity}x {item.name}</span>
-                      <span className="font-medium">${item.price * item.quantity}</span>
-                    </div>
-                  ))}
+                  {(() => {
+                    // Parse items from JSON string if needed
+                    const parsedItems = typeof order.items === 'string'
+                      ? JSON.parse(order.items)
+                      : (Array.isArray(order.items) ? order.items : []);
+                    
+                    return parsedItems.map((item: any, index: number) => (
+                      <div key={index} className="flex justify-between text-sm">
+                        <span>{item.quantity}x {item.name}</span>
+                        <span className="font-medium">${(item.price * item.quantity).toFixed(2)}</span>
+                      </div>
+                    ));
+                  })()}
                 </div>
               </div>
 
@@ -207,7 +215,7 @@ export default function OrderTracker({ orderId, onRefresh }: OrderTrackerProps) 
 
               <div className="flex justify-between font-medium">
                 <span>Total</span>
-                <span>${order.totalAmount}</span>
+                <span>${order.total?.toFixed(2) || 0}</span>
               </div>
             </div>
           )}

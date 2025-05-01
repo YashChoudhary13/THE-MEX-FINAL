@@ -18,9 +18,9 @@ export default function OrderTracking() {
   const parsedOrderId = orderId ? parseInt(orderId) : null;
   
   // Get order details
-  const { data: order, isLoading, error, refetch } = useQuery<Order>({
+  const { data: order, isLoading, error, refetch } = useQuery<Order | null>({
     queryKey: ['/api/orders', parsedOrderId],
-    queryFn: parsedOrderId ? getQueryFn() : () => Promise.resolve(null),
+    queryFn: getQueryFn(),
     enabled: !!parsedOrderId,
     staleTime: 1000 * 60 * 5, // 5 minutes
   });

@@ -68,9 +68,10 @@ export const orders = pgTable("orders", {
   deliveryFee: doublePrecision("delivery_fee").notNull(),
   tax: doublePrecision("tax").notNull(),
   total: doublePrecision("total").notNull(),
-  status: text("status").notNull().default("pending"), // pending, confirmed, delivered, cancelled
+  status: text("status").notNull().default("pending"), // pending, confirmed, preparing, ready, delivered, cancelled
   items: jsonb("items").notNull(), // Serialized cart items
   userId: integer("user_id"), // Optional: links to users table for authenticated orders
+  createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
 export const insertOrderSchema = createInsertSchema(orders).pick({

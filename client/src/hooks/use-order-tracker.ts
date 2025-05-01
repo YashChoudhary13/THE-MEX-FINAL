@@ -59,10 +59,12 @@ export function useOrderTracker(orderId: number | null) {
           setIsConnected(true);
           
           // Subscribe to order updates
-          socket.send(JSON.stringify({
-            type: 'SUBSCRIBE_TO_ORDER',
-            orderId
-          }));
+          if (socket) {
+            socket.send(JSON.stringify({
+              type: 'SUBSCRIBE_TO_ORDER',
+              orderId
+            }));
+          }
         };
 
         socket.onmessage = (event) => {

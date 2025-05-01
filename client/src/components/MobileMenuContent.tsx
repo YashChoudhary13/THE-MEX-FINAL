@@ -130,9 +130,9 @@ export default function MobileMenuContent({ activeCategory, searchQuery }: Mobil
     );
   }
 
-  // For the default mobile view, show "Today's Special" followed by starters
+  // For the mobile view, show all categories in sequence for easy scrolling
   return (
-    <div className="px-4 pb-24"> {/* Extra padding at bottom for floating menu button */}
+    <div className="px-4 pb-24" id="full-menu"> {/* Extra padding at bottom for floating menu button */}
       {/* Today's Special Section */}
       <section className="mb-10">
         <div className="flex items-center mb-4">
@@ -174,36 +174,53 @@ export default function MobileMenuContent({ activeCategory, searchQuery }: Mobil
         </div>
       </section>
       
-      {/* Display active category or starters by default */}
-      {startersCategory && !activeCategory && (
-        <section className="mb-8">
-          <h2 className="text-2xl font-heading mb-4 text-primary">STARTERS</h2>
-          
-          {menuItemsLoading ? (
-            <div className="grid grid-cols-1 gap-4">
-              {[...Array(3)].map((_, index) => (
-                <div key={index}>{menuItemSkeleton()}</div>
-              ))}
-            </div>
-          ) : (
-            <motion.div 
-              className="grid grid-cols-1 gap-4"
-              variants={containerVariants}
-              initial="hidden"
-              animate="visible"
-            >
-              {getCategoryItems(startersCategory.id).map(item => (
-                <motion.div key={item.id} variants={itemVariants}>
-                  <MenuItemCard item={item} />
+      {/* Show all categories for mobile devices */}
+      {categories && categories.length > 0 && menuItems && !searchQuery ? (
+        <div className="space-y-12">
+          {categories.map(category => (
+            <section key={category.id} id={`category-${category.slug}`} className="scroll-mt-20">
+              <div className="sticky top-16 z-10 bg-gradient-to-r from-background via-background to-background/90 py-2">
+                <h2 className="text-2xl font-heading text-primary border-b border-border pb-2">{category.name.toUpperCase()}</h2>
+              </div>
+              
+              {menuItemsLoading ? (
+                <div className="grid grid-cols-1 gap-4 mt-4">
+                  {[...Array(3)].map((_, index) => (
+                    <div key={index}>{menuItemSkeleton()}</div>
+                  ))}
+                </div>
+              ) : (
+                <motion.div 
+                  className="grid grid-cols-1 gap-4 mt-4"
+                  variants={containerVariants}
+                  initial="hidden"
+                  animate="visible"
+                >
+                  {getCategoryItems(category.id).map(item => (
+                    <motion.div key={item.id} variants={itemVariants}>
+                      <MenuItemCard item={item} />
+                    </motion.div>
+                  ))}
+                  
+                  {/* Show message if no items in category */}
+                  {getCategoryItems(category.id).length === 0 && (
+                    <div className="text-center py-6 bg-muted/30 rounded-xl border border-border">
+                      <p className="text-muted-foreground">No items in this category</p>
+                    </div>
+                  )}
                 </motion.div>
-              ))}
-            </motion.div>
-          )}
-        </section>
-      )}
+              )}
+            </section>
+          ))}
+        </div>
+      ) : (!searchQuery && (
+        <div className="text-center py-12 bg-muted/30 rounded-xl border border-border">
+          <p className="text-muted-foreground">Loading menu categories...</p>
+        </div>
+      ))}
       
-      {/* If a specific category is selected */}
-      {currentCategory && (
+      {/* If a specific category is selected (this will only apply for desktop view) */}
+      {currentCategory && searchQuery && (
         <section className="mb-8">
           <h2 className="text-2xl font-heading mb-4 text-primary">{currentCategory.name.toUpperCase()}</h2>
           

@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Menu, X, ChevronRight } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Menu, X, ChevronRight, ArrowDown } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { MenuCategory } from "@shared/schema";
 import { Flame } from "lucide-react";
@@ -18,16 +18,50 @@ export default function MobileMenu({
 }: MobileMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
 
+  // Function to scroll to a specific category section
+  const scrollToCategory = (slug: string | null) => {
+    if (!slug) return;
+    
+    const element = document.getElementById(`category-${slug}`);
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
+
+  // Function to scroll to the full menu section
+  const scrollToMenu = () => {
+    const menuElement = document.getElementById('full-menu');
+    if (menuElement) {
+      menuElement.scrollIntoView({ behavior: 'smooth' });
+      return true;
+    }
+    return false;
+  };
+
   const handleCategoryClick = (slug: string) => {
     onCategoryChange(slug);
     setIsOpen(false);
+    
+    // Give time for the UI to update before scrolling
+    setTimeout(() => {
+      scrollToCategory(slug);
+    }, 100);
   };
 
   return (
     <div className="lg:hidden fixed bottom-6 right-6 z-50">
       {/* Floating menu button */}
       <Button
-        onClick={() => setIsOpen(true)}
+        onClick={() => {
+          // First try to scroll to menu before opening the menu panel
+          const menuScrolled = scrollToMenu();
+          
+          // If scrolling to menu fails (possibly because we're not on the home page),
+          // then open the menu panel
+          if (!menuScrolled) {
+            setIsOpen(true);
+          }
+        }}
         className="h-16 w-16 rounded-full bg-primary hover:bg-primary/90 shadow-xl flex items-center justify-center"
         aria-label="Open menu"
       >
@@ -66,6 +100,25 @@ export default function MobileMenu({
               </div>
               
               <div className="overflow-y-auto flex-1 py-4">
+                {/* All Categories Button */}
+                <div className="px-4 mb-4">
+                  <button
+                    className="flex items-center justify-between w-full text-left px-4 py-3 rounded-lg font-menu text-lg bg-primary/10 text-primary hover:bg-primary/20 transition-all"
+                    onClick={() => {
+                      setIsOpen(false);
+                      // Give time for the panel to close before scrolling
+                      setTimeout(() => {
+                        scrollToMenu();
+                      }, 300);
+                    }}
+                  >
+                    <div className="flex items-center">
+                      <ArrowDown className="mr-2 h-5 w-5" />
+                      VIEW ALL CATEGORIES
+                    </div>
+                  </button>
+                </div>
+                
                 <nav className="px-4">
                   <ul className="space-y-2">
                     {categories.map((category) => (

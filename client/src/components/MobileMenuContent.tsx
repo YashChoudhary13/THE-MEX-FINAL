@@ -1,10 +1,12 @@
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
-import { MenuCategory, MenuItem } from "@shared/schema";
+import { MenuCategory, MenuItem, CartItem } from "@shared/schema";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Flame } from "lucide-react";
 import MenuItemCard from "./MenuItemCard";
+import { useCart } from "@/context/CartContext";
+import { useToast } from "@/hooks/use-toast";
 
 interface MobileMenuContentProps {
   activeCategory: string | null;
@@ -13,6 +15,8 @@ interface MobileMenuContentProps {
 
 export default function MobileMenuContent({ activeCategory, searchQuery }: MobileMenuContentProps) {
   const [filteredItems, setFilteredItems] = useState<MenuItem[]>([]);
+  const { addToCart } = useCart();
+  const { toast } = useToast();
   
   // Special item for "Today's Special" section
   const todaysSpecial = {
@@ -21,7 +25,12 @@ export default function MobileMenuContent({ activeCategory, searchQuery }: Mobil
     originalPrice: 17.99,
     image: "https://images.unsplash.com/photo-1594212699903-ec8a3eca50f5?auto=format&fit=crop&w=800",
     label: "CHEF'S CHOICE",
-    description: "Two smashed beef patties, melted cheese, caramelized onions, special sauce, crispy pickles"
+    description: "Two smashed beef patties, melted cheese, caramelized onions, special sauce, crispy pickles",
+    menuItem: {
+      id: 1, // Use a fixed ID for the special
+      name: "Double Smash Burger",
+      image: "https://images.unsplash.com/photo-1594212699903-ec8a3eca50f5?auto=format&fit=crop&w=800"
+    }
   };
 
   // Fetch categories and menu items
@@ -165,8 +174,23 @@ export default function MobileMenuContent({ activeCategory, searchQuery }: Mobil
           <button 
             className="w-full py-3 bg-primary text-white font-menu rounded-lg hover:bg-primary/90 transition-colors"
             onClick={() => {
-              // Functionality to add the special to cart
-              console.log('Special added to cart');
+              if (todaysSpecial.menuItem) {
+                // Add special offer item to cart
+                const cartItem: CartItem = {
+                  id: Date.now(), // Generate a unique ID for the cart item
+                  menuItemId: todaysSpecial.menuItem.id,
+                  name: todaysSpecial.menuItem.name,
+                  price: todaysSpecial.price, // Use the special offer price
+                  quantity: 1,
+                  image: todaysSpecial.menuItem.image
+                };
+                addToCart(cartItem);
+                toast({
+                  title: "Added to cart",
+                  description: `${todaysSpecial.menuItem.name} has been added to your cart`,
+                  variant: "success"
+                });
+              }
             }}
           >
             ADD TO CART

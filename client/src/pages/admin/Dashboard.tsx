@@ -898,87 +898,89 @@ export default function AdminDashboard() {
                         </Button>
                       </div>
                     ) : (
-                      <div className="border rounded-md overflow-hidden">
-                        <table className="w-full">
-                          <thead className="bg-muted/50">
-                            <tr>
-                              <th className="py-3 px-4 text-left">Code</th>
-                              <th className="py-3 px-4 text-left">Discount</th>
-                              <th className="py-3 px-4 text-left">Min Order</th>
-                              <th className="py-3 px-4 text-left">Usage</th>
-                              <th className="py-3 px-4 text-left">Status</th>
-                              <th className="py-3 px-4 text-left">Actions</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {promoCodes.map((promo) => (
-                              <tr key={promo.id} className="border-t">
-                                <td className="py-3 px-4 font-medium">{promo.code}</td>
-                                <td className="py-3 px-4">
-                                  {promo.discountType === 'percentage' 
-                                    ? `${promo.discountValue}%` 
-                                    : `$${promo.discountValue.toFixed(2)}`
-                                  }
-                                </td>
-                                <td className="py-3 px-4">${promo.minOrderValue?.toFixed(2) || '0.00'}</td>
-                                <td className="py-3 px-4">
-                                  {promo.currentUsage} / {promo.usageLimit === null ? '∞' : promo.usageLimit}
-                                </td>
-                                <td className="py-3 px-4">
-                                  <span className={`text-xs px-2 py-1 rounded-full ${
-                                    promo.active 
-                                      ? 'bg-green-500/10 text-green-500' 
-                                      : 'bg-red-500/10 text-red-500'
-                                  }`}>
-                                    {promo.active ? 'ACTIVE' : 'INACTIVE'}
-                                  </span>
-                                </td>
-                                <td className="py-3 px-4">
-                                  <div className="flex gap-2">
-                                    <Button 
-                                      variant="outline" 
-                                      size="icon"
-                                      onClick={() => {
-                                        setSelectedPromoCode(promo);
-                                        setIsPromoCodeOpen(true);
-                                      }}
-                                    >
-                                      <Edit className="h-4 w-4" />
-                                    </Button>
-                                    <AlertDialog>
-                                      <AlertDialogTrigger asChild>
-                                        <Button 
-                                          variant="outline" 
-                                          size="icon"
-                                          className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                                        >
-                                          <Trash className="h-4 w-4" />
-                                        </Button>
-                                      </AlertDialogTrigger>
-                                      <AlertDialogContent>
-                                        <AlertDialogHeader>
-                                          <AlertDialogTitle>Delete Promo Code</AlertDialogTitle>
-                                          <AlertDialogDescription>
-                                            Are you sure you want to delete "{promo.code}"? This action cannot be undone.
-                                          </AlertDialogDescription>
-                                        </AlertDialogHeader>
-                                        <AlertDialogFooter>
-                                          <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                          <AlertDialogAction 
-                                            onClick={() => deletePromoCodeMutation.mutate(promo.id)}
-                                            className="bg-destructive hover:bg-destructive/90 text-destructive-foreground"
-                                          >
-                                            Delete
-                                          </AlertDialogAction>
-                                        </AlertDialogFooter>
-                                      </AlertDialogContent>
-                                    </AlertDialog>
-                                  </div>
-                                </td>
+                      <div className="border rounded-md overflow-x-auto">
+                        <div className="min-w-full inline-block align-middle">
+                          <table className="min-w-full divide-y divide-border">
+                            <thead className="bg-muted/50">
+                              <tr>
+                                <th scope="col" className="py-3 px-3 text-left text-xs font-medium sm:px-4">Code</th>
+                                <th scope="col" className="py-3 px-3 text-left text-xs font-medium sm:px-4">Discount</th>
+                                <th scope="col" className="py-3 px-3 text-left text-xs font-medium sm:px-4">Min Order</th>
+                                <th scope="col" className="py-3 px-3 text-left text-xs font-medium sm:px-4">Usage</th>
+                                <th scope="col" className="py-3 px-3 text-left text-xs font-medium sm:px-4">Status</th>
+                                <th scope="col" className="py-3 px-3 text-left text-xs font-medium sm:px-4">Actions</th>
                               </tr>
-                            ))}
-                          </tbody>
-                        </table>
+                            </thead>
+                            <tbody className="divide-y divide-border bg-card">
+                              {promoCodes.map((promo) => (
+                                <tr key={promo.id}>
+                                  <td className="whitespace-nowrap py-3 px-3 text-sm font-medium sm:px-4">{promo.code}</td>
+                                  <td className="whitespace-nowrap py-3 px-3 text-sm sm:px-4">
+                                    {promo.discountType === 'percentage' 
+                                      ? `${promo.discountValue}%` 
+                                      : `$${promo.discountValue.toFixed(2)}`
+                                    }
+                                  </td>
+                                  <td className="whitespace-nowrap py-3 px-3 text-sm sm:px-4">${promo.minOrderValue?.toFixed(2) || '0.00'}</td>
+                                  <td className="whitespace-nowrap py-3 px-3 text-sm sm:px-4">
+                                    {promo.currentUsage} / {promo.usageLimit === null ? '∞' : promo.usageLimit}
+                                  </td>
+                                  <td className="whitespace-nowrap py-3 px-3 text-sm sm:px-4">
+                                    <span className={`inline-flex text-xs px-2 py-1 rounded-full ${
+                                      promo.active 
+                                        ? 'bg-green-500/10 text-green-500' 
+                                        : 'bg-red-500/10 text-red-500'
+                                    }`}>
+                                      {promo.active ? 'ACTIVE' : 'INACTIVE'}
+                                    </span>
+                                  </td>
+                                  <td className="whitespace-nowrap py-3 px-3 text-sm sm:px-4">
+                                    <div className="flex gap-2">
+                                      <Button 
+                                        variant="outline" 
+                                        size="icon"
+                                        onClick={() => {
+                                          setSelectedPromoCode(promo);
+                                          setIsPromoCodeOpen(true);
+                                        }}
+                                      >
+                                        <Edit className="h-4 w-4" />
+                                      </Button>
+                                      <AlertDialog>
+                                        <AlertDialogTrigger asChild>
+                                          <Button 
+                                            variant="outline" 
+                                            size="icon"
+                                            className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                                          >
+                                            <Trash className="h-4 w-4" />
+                                          </Button>
+                                        </AlertDialogTrigger>
+                                        <AlertDialogContent>
+                                          <AlertDialogHeader>
+                                            <AlertDialogTitle>Delete Promo Code</AlertDialogTitle>
+                                            <AlertDialogDescription>
+                                              Are you sure you want to delete "{promo.code}"? This action cannot be undone.
+                                            </AlertDialogDescription>
+                                          </AlertDialogHeader>
+                                          <AlertDialogFooter>
+                                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                            <AlertDialogAction 
+                                              onClick={() => deletePromoCodeMutation.mutate(promo.id)}
+                                              className="bg-destructive hover:bg-destructive/90 text-destructive-foreground"
+                                            >
+                                              Delete
+                                            </AlertDialogAction>
+                                          </AlertDialogFooter>
+                                        </AlertDialogContent>
+                                      </AlertDialog>
+                                    </div>
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
                       </div>
                     )}
                   </CardContent>

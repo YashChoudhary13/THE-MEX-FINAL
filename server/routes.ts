@@ -3,7 +3,13 @@ import { createServer, type Server } from "http";
 import { WebSocketServer, WebSocket } from 'ws';
 import { storage } from "./storage";
 import { z } from "zod";
-import { insertOrderSchema, insertMenuItemSchema, insertMenuCategorySchema, insertSpecialOfferSchema } from "@shared/schema";
+import { 
+  insertOrderSchema, 
+  insertMenuItemSchema, 
+  insertMenuCategorySchema, 
+  insertSpecialOfferSchema,
+  insertPromoCodeSchema
+} from "@shared/schema";
 import { setupAuth } from "./auth";
 import { 
   generatePasswordResetToken, 
@@ -689,6 +695,107 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error updating order status:", error);
       res.status(500).json({ message: "Failed to update order status" });
+    }
+  });
+
+  // Promo code routes
+  app.get('/api/promo-codes', isAdmin, async (req, res) => {
+    try {
+      const promoCodes = await storage.getPromoCodes();
+      res.json(promoCodes);
+    } catch (error) {
+      console.error('Error fetching promo codes:', error);
+      res.status(500).json({ message: 'Failed to fetch promo codes' });
+    }
+  });
+
+  app.post('/api/promo-codes', isAdmin, async (req, res) => {
+    try {
+      const promoCodeData = insertPromoCodeSchema.parse(req.body);
+      const newPromoCode = await storage.createPromoCode(promoCodeData);
+      res.status(201).json(newPromoCode);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ message: "Invalid promo code data", errors: error.errors });
+      } else {
+        console.error('Error creating promo code:', error);
+        res.status(500).json({ message: 'Failed to create promo code' });
+      }
+    }
+  });
+
+  app.put('/api/promo-codes/:id', isAdmin, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const updatedPromoCode = await storage.updatePromoCode(parseInt(id), req.body);
+      
+      if (!updatedPromoCode) {
+        return res.status(404).json({ message: 'Promo code not found' });
+      }
+      
+      res.json(updatedPromoCode);
+    } catch (error) {
+      console.error('Error updating promo code:', error);
+      res.status(500).json({ message: 'Failed to update promo code' });
+    }
+  });
+
+  app.delete('/api/promo-codes/:id', isAdmin, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const result = await storage.deletePromoCode(parseInt(id));
+      
+      if (!result) {
+        return res.status(404).json({ message: 'Promo code not found' });
+      }
+      
+      res.status(204).end();
+    } catch (error) {
+      console.error('Error deleting promo code:', error);
+      res.status(500).json({ message: 'Failed to delete promo code' });
+    }
+  });
+
+  app.post('/api/validate-promo', async (req, res) => {
+    try {
+      const { code, orderTotal } = req.body;
+      
+      if (!code || typeof orderTotal !== 'number') {
+        return res.status(400).json({ message: 'Invalid request data' });
+      }
+      
+      const result = await storage.validatePromoCode(code, orderTotal);
+      res.json(result);
+    } catch (error) {
+      console.error('Error validating promo code:', error);
+      res.status(500).json({ message: 'Failed to validate promo code' });
+    }
+  });
+
+  // System settings routes
+  app.get('/api/system-settings/service-fee', async (req, res) => {
+    try {
+      const serviceFee = await storage.getServiceFee();
+      res.json({ serviceFee });
+    } catch (error) {
+      console.error('Error fetching service fee:', error);
+      res.status(500).json({ message: 'Failed to fetch service fee' });
+    }
+  });
+
+  app.put('/api/system-settings/service-fee', isAdmin, async (req, res) => {
+    try {
+      const { serviceFee } = req.body;
+      
+      if (isNaN(parseFloat(serviceFee))) {
+        return res.status(400).json({ message: 'Invalid service fee value' });
+      }
+      
+      await storage.updateSystemSetting('service_fee', serviceFee.toString());
+      res.json({ serviceFee: parseFloat(serviceFee) });
+    } catch (error) {
+      console.error('Error updating service fee:', error);
+      res.status(500).json({ message: 'Failed to update service fee' });
     }
   });
 

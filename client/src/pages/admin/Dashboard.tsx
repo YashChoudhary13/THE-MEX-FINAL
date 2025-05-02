@@ -802,6 +802,7 @@ function AddMenuItemForm({ categories, onSubmit, isSubmitting }: AddMenuItemForm
     image: z.string().url("Image must be a valid URL"),
     categoryId: z.coerce.number().positive("Please select a category"),
     featured: z.boolean().default(false),
+    prepTime: z.coerce.number().int().min(1, "Prep time must be at least 1 minute").max(60, "Prep time should not exceed 60 minutes").default(15),
   });
 
   const form = useForm<z.infer<typeof menuItemFormSchema>>({
@@ -813,6 +814,7 @@ function AddMenuItemForm({ categories, onSubmit, isSubmitting }: AddMenuItemForm
       image: "",
       categoryId: 0,
       featured: false,
+      prepTime: 15,
     },
   });
 
@@ -900,6 +902,28 @@ function AddMenuItemForm({ categories, onSubmit, isSubmitting }: AddMenuItemForm
               <FormControl>
                 <Input placeholder="https://example.com/image.jpg" {...field} />
               </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="prepTime"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Preparation Time (minutes)</FormLabel>
+              <FormControl>
+                <Input 
+                  type="number" 
+                  min="1" 
+                  max="60" 
+                  placeholder="15" 
+                  {...field} 
+                />
+              </FormControl>
+              <FormDescription>
+                Average time to prepare this item in minutes
+              </FormDescription>
               <FormMessage />
             </FormItem>
           )}
@@ -945,6 +969,7 @@ function EditMenuItemForm({ categories, menuItem, onSubmit, isSubmitting }: Edit
     image: z.string().url("Image must be a valid URL"),
     categoryId: z.coerce.number().positive("Please select a category"),
     featured: z.boolean().default(false),
+    prepTime: z.coerce.number().int().min(1, "Prep time must be at least 1 minute").max(60, "Prep time should not exceed 60 minutes").default(15),
   });
 
   const form = useForm<z.infer<typeof menuItemFormSchema>>({
@@ -956,6 +981,7 @@ function EditMenuItemForm({ categories, menuItem, onSubmit, isSubmitting }: Edit
       image: menuItem.image,
       categoryId: menuItem.categoryId,
       featured: menuItem.featured,
+      prepTime: menuItem.prepTime || 15,
     },
   });
 
@@ -1043,6 +1069,28 @@ function EditMenuItemForm({ categories, menuItem, onSubmit, isSubmitting }: Edit
               <FormControl>
                 <Input placeholder="https://example.com/image.jpg" {...field} />
               </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="prepTime"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Preparation Time (minutes)</FormLabel>
+              <FormControl>
+                <Input 
+                  type="number" 
+                  min="1" 
+                  max="60" 
+                  placeholder="15" 
+                  {...field} 
+                />
+              </FormControl>
+              <FormDescription>
+                Average time to prepare this item in minutes
+              </FormDescription>
               <FormMessage />
             </FormItem>
           )}

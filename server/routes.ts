@@ -771,7 +771,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Promo code routes
-  app.get('/api/promo-codes', isAdmin, async (req, res) => {
+  app.get('/api/admin/promo-codes', isAdmin, async (req, res) => {
     try {
       const promoCodes = await storage.getPromoCodes();
       res.json(promoCodes);
@@ -781,7 +781,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/promo-codes', isAdmin, async (req, res) => {
+  app.post('/api/admin/promo-codes', isAdmin, async (req, res) => {
     try {
       const promoCodeData = insertPromoCodeSchema.parse(req.body);
       const newPromoCode = await storage.createPromoCode(promoCodeData);
@@ -796,7 +796,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put('/api/promo-codes/:id', isAdmin, async (req, res) => {
+  app.patch('/api/admin/promo-codes/:id', isAdmin, async (req, res) => {
     try {
       const { id } = req.params;
       const updatedPromoCode = await storage.updatePromoCode(parseInt(id), req.body);
@@ -812,7 +812,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete('/api/promo-codes/:id', isAdmin, async (req, res) => {
+  app.delete('/api/admin/promo-codes/:id', isAdmin, async (req, res) => {
     try {
       const { id } = req.params;
       const result = await storage.deletePromoCode(parseInt(id));
@@ -896,7 +896,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put('/api/system-settings/service-fee', isAdmin, async (req, res) => {
+  app.patch('/api/admin/system-settings/service-fee', isAdmin, async (req, res) => {
     try {
       const { serviceFee } = req.body;
       

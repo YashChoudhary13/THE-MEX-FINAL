@@ -1,5 +1,6 @@
 import { createContext, useState, useContext, ReactNode, useEffect } from "react";
 import { CartItem } from "@shared/schema";
+import { useQuery } from "@tanstack/react-query";
 
 interface CartContextProps {
   cart: CartItem[];
@@ -7,10 +8,16 @@ interface CartContextProps {
   removeFromCart: (id: number) => void;
   updateCartItemQuantity: (id: number, quantity: number) => void;
   clearCart: () => void;
+  promoCode: string;
+  setPromoCode: (code: string) => void;
+  promoDiscount: number;
+  applyPromoCode: (code: string) => Promise<boolean>;
+  clearPromoCode: () => void;
   calculateTotals: () => {
     subtotal: number;
-    deliveryFee: number;
+    serviceFee: number;
     tax: number;
+    discount: number;
     total: number;
   };
 }
@@ -37,6 +44,23 @@ export function CartProvider({ children }: CartProviderProps) {
       return savedCart ? JSON.parse(savedCart) : [];
     }
     return [];
+  });
+
+  // State for promo code and its discount
+  const [promoCode, setPromoCode] = useState<string>("");
+  const [promoDiscount, setPromoDiscount] = useState<number>(0);
+
+  // Fetch service fee from the backend
+  const { data: serviceFeeData } = useQuery({
+    queryKey: ["/api/system-settings/service-fee"],
+    queryFn: async ({ signal }) => {
+      const response = await fetch("/api/system-settings/service-fee", { signal });
+      if (!response.ok) {
+        throw new Error("Failed to fetch service fee");
+      }
+      return response.json();
+    },
+    refetchOnWindowFocus: false,
   });
 
   // Save cart to localStorage whenever it changes
@@ -85,6 +109,53 @@ export function CartProvider({ children }: CartProviderProps) {
 
   const clearCart = () => {
     setCart([]);
+    clearPromoCode();
+  };
+
+  // Apply promo code and get discount
+  const applyPromoCode = async (code: string): Promise<boolean> => {
+    if (!code.trim()) {
+      clearPromoCode();
+      return false;
+    }
+
+    try {
+      const subtotal = cart.reduce(
+        (total, item) => total + item.price * item.quantity,
+        0
+      );
+
+      const response = await fetch("/api/validate-promo", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          code,
+          orderTotal: subtotal,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (result.valid) {
+        setPromoCode(code);
+        setPromoDiscount(result.discount || 0);
+        return true;
+      } else {
+        clearPromoCode();
+        return false;
+      }
+    } catch (error) {
+      console.error("Error validating promo code:", error);
+      clearPromoCode();
+      return false;
+    }
+  };
+
+  const clearPromoCode = () => {
+    setPromoCode("");
+    setPromoDiscount(0);
   };
 
   const calculateTotals = () => {
@@ -93,19 +164,25 @@ export function CartProvider({ children }: CartProviderProps) {
       0
     );
     
-    // Fixed delivery fee for this demo
-    const deliveryFee = cart.length > 0 ? 2.99 : 0;
+    // Dynamic service fee from backend, fallback to 2.99 if not available
+    const serviceFee = cart.length > 0 
+      ? (serviceFeeData?.serviceFee || 2.99) 
+      : 0;
     
     // Calculate tax (8% for this demo)
     const tax = subtotal * 0.08;
     
-    // Calculate total
-    const total = subtotal + deliveryFee + tax;
+    // Apply promo discount
+    const discount = promoDiscount;
+    
+    // Calculate total (subtotal + service fee + tax - discount)
+    const total = Math.max(0, subtotal + serviceFee + tax - discount);
     
     return {
       subtotal,
-      deliveryFee,
+      serviceFee,
       tax,
+      discount,
       total,
     };
   };
@@ -118,6 +195,11 @@ export function CartProvider({ children }: CartProviderProps) {
         removeFromCart,
         updateCartItemQuantity,
         clearCart,
+        promoCode,
+        setPromoCode,
+        promoDiscount,
+        applyPromoCode,
+        clearPromoCode,
         calculateTotals,
       }}
     >

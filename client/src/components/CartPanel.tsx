@@ -13,10 +13,19 @@ interface CartPanelProps {
 
 export default function CartPanel({ isOpen, onClose }: CartPanelProps) {
   const [, navigate] = useLocation();
-  const { cart, updateCartItemQuantity, removeFromCart, calculateTotals, clearCart } = useCart();
+  const { 
+    cart, 
+    updateCartItemQuantity, 
+    removeFromCart, 
+    calculateTotals, 
+    clearCart,
+    promoCode,
+    promoDiscount,
+    clearPromoCode
+  } = useCart();
   const { toast } = useToast();
 
-  const { subtotal, deliveryFee, tax, total } = calculateTotals();
+  const { subtotal, serviceFee, tax, discount, total } = calculateTotals();
 
   const handleProceedToCheckout = () => {
     if (cart.length === 0) {
@@ -227,12 +236,20 @@ export default function CartPanel({ isOpen, onClose }: CartPanelProps) {
               </div>
               <div className="flex justify-between text-xs md:text-sm">
                 <span className="text-muted-foreground">Service Fee</span>
-                <span className="font-medium text-foreground">${deliveryFee.toFixed(2)}</span>
+                <span className="font-medium text-foreground">${serviceFee.toFixed(2)}</span>
               </div>
               <div className="flex justify-between text-xs md:text-sm">
                 <span className="text-muted-foreground">Tax</span>
                 <span className="font-medium text-foreground">${tax.toFixed(2)}</span>
               </div>
+              {discount > 0 && (
+                <div className="flex justify-between text-xs md:text-sm">
+                  <span className="text-green-500 flex items-center">
+                    Promo ({promoCode}) <span className="ml-1 text-[10px] bg-green-500/10 px-1 py-0.5 rounded">APPLIED</span>
+                  </span>
+                  <span className="font-medium text-green-500">-${discount.toFixed(2)}</span>
+                </div>
+              )}
               <Separator className="my-2 bg-border" />
               <div className="flex justify-between font-bold text-base md:text-xl">
                 <span className="font-heading text-foreground">TOTAL</span>

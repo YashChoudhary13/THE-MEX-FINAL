@@ -44,11 +44,22 @@ enum CheckoutStep {
 export default function Checkout() {
   const [, navigate] = useLocation();
   const { toast } = useToast();
-  const { cart, calculateTotals, clearCart } = useCart();
+  const { 
+    cart, 
+    calculateTotals, 
+    clearCart,
+    promoCode,
+    setPromoCode,
+    promoDiscount,
+    applyPromoCode,
+    clearPromoCode
+  } = useCart();
   const [currentStep, setCurrentStep] = useState<CheckoutStep>(CheckoutStep.Delivery);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [promoCodeInput, setPromoCodeInput] = useState("");
+  const [isApplyingPromo, setIsApplyingPromo] = useState(false);
 
-  const { subtotal, deliveryFee, tax, total } = calculateTotals();
+  const { subtotal, serviceFee, tax, discount, total } = calculateTotals();
 
   // Initialize form
   const form = useForm<CheckoutFormValues>({
@@ -82,10 +93,12 @@ export default function Checkout() {
       const orderData = {
         ...data,
         subtotal,
-        deliveryFee,
+        serviceFee,
         tax,
+        discount,
         total,
         status: "pending",
+        promoCode: promoCode || null,
         items: cart.map(item => ({
           id: item.id,
           menuItemId: item.menuItemId,
@@ -93,6 +106,7 @@ export default function Checkout() {
           price: item.price,
           quantity: item.quantity,
           image: item.image,
+          prepTime: item.prepTime || null,
         })),
       };
 

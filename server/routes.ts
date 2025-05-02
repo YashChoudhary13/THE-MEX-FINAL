@@ -676,6 +676,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Admin route for deleting an order
+  app.delete("/api/orders/:id", isAdmin, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "Invalid order ID" });
+      }
+      
+      const deleted = await storage.deleteOrder(id);
+      
+      if (!deleted) {
+        return res.status(404).json({ message: "Order not found" });
+      }
+      
+      // Broadcast to any connected clients that the order was deleted
+      broadcastOrderUpdate(id, { id, deleted: true });
+      
+      res.status(200).json({ message: "Order deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting order:", error);
+      res.status(500).json({ message: "Failed to delete order" });
+    }
+  });
+  
   // Test route for updating order status (for testing WebSocket without admin auth)
   app.patch("/api/test/orders/:id/status", async (req, res) => {
     try {

@@ -19,7 +19,8 @@ import {
   List,
   Calendar,
   Search,
-  XCircle
+  XCircle,
+  Trash2
 } from 'lucide-react';
 import { 
   Card, 
@@ -44,6 +45,16 @@ import {
   TabsList,
   TabsTrigger,
 } from '@/components/ui/tabs';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { format } from 'date-fns';
 
 enum OrderStatus {
@@ -59,9 +70,9 @@ export default function OrderManager() {
   const { toast } = useToast();
   const [statusFilter, setStatusFilter] = useState<string | null>(null);
   
-  // Fetch all orders
+  // Fetch all orders from admin endpoint
   const { data: orders, isLoading, error, refetch } = useQuery<Order[]>({
-    queryKey: ['/api/orders'],
+    queryKey: ['/api/admin/orders'],
     refetchInterval: 5000, // auto refresh every 5 seconds
   });
   
@@ -73,6 +84,7 @@ export default function OrderManager() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/orders'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/orders'] });
       toast({
         title: 'Order updated',
         description: 'The order status has been updated successfully.',
@@ -81,6 +93,29 @@ export default function OrderManager() {
     onError: (error: Error) => {
       toast({
         title: 'Failed to update order',
+        description: error.message,
+        variant: 'destructive',
+      });
+    }
+  });
+  
+  // Delete order mutation
+  const deleteOrderMutation = useMutation({
+    mutationFn: async (orderId: number) => {
+      const response = await apiRequest('DELETE', `/api/orders/${orderId}`);
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/orders'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/orders'] });
+      toast({
+        title: 'Order deleted',
+        description: 'The order has been deleted successfully.',
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: 'Failed to delete order',
         description: error.message,
         variant: 'destructive',
       });

@@ -477,12 +477,16 @@ export default function AdminDashboard() {
                 {activeTab === "orders" && "Order Management"}
                 {activeTab === "menu" && "Menu Management"}
                 {activeTab === "specials" && "Today's Special"}
+                {activeTab === "promo-codes" && "Promo Code Management"}
+                {activeTab === "settings" && "System Settings"}
               </h1>
               <p className="text-muted-foreground">
                 {activeTab === "overview" && "Monitor your restaurant's performance and manage daily operations."}
                 {activeTab === "orders" && "View, update and manage all customer orders."}
                 {activeTab === "menu" && "Add, edit or remove items from your restaurant menu."}
                 {activeTab === "specials" && "Set and manage today's special offers and promotions."}
+                {activeTab === "promo-codes" && "Create and manage promotional codes for discounts."}
+                {activeTab === "settings" && "Configure system-wide settings such as tax rate and service fees."}
               </p>
             </div>
             
@@ -512,6 +516,18 @@ export default function AdminDashboard() {
               {activeTab === "specials" && (
                 <Button className="bg-primary hover:bg-primary/90" onClick={() => setIsUpdateSpecialOpen(true)}>
                   Update Special
+                </Button>
+              )}
+              {activeTab === "promo-codes" && (
+                <Button className="bg-primary hover:bg-primary/90" onClick={() => setIsPromoCodeOpen(true)}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Promo Code
+                </Button>
+              )}
+              {activeTab === "settings" && (
+                <Button className="bg-primary hover:bg-primary/90" onClick={() => setIsSettingsOpen(true)}>
+                  <Settings className="h-4 w-4 mr-2" />
+                  Update Settings
                 </Button>
               )}
             </div>

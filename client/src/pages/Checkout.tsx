@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 import { useForm } from "react-hook-form";
@@ -60,6 +60,11 @@ export default function Checkout() {
   const [isApplyingPromo, setIsApplyingPromo] = useState(false);
 
   const { subtotal, serviceFee, tax, discount, total } = calculateTotals();
+  
+  // Scroll to top when component mounts
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
 
   // Initialize form
   const form = useForm<CheckoutFormValues>({

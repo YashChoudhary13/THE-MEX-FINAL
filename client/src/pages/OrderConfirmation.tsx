@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { useLocation, useParams } from "wouter";
 import { CheckCircle, ChevronLeft, Truck } from "lucide-react";
+import { useEffect } from "react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
@@ -12,6 +13,11 @@ export default function OrderConfirmation() {
   const [, navigate] = useLocation();
   
   const orderId = parseInt(id || "0");
+  
+  // Scroll to top when component mounts
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
   
   const { data: order, isLoading, isError } = useQuery<Order>({
     queryKey: [`/api/orders/${orderId}`],

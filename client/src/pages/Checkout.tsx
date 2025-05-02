@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
+import { Bell, CheckCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -369,21 +370,32 @@ export default function Checkout() {
                 
                 {"Notification" in window && (
                   <div className="mt-6 border p-4 rounded-lg bg-card">
-                    <h3 className="font-medium text-primary mb-2">Order Notifications</h3>
-                    <div className="flex items-center">
-                      <button 
-                        type="button"
-                        onClick={handleRequestNotifications}
-                        className={`mr-2 relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background ${isNotificationsEnabled ? 'bg-primary' : 'bg-input'}`}
-                      >
-                        <span className={`${isNotificationsEnabled ? 'translate-x-6' : 'translate-x-1'} inline-block h-4 w-4 rounded-full bg-background transition-transform`}></span>
-                      </button>
-                      <span className="text-sm text-foreground">
-                        {isNotificationsEnabled 
-                          ? "You'll receive notifications when your order status changes" 
-                          : "Enable notifications to get updated on your order status"}
-                      </span>
+                    <div className="flex items-center gap-2 mb-3">
+                      <Bell className="h-5 w-5 text-primary" />
+                      <h3 className="font-medium text-primary">Order Notifications</h3>
                     </div>
+                    <p className="text-sm text-muted-foreground mb-3">
+                      {isNotificationsEnabled 
+                        ? "You'll receive notifications when your order status changes" 
+                        : "Enable notifications to get updated on your order status"}
+                    </p>
+                    {!isNotificationsEnabled && (
+                      <Button 
+                        onClick={handleRequestNotifications}
+                        className="w-full"
+                        variant="outline"
+                      >
+                        Enable Notifications
+                      </Button>
+                    )}
+                    {isNotificationsEnabled && (
+                      <div className="p-2 bg-primary/10 rounded-md text-sm text-center text-primary">
+                        <span className="flex items-center justify-center gap-1">
+                          <CheckCircle className="h-4 w-4" />
+                          Notifications Enabled
+                        </span>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>

@@ -60,7 +60,13 @@ export default function Checkout() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [promoCodeInput, setPromoCodeInput] = useState("");
   const [isApplyingPromo, setIsApplyingPromo] = useState(false);
-  const { isNotificationsEnabled, checkPermission, requestPermission } = useNotifications();
+  const { 
+    isNotificationsEnabled, 
+    notificationStatus, 
+    isBrowserSupported, 
+    checkPermission, 
+    requestPermission 
+  } = useNotifications();
 
   const { subtotal, serviceFee, tax, discount, total } = calculateTotals();
   
@@ -165,6 +171,27 @@ export default function Checkout() {
   
   const handleRequestNotifications = async () => {
     try {
+      // If browser doesn't support notifications
+      if (!isBrowserSupported) {
+        toast({
+          title: "Notifications Not Supported",
+          description: "Your browser doesn't support notifications. Try using a modern browser like Chrome or Firefox.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      // If notifications are already denied and can't be requested again
+      if (notificationStatus === 'unavailable') {
+        toast({
+          title: "Notification Permission Blocked",
+          description: "Notifications are blocked in your browser settings. Please enable them in your browser settings to receive order updates.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      // Request permission
       const granted = await requestPermission();
       
       if (granted) {
@@ -173,17 +200,25 @@ export default function Checkout() {
           description: "You will receive notifications about your order status updates.",
         });
       } else {
-        toast({
-          title: "Notifications Disabled",
-          description: "You won't receive notifications about your order status.",
-          variant: "destructive",
-        });
+        if (notificationStatus === 'denied') {
+          toast({
+            title: "Notifications Blocked",
+            description: "You blocked notifications. To enable them, please update your browser settings.",
+            variant: "destructive",
+          });
+        } else {
+          toast({
+            title: "Notifications Not Enabled",
+            description: "You'll need to enable notifications to receive order status updates.",
+            variant: "destructive",
+          });
+        }
       }
     } catch (error) {
       console.error('Error requesting notification permission:', error);
       toast({
         title: "Notification Error",
-        description: "Could not request notification permissions.",
+        description: "Could not request notification permissions. Please try again.",
         variant: "destructive",
       });
     }

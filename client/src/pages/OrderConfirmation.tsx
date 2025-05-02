@@ -14,7 +14,13 @@ export default function OrderConfirmation() {
   const { id } = useParams();
   const [, navigate] = useLocation();
   const { toast } = useToast();
-  const { isNotificationsEnabled, requestPermission, sendNotification } = useNotifications();
+  const { 
+    isNotificationsEnabled, 
+    notificationStatus, 
+    isBrowserSupported, 
+    requestPermission, 
+    sendNotification 
+  } = useNotifications();
   
   const orderId = parseInt(id || "0");
   
@@ -197,7 +203,29 @@ export default function OrderConfirmation() {
                     </p>
                     <Button 
                       onClick={async () => {
+                        // If browser doesn't support notifications
+                        if (!isBrowserSupported) {
+                          toast({
+                            title: "Notifications Not Supported",
+                            description: "Your browser doesn't support notifications. Try using a modern browser like Chrome or Firefox.",
+                            variant: "destructive",
+                          });
+                          return;
+                        }
+                        
+                        // If notifications are already denied and can't be requested again
+                        if (notificationStatus === 'unavailable') {
+                          toast({
+                            title: "Notification Permission Blocked",
+                            description: "Notifications are blocked in your browser settings. Please enable them to receive order updates.",
+                            variant: "destructive",
+                          });
+                          return;
+                        }
+                        
+                        // Request permission
                         const granted = await requestPermission();
+                        
                         if (granted) {
                           toast({
                             title: "Notifications Enabled",
@@ -210,6 +238,20 @@ export default function OrderConfirmation() {
                               icon: "/favicon.ico"
                             }
                           );
+                        } else {
+                          if (notificationStatus === 'denied') {
+                            toast({
+                              title: "Notifications Blocked",
+                              description: "You blocked notifications. To enable them, update your browser settings.",
+                              variant: "destructive",
+                            });
+                          } else {
+                            toast({
+                              title: "Notifications Not Enabled",
+                              description: "You'll need to enable notifications to receive order status updates.",
+                              variant: "destructive",
+                            });
+                          }
                         }
                       }}
                       className="w-full"

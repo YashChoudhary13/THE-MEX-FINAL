@@ -1,7 +1,11 @@
 import { createContext, ReactNode, useContext, useState, useEffect } from 'react';
 
+type NotificationStatus = 'unsupported' | 'default' | 'granted' | 'denied' | 'unavailable';
+
 type NotificationContextType = {
   isNotificationsEnabled: boolean;
+  notificationStatus: NotificationStatus;
+  isBrowserSupported: boolean;
   checkPermission: () => Promise<NotificationPermission>;
   requestPermission: () => Promise<boolean>;
   sendNotification: (title: string, options?: NotificationOptions) => void;
@@ -11,36 +15,74 @@ export const NotificationContext = createContext<NotificationContextType | null>
 
 export function NotificationProvider({ children }: { children: ReactNode }) {
   const [isNotificationsEnabled, setIsNotificationsEnabled] = useState(false);
+  const [notificationStatus, setNotificationStatus] = useState<NotificationStatus>('default');
+  const [isBrowserSupported, setIsBrowserSupported] = useState(false);
   
+  // Initialize notification state on mount
   useEffect(() => {
     // Check if the browser supports notifications
-    if (!("Notification" in window)) {
-      console.log("This browser does not support notifications.");
+    const isSupported = "Notification" in window;
+    setIsBrowserSupported(isSupported);
+    
+    if (!isSupported) {
+      setNotificationStatus('unsupported');
       return;
     }
     
-    // Check if permission is already granted
-    if (Notification.permission === 'granted') {
+    // Check current permission status
+    const permission = Notification.permission;
+    setNotificationStatus(permission as NotificationStatus);
+    
+    // Update enabled status if permission is granted
+    if (permission === 'granted') {
       setIsNotificationsEnabled(true);
+    } else if (permission === 'denied') {
+      // If denied, set to unavailable because we can't request again
+      setNotificationStatus('unavailable');
     }
   }, []);
   
   const checkPermission = async (): Promise<NotificationPermission> => {
-    if (!("Notification" in window)) {
+    if (!isBrowserSupported) {
       return 'denied';
     }
-    return Notification.permission;
+    
+    const permission = Notification.permission;
+    setNotificationStatus(permission as NotificationStatus);
+    
+    if (permission === 'granted') {
+      setIsNotificationsEnabled(true);
+    } else if (permission === 'denied') {
+      setNotificationStatus('unavailable');
+    }
+    
+    return permission;
   };
   
   const requestPermission = async (): Promise<boolean> => {
-    if (!("Notification" in window)) {
+    if (!isBrowserSupported) {
+      console.log("Browser doesn't support notifications");
+      return false;
+    }
+    
+    // If already denied, we can't request again in most browsers
+    if (Notification.permission === 'denied') {
+      setNotificationStatus('unavailable');
       return false;
     }
     
     try {
       const permission = await Notification.requestPermission();
+      setNotificationStatus(permission as NotificationStatus);
+      
       const granted = permission === 'granted';
       setIsNotificationsEnabled(granted);
+      
+      // If denied after request, set to unavailable for future attempts
+      if (permission === 'denied') {
+        setNotificationStatus('unavailable');
+      }
+      
       return granted;
     } catch (error) {
       console.error('Error requesting notification permission:', error);
@@ -49,7 +91,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
   };
   
   const sendNotification = (title: string, options?: NotificationOptions) => {
-    if (!isNotificationsEnabled) return;
+    if (!isNotificationsEnabled || !isBrowserSupported) return;
     
     try {
       new Notification(title, options);
@@ -62,6 +104,8 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     <NotificationContext.Provider
       value={{
         isNotificationsEnabled,
+        notificationStatus,
+        isBrowserSupported,
         checkPermission,
         requestPermission,
         sendNotification,

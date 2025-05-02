@@ -57,7 +57,25 @@ export default function CartPanel({ isOpen, onClose }: CartPanelProps) {
 
   const estimatedPickupTime = () => {
     const now = new Date();
-    const pickupTime = new Date(now.getTime() + 20 * 60000); // 20 minutes from now
+    
+    // Calculate total prep time based on items in cart
+    let totalPrepTime = 0;
+    
+    cart.forEach(item => {
+      // Find the menu item to get its prep time
+      // Use default prep time (15 minutes) if not available
+      totalPrepTime += item.prepTime ? item.prepTime * item.quantity : 15 * item.quantity;
+    });
+    
+    // Limit total prep time to 60 minutes maximum
+    totalPrepTime = Math.min(totalPrepTime, 60);
+    
+    // Add some buffer time (5 minutes) for order processing
+    const totalTimeInMinutes = totalPrepTime + 5;
+    
+    // Calculate the pickup time
+    const pickupTime = new Date(now.getTime() + totalTimeInMinutes * 60000);
+    
     return pickupTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 

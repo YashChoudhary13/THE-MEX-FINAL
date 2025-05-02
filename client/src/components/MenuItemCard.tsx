@@ -65,7 +65,8 @@ export default function MenuItemCard({ item }: MenuItemCardProps) {
         name: item.name,
         price: item.price,
         quantity: quantity,
-        image: item.image
+        image: item.image,
+        prepTime: item.prepTime || 15 // Use the item's prep time or default to 15 minutes
       });
       
       // Only show toast when adding from modal or detail view, not from quantity controls
@@ -380,7 +381,8 @@ export default function MenuItemCard({ item }: MenuItemCardProps) {
                         name: item.name,
                         price: item.price,
                         quantity: 1,
-                        image: item.image
+                        image: item.image,
+                        prepTime: item.prepTime || 15
                       });
                     }}
                     disabled={isAddingToCart}

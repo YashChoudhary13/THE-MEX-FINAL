@@ -33,6 +33,7 @@ export const menuItems = pgTable("menu_items", {
   calories: text("calories"),
   allergens: text("allergens"),
   dietaryInfo: text("dietary_info").array(),
+  prepTime: integer("prep_time").default(15), // Preparation time in minutes
 });
 
 export const insertMenuItemSchema = createInsertSchema(menuItems).pick({
@@ -49,6 +50,7 @@ export const insertMenuItemSchema = createInsertSchema(menuItems).pick({
   calories: true,
   allergens: true,
   dietaryInfo: true,
+  prepTime: true,
 });
 
 export type InsertMenuItem = z.infer<typeof insertMenuItemSchema>;
@@ -149,4 +151,5 @@ export type CartItem = {
   price: number;
   quantity: number;
   image: string;
+  prepTime?: number; // Time in minutes to prepare this item
 };

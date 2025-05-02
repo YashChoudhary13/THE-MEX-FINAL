@@ -920,9 +920,9 @@ export default function AdminDashboard() {
                                     : `$${promo.discountValue.toFixed(2)}`
                                   }
                                 </td>
-                                <td className="py-3 px-4">${promo.minOrderAmount?.toFixed(2) || '0.00'}</td>
+                                <td className="py-3 px-4">${promo.minOrderValue?.toFixed(2) || '0.00'}</td>
                                 <td className="py-3 px-4">
-                                  {promo.usageCount} / {promo.maxUses === null ? '∞' : promo.maxUses}
+                                  {promo.currentUsage} / {promo.usageLimit === null ? '∞' : promo.usageLimit}
                                 </td>
                                 <td className="py-3 px-4">
                                   <span className={`text-xs px-2 py-1 rounded-full ${
@@ -1018,7 +1018,7 @@ export default function AdminDashboard() {
                         <div className="flex items-center justify-between">
                           <h3 className="text-lg font-semibold">Tax Rate</h3>
                           <div className="text-2xl font-bold text-primary">
-                            8%
+                            {taxRate?.taxRate?.toFixed(1) || '8.0'}%
                           </div>
                         </div>
                         <p className="text-sm text-muted-foreground">

@@ -129,7 +129,7 @@ export default function OrderConfirmation() {
                     <span>${order.subtotal.toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between text-sm mb-1">
-                    <span>Delivery Fee</span>
+                    <span>Service Fee</span>
                     <span>${order.deliveryFee.toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between text-sm mb-3">

@@ -98,7 +98,7 @@ export default function Checkout() {
       const orderData = {
         ...data,
         subtotal,
-        serviceFee,
+        deliveryFee: serviceFee, // Map serviceFee to deliveryFee for the DB schema
         tax,
         discount,
         total,

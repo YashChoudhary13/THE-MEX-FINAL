@@ -18,6 +18,7 @@ import {
   sendPasswordResetEmail 
 } from "./email";
 import { comparePasswords } from './auth';
+import { sendOrderStatusNotification } from './notification';
 
 // Map to keep track of WebSocket connections by order ID
 const orderSocketConnections = new Map<number, Set<WebSocket>>();
@@ -658,6 +659,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Broadcast the update to all subscribed clients
       broadcastOrderUpdate(id, updatedOrder);
       
+      // Send SMS notification when order status changes to "ready"
+      if (status === 'ready' || status === 'confirmed' || status === 'preparing') {
+        try {
+          await sendOrderStatusNotification(updatedOrder, status);
+        } catch (error) {
+          console.error('Failed to send SMS notification:', error);
+          // Continue with the response even if SMS fails
+        }
+      }
+      
       res.json(updatedOrder);
     } catch (error) {
       console.error("Error updating order status:", error);
@@ -688,6 +699,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Broadcast the update to all subscribed clients
       broadcastOrderUpdate(id, updatedOrder);
+      
+      // Send SMS notification when order status changes to "ready"
+      if (status === 'ready' || status === 'confirmed' || status === 'preparing') {
+        try {
+          await sendOrderStatusNotification(updatedOrder, status);
+        } catch (error) {
+          console.error('Failed to send SMS notification:', error);
+          // Continue with the response even if SMS fails
+        }
+      }
       
       console.log(`Broadcasting update for order ${id} with status ${status}`);
       

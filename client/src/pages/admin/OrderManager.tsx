@@ -11,7 +11,15 @@ import {
   AlertCircle,
   Loader2,
   RefreshCcw,
-  Clipboard 
+  Clipboard,
+  Phone,
+  BadgeInfo,
+  BellRing,
+  Filter,
+  List,
+  Calendar,
+  Search,
+  XCircle
 } from 'lucide-react';
 import { 
   Card, 
@@ -247,7 +255,14 @@ export default function OrderManager() {
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {orders.map(order => (
-          <Card key={order.id} className={order.status === OrderStatus.READY ? 'border-primary' : ''}>
+          <Card key={order.id} className={`
+            ${order.status === OrderStatus.PENDING ? 'border-gray-300' : ''}
+            ${order.status === OrderStatus.CONFIRMED ? 'border-blue-400' : ''}
+            ${order.status === OrderStatus.PREPARING ? 'border-orange-400' : ''}
+            ${order.status === OrderStatus.READY ? 'border-green-500 border-2' : ''}
+            ${order.status === OrderStatus.DELIVERED ? 'border-gray-500' : ''}
+            ${order.status === OrderStatus.CANCELLED ? 'border-red-400' : ''}
+          `}>
             <CardHeader className="pb-2">
               <div className="flex justify-between items-center">
                 <div>
@@ -268,8 +283,28 @@ export default function OrderManager() {
               <div className="space-y-2">
                 <div>
                   <h4 className="text-sm font-medium text-muted-foreground">Customer</h4>
-                  <p>{order.customerName}</p>
-                  <p className="text-sm">{order.customerPhone}</p>
+                  <p className="font-medium">{order.customerName}</p>
+                  <div className="flex items-center mt-1 text-sm">
+                    <Phone className="h-3.5 w-3.5 mr-1 text-muted-foreground" />
+                    <a href={`tel:${order.customerPhone}`} className="text-primary hover:underline">
+                      {order.customerPhone}
+                    </a>
+                    {order.status === OrderStatus.CONFIRMED && (
+                      <Badge className="ml-2 py-0 h-5 bg-blue-100 text-blue-800 hover:bg-blue-200 border-blue-300">
+                        <BellRing className="h-3 w-3 mr-1" /> Confirmed SMS
+                      </Badge>
+                    )}
+                    {order.status === OrderStatus.PREPARING && (
+                      <Badge className="ml-2 py-0 h-5 bg-yellow-100 text-yellow-800 hover:bg-yellow-200 border-yellow-300">
+                        <BellRing className="h-3 w-3 mr-1" /> Preparing SMS
+                      </Badge>
+                    )}
+                    {order.status === OrderStatus.READY && (
+                      <Badge className="ml-2 py-0 h-5 bg-green-100 text-green-800 hover:bg-green-200 border-green-300">
+                        <BellRing className="h-3 w-3 mr-1" /> Ready for pickup SMS
+                      </Badge>
+                    )}
+                  </div>
                 </div>
                 
                 <div>

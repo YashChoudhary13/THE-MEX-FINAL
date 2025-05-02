@@ -32,7 +32,7 @@ export default function CategorySidebar({
   }, [categories]);
 
   return (
-    <aside>
+    <aside className="w-full">
       <div className="lg:sticky lg:top-32 flex flex-col h-full">
         <h2 className="text-3xl font-heading mb-6 text-primary">MENU</h2>
         
@@ -72,7 +72,7 @@ export default function CategorySidebar({
           </nav>
         )}
         
-        <div className="mt-4 mb-6 bg-gradient-to-br from-primary/20 to-accent/20 p-6 rounded-2xl border border-primary/10">
+        <div className="mt-4 bg-gradient-to-br from-primary/20 to-accent/20 p-6 rounded-2xl border border-primary/10">
           <div className="flex items-center mb-3">
             <Flame className="h-5 w-5 text-primary mr-2" />
             <h3 className="font-heading text-xl text-primary">TODAY'S SPECIAL</h3>

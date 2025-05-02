@@ -258,29 +258,85 @@ export default function OrderManager() {
       </AlertDialog>
       
       <Tabs defaultValue="all" className="w-full">
-        <TabsList className="grid grid-cols-7 mb-6">
-          <TabsTrigger value="all" onClick={() => setStatusFilter(null)}>
-            All ({orders?.length || 0})
-          </TabsTrigger>
-          <TabsTrigger value="pending" onClick={() => setStatusFilter(OrderStatus.PENDING)}>
-            Pending ({statusCounts.pending})
-          </TabsTrigger>
-          <TabsTrigger value="confirmed" onClick={() => setStatusFilter(OrderStatus.CONFIRMED)}>
-            Confirmed ({statusCounts.confirmed})
-          </TabsTrigger>
-          <TabsTrigger value="preparing" onClick={() => setStatusFilter(OrderStatus.PREPARING)}>
-            Preparing ({statusCounts.preparing})
-          </TabsTrigger>
-          <TabsTrigger value="ready" onClick={() => setStatusFilter(OrderStatus.READY)}>
-            Ready ({statusCounts.ready})
-          </TabsTrigger>
-          <TabsTrigger value="delivered" onClick={() => setStatusFilter(OrderStatus.DELIVERED)}>
-            Delivered ({statusCounts.delivered})
-          </TabsTrigger>
-          <TabsTrigger value="cancelled" onClick={() => setStatusFilter(OrderStatus.CANCELLED)}>
-            Cancelled ({statusCounts.cancelled})
-          </TabsTrigger>
-        </TabsList>
+        {/* Desktop tabs view */}
+        <div className="hidden md:block">
+          <TabsList className="grid grid-cols-7 mb-6">
+            <TabsTrigger value="all" onClick={() => setStatusFilter(null)}>
+              All ({orders?.length || 0})
+            </TabsTrigger>
+            <TabsTrigger value="pending" onClick={() => setStatusFilter(OrderStatus.PENDING)}>
+              Pending ({statusCounts.pending})
+            </TabsTrigger>
+            <TabsTrigger value="confirmed" onClick={() => setStatusFilter(OrderStatus.CONFIRMED)}>
+              Confirmed ({statusCounts.confirmed})
+            </TabsTrigger>
+            <TabsTrigger value="preparing" onClick={() => setStatusFilter(OrderStatus.PREPARING)}>
+              Preparing ({statusCounts.preparing})
+            </TabsTrigger>
+            <TabsTrigger value="ready" onClick={() => setStatusFilter(OrderStatus.READY)}>
+              Ready ({statusCounts.ready})
+            </TabsTrigger>
+            <TabsTrigger value="delivered" onClick={() => setStatusFilter(OrderStatus.DELIVERED)}>
+              Delivered ({statusCounts.delivered})
+            </TabsTrigger>
+            <TabsTrigger value="cancelled" onClick={() => setStatusFilter(OrderStatus.CANCELLED)}>
+              Cancelled ({statusCounts.cancelled})
+            </TabsTrigger>
+          </TabsList>
+        </div>
+        
+        {/* Mobile tabs view - organized by importance */}
+        <div className="md:hidden mb-6">
+          <TabsList className="grid grid-cols-3 mb-2">
+            <TabsTrigger value="all" onClick={() => setStatusFilter(null)}>
+              All ({orders?.length || 0})
+            </TabsTrigger>
+            <TabsTrigger value="pending" onClick={() => setStatusFilter(OrderStatus.PENDING)}>
+              Pending ({statusCounts.pending})
+            </TabsTrigger>
+            <TabsTrigger value="confirmed" onClick={() => setStatusFilter(OrderStatus.CONFIRMED)}>
+              Confirmed ({statusCounts.confirmed})
+            </TabsTrigger>
+          </TabsList>
+          
+          {/* For very small screens, we use 2 columns for the second row */}
+          <div className="sm:block hidden">
+            <TabsList className="grid grid-cols-4">
+              <TabsTrigger value="preparing" onClick={() => setStatusFilter(OrderStatus.PREPARING)}>
+                Preparing ({statusCounts.preparing})
+              </TabsTrigger>
+              <TabsTrigger value="ready" onClick={() => setStatusFilter(OrderStatus.READY)}>
+                Ready ({statusCounts.ready})
+              </TabsTrigger>
+              <TabsTrigger value="delivered" onClick={() => setStatusFilter(OrderStatus.DELIVERED)}>
+                Delivered ({statusCounts.delivered})
+              </TabsTrigger>
+              <TabsTrigger value="cancelled" onClick={() => setStatusFilter(OrderStatus.CANCELLED)}>
+                Cancelled ({statusCounts.cancelled})
+              </TabsTrigger>
+            </TabsList>
+          </div>
+          
+          {/* For extremely small screens, use 2 columns in two rows */}
+          <div className="sm:hidden">
+            <TabsList className="grid grid-cols-2 mb-2">
+              <TabsTrigger value="preparing" onClick={() => setStatusFilter(OrderStatus.PREPARING)}>
+                Preparing ({statusCounts.preparing})
+              </TabsTrigger>
+              <TabsTrigger value="ready" onClick={() => setStatusFilter(OrderStatus.READY)}>
+                Ready ({statusCounts.ready})
+              </TabsTrigger>
+            </TabsList>
+            <TabsList className="grid grid-cols-2">
+              <TabsTrigger value="delivered" onClick={() => setStatusFilter(OrderStatus.DELIVERED)}>
+                Delivered ({statusCounts.delivered})
+              </TabsTrigger>
+              <TabsTrigger value="cancelled" onClick={() => setStatusFilter(OrderStatus.CANCELLED)}>
+                Cancelled ({statusCounts.cancelled})
+              </TabsTrigger>
+            </TabsList>
+          </div>
+        </div>
         
         <TabsContent value="all" className="space-y-4">
           {renderOrderCards(filteredOrders || [])}

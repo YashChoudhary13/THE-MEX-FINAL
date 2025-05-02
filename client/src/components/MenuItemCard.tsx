@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { MenuItem } from "@shared/schema";
 import { useCart } from "@/context/CartContext";
 import { useToast } from "@/hooks/use-toast";
@@ -24,15 +24,29 @@ interface MenuItemCardProps {
 }
 
 export default function MenuItemCard({ item }: MenuItemCardProps) {
-  const { addToCart } = useCart();
+  const { addToCart, cart, updateCartItemQuantity, removeFromCart } = useCart();
   const { toast } = useToast();
   const [isAddingToCart, setIsAddingToCart] = useState(false);
   const [isHovering, setIsHovering] = useState(false);
   const [quantity, setQuantity] = useState(1);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isInCart, setIsInCart] = useState(false);
+  const [cartQuantity, setCartQuantity] = useState(0);
   
   // Use mobile hook to detect screen size
   const isMobile = useIsMobile();
+  
+  // Check if item is already in cart and update state accordingly
+  useEffect(() => {
+    const cartItem = cart.find(cartItem => cartItem.menuItemId === item.id);
+    if (cartItem) {
+      setIsInCart(true);
+      setCartQuantity(cartItem.quantity);
+    } else {
+      setIsInCart(false);
+      setCartQuantity(0);
+    }
+  }, [cart, item.id]);
 
   const handleAddToCart = (e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
@@ -304,28 +318,55 @@ export default function MenuItemCard({ item }: MenuItemCardProps) {
                   <span className="text-[10px] text-muted-foreground truncate mr-0.5">({item.reviewCount || '42'})</span>
                 </div>
                 
-                {/* Add to cart button */}
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button 
-                        className="bg-primary hover:bg-primary/90 text-white font-menu h-7 px-3 text-xs"
-                        size="sm"
-                        onClick={(e) => {
-                          e.stopPropagation(); // Prevent opening the modal
-                          handleAddToCart(e);
-                        }}
-                        disabled={isAddingToCart}
-                      >
-                        <ShoppingBag className="h-3 w-3 mr-1" />
-                        ADD
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>Add to cart</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
+                {/* Quantity selector or Add button */}
+                {isInCart ? (
+                  <div 
+                    className="flex items-center bg-muted rounded-lg h-7"
+                    onClick={(e) => e.stopPropagation()} // Prevent opening the modal
+                  >
+                    <Button 
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 w-7 rounded-full text-foreground hover:text-primary hover:bg-transparent p-0"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        updateCartItemQuantity(item.id, Math.max(0, cartQuantity - 1));
+                        if (cartQuantity <= 1) {
+                          setIsInCart(false);
+                        }
+                      }}
+                    >
+                      <Minus className="h-3 w-3" />
+                    </Button>
+                    <span className="w-5 text-center text-xs font-medium">{cartQuantity}</span>
+                    <Button 
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 w-7 rounded-full text-foreground hover:text-primary hover:bg-transparent p-0"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        updateCartItemQuantity(item.id, Math.min(10, cartQuantity + 1));
+                      }}
+                    >
+                      <Plus className="h-3 w-3" />
+                    </Button>
+                  </div>
+                ) : (
+                  <Button 
+                    className="bg-primary hover:bg-primary/90 text-white font-menu h-7 px-3 text-xs"
+                    size="sm"
+                    onClick={(e) => {
+                      e.stopPropagation(); // Prevent opening the modal
+                      handleAddToCart(e);
+                      setIsInCart(true);
+                      setCartQuantity(1);
+                    }}
+                    disabled={isAddingToCart}
+                  >
+                    <ShoppingBag className="h-3 w-3 mr-1" />
+                    ADD
+                  </Button>
+                )}
               </div>
             </div>
           </div>

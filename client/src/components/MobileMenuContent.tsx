@@ -187,8 +187,7 @@ export default function MobileMenuContent({ activeCategory, searchQuery }: Mobil
                 addToCart(cartItem);
                 toast({
                   title: "Added to cart",
-                  description: `${todaysSpecial.menuItem.name} has been added to your cart`,
-                  variant: "success"
+                  description: `${todaysSpecial.menuItem.name} has been added to your cart`
                 });
               }
             }}

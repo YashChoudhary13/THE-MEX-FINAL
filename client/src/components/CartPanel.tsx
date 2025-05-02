@@ -82,7 +82,7 @@ export default function CartPanel({ isOpen, onClose }: CartPanelProps) {
           </div>
           
           {/* Cart Items */}
-          <div className="flex-1 overflow-y-auto p-5">
+          <div className="flex-1 overflow-y-auto p-3 md:p-5">
             {cart.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-full text-center p-4">
                 <h3 className="text-3xl font-heading text-primary mb-4 bg-gradient-to-r from-primary to-primary-foreground bg-clip-text text-transparent">HUNGRY?</h3>
@@ -176,22 +176,22 @@ export default function CartPanel({ isOpen, onClose }: CartPanelProps) {
                 </AnimatePresence>
 
                 {/* Pickup information */}
-                <div className="mt-6 p-4 bg-secondary/10 rounded-xl border border-border">
-                  <div className="flex items-center mb-3">
-                    <ShoppingBag className="h-5 w-5 text-primary mr-2" />
-                    <h4 className="font-heading text-sm">PICKUP INFORMATION</h4>
+                <div className="mt-4 p-3 md:p-4 bg-secondary/10 rounded-xl border border-border">
+                  <div className="flex items-center mb-2">
+                    <ShoppingBag className="h-4 w-4 md:h-5 md:w-5 text-primary mr-1 md:mr-2" />
+                    <h4 className="font-heading text-xs md:text-sm">PICKUP INFORMATION</h4>
                   </div>
-                  <div className="flex items-center justify-between text-sm text-muted-foreground mb-1">
-                    <span>Estimated Ready Time:</span>
+                  <div className="flex items-center justify-between text-xs md:text-sm text-muted-foreground mb-1">
+                    <span>Estimated Ready:</span>
                     <div className="flex items-center">
-                      <Clock className="h-4 w-4 mr-1 text-primary" />
+                      <Clock className="h-3 w-3 md:h-4 md:w-4 mr-1 text-primary" />
                       <span>{estimatedPickupTime()}</span>
                     </div>
                   </div>
-                  <div className="flex items-center justify-between text-sm text-muted-foreground">
-                    <span>Payment Method:</span>
+                  <div className="flex items-center justify-between text-xs md:text-sm text-muted-foreground">
+                    <span>Payment:</span>
                     <div className="flex items-center">
-                      <Receipt className="h-4 w-4 mr-1 text-primary" />
+                      <Receipt className="h-3 w-3 md:h-4 md:w-4 mr-1 text-primary" />
                       <span>Pay at Restaurant</span>
                     </div>
                   </div>
@@ -200,40 +200,40 @@ export default function CartPanel({ isOpen, onClose }: CartPanelProps) {
             )}
           </div>
           
-          {/* Cart Summary */}
-          <div className="border-t border-border p-5 bg-card">
-            <div className="space-y-3 mb-5">
-              <div className="flex justify-between text-sm">
+          {/* Cart Summary - Optimized for mobile */}
+          <div className="border-t border-border p-4 bg-card sticky bottom-0 flex flex-col max-h-[40vh] md:max-h-[50vh]">
+            <div className="space-y-2 mb-3">
+              <div className="flex justify-between text-xs md:text-sm">
                 <span className="text-muted-foreground">Subtotal</span>
                 <span className="font-medium text-foreground">${subtotal.toFixed(2)}</span>
               </div>
-              <div className="flex justify-between text-sm">
+              <div className="flex justify-between text-xs md:text-sm">
                 <span className="text-muted-foreground">Service Fee</span>
                 <span className="font-medium text-foreground">${deliveryFee.toFixed(2)}</span>
               </div>
-              <div className="flex justify-between text-sm">
+              <div className="flex justify-between text-xs md:text-sm">
                 <span className="text-muted-foreground">Tax</span>
                 <span className="font-medium text-foreground">${tax.toFixed(2)}</span>
               </div>
-              <Separator className="my-3 bg-border" />
-              <div className="flex justify-between font-bold text-xl">
+              <Separator className="my-2 bg-border" />
+              <div className="flex justify-between font-bold text-base md:text-xl">
                 <span className="font-heading text-foreground">TOTAL</span>
                 <span className="text-primary">${total.toFixed(2)}</span>
               </div>
             </div>
             
-            <div className="space-y-3">
+            <div className="space-y-2">
               <Button 
-                className="w-full bg-primary hover:bg-primary/90 text-white font-heading text-lg py-6"
+                className="w-full bg-primary hover:bg-primary/90 text-white font-heading md:text-lg py-5"
                 onClick={handleProceedToCheckout}
                 disabled={cart.length === 0}
               >
-                <Receipt className="h-5 w-5 mr-2" />
+                <Receipt className="h-4 w-4 md:h-5 md:w-5 mr-2" />
                 CHECKOUT
               </Button>
               <Button 
                 variant="outline"
-                className="w-full border-primary/20 text-foreground hover:bg-primary/10 hover:text-primary font-menu"
+                className="w-full border-primary/20 text-foreground hover:bg-primary/10 hover:text-primary font-menu text-sm md:text-base"
                 onClick={onClose}
               >
                 CONTINUE BROWSING

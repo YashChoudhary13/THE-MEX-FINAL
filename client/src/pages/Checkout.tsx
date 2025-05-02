@@ -538,18 +538,14 @@ export default function Checkout() {
                           setIsApplyingPromo(true);
                           const success = await applyPromoCode(promoCodeInput);
                           
-                          if (success) {
-                            toast({
-                              title: "Promo Code Applied",
-                              description: `Discount of $${promoDiscount.toFixed(2)} has been applied to your order.`,
-                            });
-                          } else {
+                          if (!success) {
                             toast({
                               title: "Invalid Promo Code",
                               description: "The promo code you entered is invalid or expired.",
                               variant: "destructive",
                             });
                           }
+                          // No toast for success - discount is shown in the order summary
                           
                           setIsApplyingPromo(false);
                         }}

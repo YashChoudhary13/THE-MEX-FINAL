@@ -868,6 +868,195 @@ export default function AdminDashboard() {
                 </Card>
               </div>
             )}
+            
+            {activeTab === "promo-codes" && (
+              <div className="space-y-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Promo Code Management</CardTitle>
+                    <CardDescription>Create and manage promotional discount codes</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    {promoCodesLoading ? (
+                      <div className="flex items-center justify-center h-48">
+                        <p className="text-muted-foreground">Loading promo codes...</p>
+                      </div>
+                    ) : !promoCodes || promoCodes.length === 0 ? (
+                      <div className="text-center py-12 border rounded-md bg-muted/20">
+                        <Tag className="h-12 w-12 mx-auto text-muted-foreground mb-3" />
+                        <h3 className="text-lg font-medium mb-2">No Promo Codes Available</h3>
+                        <p className="text-sm text-muted-foreground mb-6 max-w-md mx-auto">
+                          Create promotional codes to offer discounts to your customers.
+                        </p>
+                        <Button onClick={() => setIsPromoCodeOpen(true)}>
+                          Create New Promo Code
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="border rounded-md overflow-hidden">
+                        <table className="w-full">
+                          <thead className="bg-muted/50">
+                            <tr>
+                              <th className="py-3 px-4 text-left">Code</th>
+                              <th className="py-3 px-4 text-left">Discount</th>
+                              <th className="py-3 px-4 text-left">Min Order</th>
+                              <th className="py-3 px-4 text-left">Usage</th>
+                              <th className="py-3 px-4 text-left">Status</th>
+                              <th className="py-3 px-4 text-left">Actions</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {promoCodes.map((promo) => (
+                              <tr key={promo.id} className="border-t">
+                                <td className="py-3 px-4 font-medium">{promo.code}</td>
+                                <td className="py-3 px-4">
+                                  {promo.discountType === 'percentage' 
+                                    ? `${promo.discountValue}%` 
+                                    : `$${promo.discountValue.toFixed(2)}`
+                                  }
+                                </td>
+                                <td className="py-3 px-4">${promo.minOrderAmount?.toFixed(2) || '0.00'}</td>
+                                <td className="py-3 px-4">
+                                  {promo.usageCount} / {promo.maxUses === null ? '∞' : promo.maxUses}
+                                </td>
+                                <td className="py-3 px-4">
+                                  <span className={`text-xs px-2 py-1 rounded-full ${
+                                    promo.active 
+                                      ? 'bg-green-500/10 text-green-500' 
+                                      : 'bg-red-500/10 text-red-500'
+                                  }`}>
+                                    {promo.active ? 'ACTIVE' : 'INACTIVE'}
+                                  </span>
+                                </td>
+                                <td className="py-3 px-4">
+                                  <div className="flex gap-2">
+                                    <Button 
+                                      variant="outline" 
+                                      size="icon"
+                                      onClick={() => {
+                                        setSelectedPromoCode(promo);
+                                        setIsPromoCodeOpen(true);
+                                      }}
+                                    >
+                                      <Edit className="h-4 w-4" />
+                                    </Button>
+                                    <AlertDialog>
+                                      <AlertDialogTrigger asChild>
+                                        <Button 
+                                          variant="outline" 
+                                          size="icon"
+                                          className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                                        >
+                                          <Trash className="h-4 w-4" />
+                                        </Button>
+                                      </AlertDialogTrigger>
+                                      <AlertDialogContent>
+                                        <AlertDialogHeader>
+                                          <AlertDialogTitle>Delete Promo Code</AlertDialogTitle>
+                                          <AlertDialogDescription>
+                                            Are you sure you want to delete "{promo.code}"? This action cannot be undone.
+                                          </AlertDialogDescription>
+                                        </AlertDialogHeader>
+                                        <AlertDialogFooter>
+                                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                          <AlertDialogAction 
+                                            onClick={() => deletePromoCodeMutation.mutate(promo.id)}
+                                            className="bg-destructive hover:bg-destructive/90 text-destructive-foreground"
+                                          >
+                                            Delete
+                                          </AlertDialogAction>
+                                        </AlertDialogFooter>
+                                      </AlertDialogContent>
+                                    </AlertDialog>
+                                  </div>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
+            )}
+            
+            {activeTab === "settings" && (
+              <div className="space-y-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>System Settings</CardTitle>
+                    <CardDescription>Configure global system settings</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid md:grid-cols-2 gap-6">
+                      <div className="space-y-4 p-4 border rounded-lg">
+                        <div className="flex items-center justify-between">
+                          <h3 className="text-lg font-semibold">Service Fee</h3>
+                          <div className="text-2xl font-bold text-primary">
+                            ${serviceFee?.serviceFee?.toFixed(2) || '2.99'}
+                          </div>
+                        </div>
+                        <p className="text-sm text-muted-foreground">
+                          This fee is applied to all orders placed through the system.
+                        </p>
+                        <Button 
+                          variant="outline" 
+                          className="w-full"
+                          onClick={() => setIsSettingsOpen(true)}
+                        >
+                          Update Service Fee
+                        </Button>
+                      </div>
+                      
+                      <div className="space-y-4 p-4 border rounded-lg">
+                        <div className="flex items-center justify-between">
+                          <h3 className="text-lg font-semibold">Tax Rate</h3>
+                          <div className="text-2xl font-bold text-primary">
+                            8%
+                          </div>
+                        </div>
+                        <p className="text-sm text-muted-foreground">
+                          Current tax rate applied to the subtotal of all orders.
+                        </p>
+                        <Button 
+                          variant="outline" 
+                          className="w-full"
+                          onClick={() => setIsSettingsOpen(true)}
+                        >
+                          Update Tax Rate
+                        </Button>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+                
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Service Settings History</CardTitle>
+                    <CardDescription>Recent changes to system settings</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between border-b pb-4">
+                        <div>
+                          <p className="font-medium">Service Fee Updated</p>
+                          <p className="text-sm text-muted-foreground">Changed from $2.50 to $2.99</p>
+                        </div>
+                        <div className="text-sm text-muted-foreground">May 1, 2023</div>
+                      </div>
+                      <div className="flex items-center justify-between border-b pb-4">
+                        <div>
+                          <p className="font-medium">Tax Rate Updated</p>
+                          <p className="text-sm text-muted-foreground">Changed from 7.5% to 8%</p>
+                        </div>
+                        <div className="text-sm text-muted-foreground">April 15, 2023</div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            )}
           </div>
         </div>
         
@@ -937,6 +1126,55 @@ export default function AdminDashboard() {
               menuItems={menuItems || []}
               onSubmit={(data) => updateSpecialOfferMutation.mutate(data)}
               isSubmitting={updateSpecialOfferMutation.isPending}
+            />
+          </DialogContent>
+        </Dialog>
+        
+        {/* Create/Edit Promo Code Dialog */}
+        <Dialog open={isPromoCodeOpen} onOpenChange={setIsPromoCodeOpen}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>{selectedPromoCode ? "Edit Promo Code" : "Create Promo Code"}</DialogTitle>
+              <DialogDescription>
+                {selectedPromoCode 
+                  ? "Update an existing promotional code."
+                  : "Create a new promotional code for customer discounts."
+                }
+              </DialogDescription>
+            </DialogHeader>
+            <PromoCodeForm 
+              promoCode={selectedPromoCode}
+              onSubmit={(data) => {
+                if (selectedPromoCode) {
+                  updatePromoCodeMutation.mutate({ id: selectedPromoCode.id, data });
+                } else {
+                  createPromoCodeMutation.mutate(data);
+                }
+              }}
+              isSubmitting={createPromoCodeMutation.isPending || updatePromoCodeMutation.isPending}
+            />
+          </DialogContent>
+        </Dialog>
+        
+        {/* System Settings Dialog */}
+        <Dialog open={isSettingsOpen} onOpenChange={setIsSettingsOpen}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Update System Settings</DialogTitle>
+              <DialogDescription>
+                Configure global system settings like tax rate and service fee.
+              </DialogDescription>
+            </DialogHeader>
+            <SystemSettingsForm 
+              initialValues={{
+                serviceFee: serviceFee?.serviceFee || 2.99,
+                taxRate: 8
+              }}
+              onSubmit={(data) => {
+                updateServiceFeeMutation.mutate(data.serviceFee);
+                updateTaxRateMutation.mutate(data.taxRate);
+              }}
+              isSubmitting={updateServiceFeeMutation.isPending || updateTaxRateMutation.isPending}
             />
           </DialogContent>
         </Dialog>

@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
-import { Order } from '@shared/schema';
+import { Order, CartItem } from '@shared/schema';
 import { queryClient, apiRequest } from '@/lib/queryClient';
 import { 
   CheckCircle, 
@@ -74,7 +74,7 @@ export default function OrderManager() {
   
   // Fetch all orders from admin endpoint
   const { data: orders, isLoading, error, refetch } = useQuery<Order[]>({
-    queryKey: ['/api/orders'],
+    queryKey: ['/api/admin/orders'],
     refetchInterval: 5000, // auto refresh every 5 seconds
   });
   
@@ -378,11 +378,11 @@ export default function OrderManager() {
                   <ul className="text-sm border rounded-md divide-y">
                     {order.items && Array.isArray(order.items) && order.items.map((item: any, index: number) => (
                       <li key={index} className="flex justify-between p-2">
-                        <span>{item.quantity}x {item.name}</span>
-                        <span>${(item.price * item.quantity).toFixed(2)}</span>
+                        <span>{item.quantity || 0}x {item.name || 'Unknown item'}</span>
+                        <span>${((item.price || 0) * (item.quantity || 0)).toFixed(2)}</span>
                       </li>
                     ))}
-                    {(!order.items || !Array.isArray(order.items)) && (
+                    {(!order.items || !Array.isArray(order.items) || order.items.length === 0) && (
                       <li className="p-2 text-muted-foreground text-sm">No items available</li>
                     )}
                     <li className="flex justify-between p-2 font-medium">

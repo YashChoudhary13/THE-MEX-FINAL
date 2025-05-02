@@ -394,10 +394,6 @@ export default function Checkout() {
             {currentStep === CheckoutStep.Payment && (
               <div>
                 <h2 className="font-heading text-lg font-bold mb-4 text-primary">Payment Method</h2>
-                <div className="bg-primary/10 p-4 rounded-lg mb-6 border border-border">
-                  <p className="text-center text-foreground">This is a demo application. No payment will be processed.</p>
-                  <p className="text-center text-muted-foreground mt-2">In a real application, you would see payment options here.</p>
-                </div>
                 <div className="border p-4 rounded-lg bg-card">
                   <h3 className="font-medium text-primary mb-2">Cash on Delivery</h3>
                   <p className="text-sm text-foreground">Pay with cash upon pickup</p>

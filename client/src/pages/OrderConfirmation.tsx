@@ -1,23 +1,38 @@
 import { useQuery } from "@tanstack/react-query";
 import { useLocation, useParams } from "wouter";
-import { CheckCircle, ChevronLeft, Truck } from "lucide-react";
+import { CheckCircle, ChevronLeft, Truck, Bell } from "lucide-react";
 import { useEffect } from "react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Order } from "@shared/schema";
+import { useNotifications } from "@/context/NotificationContext";
+import { useToast } from "@/hooks/use-toast";
 
 export default function OrderConfirmation() {
   const { id } = useParams();
   const [, navigate] = useLocation();
+  const { toast } = useToast();
+  const { isNotificationsEnabled, requestPermission, sendNotification } = useNotifications();
   
   const orderId = parseInt(id || "0");
   
   // Scroll to top when component mounts
   useEffect(() => {
     window.scrollTo(0, 0);
-  }, []);
+    
+    // Send confirmation notification if enabled
+    if (isNotificationsEnabled) {
+      sendNotification(
+        "Order Confirmed!", 
+        { 
+          body: `Your order #${orderId} has been confirmed and is being prepared.`,
+          icon: "/favicon.ico"
+        }
+      );
+    }
+  }, [isNotificationsEnabled, orderId, sendNotification]);
   
   const { data: order, isLoading, isError } = useQuery<Order>({
     queryKey: [`/api/orders/${orderId}`],
@@ -170,6 +185,41 @@ export default function OrderConfirmation() {
                     Track Your Order
                   </Button>
                 </div>
+                
+                {!isNotificationsEnabled && "Notification" in window && (
+                  <div className="mt-4 border p-4 rounded-lg bg-card">
+                    <div className="flex items-center gap-2 mb-3">
+                      <Bell className="h-5 w-5 text-primary" />
+                      <h3 className="font-medium text-primary">Order Notifications</h3>
+                    </div>
+                    <p className="text-sm text-muted-foreground mb-3">
+                      Enable notifications to get updates on your order status
+                    </p>
+                    <Button 
+                      onClick={async () => {
+                        const granted = await requestPermission();
+                        if (granted) {
+                          toast({
+                            title: "Notifications Enabled",
+                            description: "You'll receive updates when your order status changes.",
+                          });
+                          sendNotification(
+                            "Order Confirmed!", 
+                            { 
+                              body: `Your order #${orderId} has been confirmed and is being prepared.`,
+                              icon: "/favicon.ico"
+                            }
+                          );
+                        }
+                      }}
+                      className="w-full"
+                      variant="outline"
+                    >
+                      Enable Notifications
+                    </Button>
+                  </div>
+                )}
+                
                 <div>
                   <p className="text-gray-600 mb-2">Questions about your order? Contact us at</p>
                   <p className="text-primary font-medium">(555) 123-4567 or info@themex.com</p>

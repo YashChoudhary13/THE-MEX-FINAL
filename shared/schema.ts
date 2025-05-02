@@ -167,6 +167,7 @@ export const insertPromoCodeSchema = createInsertSchema(promoCodes).pick({
   maxDiscountAmount: true,
   active: true,
   usageLimit: true,
+  currentUsage: true,
   startDate: true,
   endDate: true,
 });

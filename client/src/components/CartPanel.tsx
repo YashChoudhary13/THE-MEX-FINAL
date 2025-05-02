@@ -97,8 +97,8 @@ export default function CartPanel({ isOpen, onClose }: CartPanelProps) {
       
       <div className={`side-panel absolute top-0 right-0 h-full w-full md:w-[420px] bg-card border-l border-border shadow-xl transform transition-transform duration-300 ${isOpen ? 'translate-x-0' : 'translate-x-full'}`}>
         <div className="flex flex-col h-full">
-          {/* Cart Header */}
-          <div className="border-b border-border p-4 md:p-5 flex justify-between items-center bg-gradient-to-r from-primary/20 to-background text-foreground sticky top-0">
+          {/* Cart Header - Fixed at top */}
+          <div className="border-b border-border p-4 md:p-5 flex justify-between items-center bg-gradient-to-r from-primary/20 to-background text-foreground z-20">
             <div className="flex items-center">
               <ShoppingBag className="h-5 w-5 md:h-6 md:w-6 text-primary mr-2 md:mr-3" />
               <h2 className="font-heading text-xl md:text-2xl">YOUR CART</h2>
@@ -108,8 +108,8 @@ export default function CartPanel({ isOpen, onClose }: CartPanelProps) {
             </Button>
           </div>
           
-          {/* Cart Items */}
-          <div className="flex-1 overflow-y-auto p-3 md:p-5">
+          {/* Cart Items - Scrollable area */}
+          <div className="flex-1 overflow-y-auto p-3 md:p-5 pb-36 md:pb-40">
             {cart.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-full text-center p-4">
                 <h3 className="text-3xl font-heading text-primary mb-4 bg-gradient-to-r from-primary to-primary-foreground bg-clip-text text-transparent">HUNGRY?</h3>
@@ -227,8 +227,8 @@ export default function CartPanel({ isOpen, onClose }: CartPanelProps) {
             )}
           </div>
           
-          {/* Cart Summary - Optimized for mobile */}
-          <div className="border-t border-border p-4 bg-card sticky bottom-0 flex flex-col max-h-[40vh] md:max-h-[50vh]">
+          {/* Cart Summary & Buttons - Fixed at bottom */}
+          <div className="border-t border-border p-4 bg-card absolute bottom-0 left-0 right-0 z-10 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)]">
             <div className="space-y-2 mb-3">
               <div className="flex justify-between text-xs md:text-sm">
                 <span className="text-muted-foreground">Subtotal</span>

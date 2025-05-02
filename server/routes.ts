@@ -174,6 +174,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "Failed to fetch orders" });
     }
   });
+  
+  // API Route for deleting an order (admin only)
+  app.delete("/api/orders/:id", isAdmin, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "Invalid order ID" });
+      }
+      
+      const order = await storage.getOrder(id);
+      if (!order) {
+        return res.status(404).json({ message: "Order not found" });
+      }
+      
+      const success = await storage.deleteOrder(id);
+      if (!success) {
+        return res.status(500).json({ message: "Failed to delete order" });
+      }
+      
+      res.json({ message: "Order deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting order:", error);
+      res.status(500).json({ message: "Failed to delete order" });
+    }
+  });
 
   // Admin routes for menu category management
   app.post("/api/admin/categories", isAdmin, async (req, res) => {

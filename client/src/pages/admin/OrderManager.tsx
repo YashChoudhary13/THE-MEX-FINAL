@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
 import { Order } from '@shared/schema';
@@ -69,10 +69,12 @@ enum OrderStatus {
 export default function OrderManager() {
   const { toast } = useToast();
   const [statusFilter, setStatusFilter] = useState<string | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [orderToDelete, setOrderToDelete] = useState<number | null>(null);
   
   // Fetch all orders from admin endpoint
   const { data: orders, isLoading, error, refetch } = useQuery<Order[]>({
-    queryKey: ['/api/admin/orders'],
+    queryKey: ['/api/orders'],
     refetchInterval: 5000, // auto refresh every 5 seconds
   });
   
@@ -216,6 +218,15 @@ export default function OrderManager() {
     );
   }
   
+  // Handle confirming order deletion
+  const handleDeleteConfirm = () => {
+    if (orderToDelete) {
+      deleteOrderMutation.mutate(orderToDelete);
+      setDeleteDialogOpen(false);
+      setOrderToDelete(null);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -225,6 +236,26 @@ export default function OrderManager() {
           Refresh
         </Button>
       </div>
+
+      {/* Delete Order Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete order #{orderToDelete} 
+              and remove it from our servers.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setOrderToDelete(null)}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteConfirm} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              <Trash2 className="h-4 w-4 mr-2" />
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
       
       <Tabs defaultValue="all" className="w-full">
         <TabsList className="grid grid-cols-7 mb-6">
@@ -364,7 +395,20 @@ export default function OrderManager() {
             </CardContent>
             <CardFooter className="pt-2">
               <div className="w-full space-y-2">
-                <p className="text-sm font-medium mb-1">Update Status</p>
+                <div className="flex items-center justify-between mb-1">
+                  <p className="text-sm font-medium">Update Status</p>
+                  <Button 
+                    variant="ghost" 
+                    size="icon"
+                    className="h-8 w-8 text-destructive hover:bg-destructive/10"
+                    onClick={() => {
+                      setOrderToDelete(order.id);
+                      setDeleteDialogOpen(true);
+                    }}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
                 <div className="grid grid-cols-2 gap-2">
                   {order.status === OrderStatus.PENDING && (
                     <>

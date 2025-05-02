@@ -143,6 +143,53 @@ export const insertSpecialOfferSchema = createInsertSchema(specialOffers).pick({
 export type InsertSpecialOffer = z.infer<typeof insertSpecialOfferSchema>;
 export type SpecialOffer = typeof specialOffers.$inferSelect;
 
+// Promo Codes
+export const promoCodes = pgTable("promo_codes", {
+  id: serial("id").primaryKey(),
+  code: text("code").notNull().unique(),
+  discountType: text("discount_type").notNull().default("percentage"), // percentage, amount
+  discountValue: doublePrecision("discount_value").notNull(),
+  minOrderValue: doublePrecision("min_order_value").default(0),
+  maxDiscountAmount: doublePrecision("max_discount_amount"), // Optional maximum discount (for percentage type)
+  active: boolean("active").notNull().default(true),
+  usageLimit: integer("usage_limit"), // Optional limit on total usage
+  currentUsage: integer("current_usage").notNull().default(0),
+  startDate: timestamp("start_date").defaultNow(),
+  endDate: timestamp("end_date"), // Optional end date
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const insertPromoCodeSchema = createInsertSchema(promoCodes).pick({
+  code: true,
+  discountType: true,
+  discountValue: true,
+  minOrderValue: true,
+  maxDiscountAmount: true,
+  active: true,
+  usageLimit: true,
+  startDate: true,
+  endDate: true,
+});
+
+export type InsertPromoCode = z.infer<typeof insertPromoCodeSchema>;
+export type PromoCode = typeof promoCodes.$inferSelect;
+
+// System Settings
+export const systemSettings = pgTable("system_settings", {
+  id: serial("id").primaryKey(),
+  key: text("key").notNull().unique(),
+  value: text("value").notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertSystemSettingSchema = createInsertSchema(systemSettings).pick({
+  key: true,
+  value: true,
+});
+
+export type InsertSystemSetting = z.infer<typeof insertSystemSettingSchema>;
+export type SystemSetting = typeof systemSettings.$inferSelect;
+
 // Cart Item (client-side type only)
 export type CartItem = {
   id: number;

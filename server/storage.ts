@@ -54,6 +54,20 @@ export interface IStorage {
   updateSpecialOffer(id: number, offer: Partial<InsertSpecialOffer>): Promise<SpecialOffer | undefined>;
   deactivateAllSpecialOffers(): Promise<boolean>;
   
+  // Promo Codes
+  getPromoCodes(): Promise<PromoCode[]>;
+  getPromoCodeByCode(code: string): Promise<PromoCode | undefined>;
+  createPromoCode(promoCode: InsertPromoCode): Promise<PromoCode>;
+  updatePromoCode(id: number, promoCode: Partial<InsertPromoCode>): Promise<PromoCode | undefined>;
+  incrementPromoCodeUsage(id: number): Promise<boolean>;
+  deletePromoCode(id: number): Promise<boolean>;
+  validatePromoCode(code: string, orderTotal: number): Promise<{ valid: boolean; message?: string; discount?: number; }>;
+  
+  // System Settings
+  getSystemSetting(key: string): Promise<string | undefined>;
+  updateSystemSetting(key: string, value: string): Promise<boolean>;
+  getServiceFee(): Promise<number>;
+  
   // Session store
   sessionStore: session.Store;
 }
@@ -649,6 +663,133 @@ export class DatabaseStorage implements IStorage {
       .set({ active: false });
     
     return true;
+  }
+
+  // Promo Codes
+  async getPromoCodes(): Promise<PromoCode[]> {
+    return db.select().from(promoCodes).orderBy(desc(promoCodes.id));
+  }
+  
+  async getPromoCodeByCode(code: string): Promise<PromoCode | undefined> {
+    const [promoCode] = await db
+      .select()
+      .from(promoCodes)
+      .where(eq(promoCodes.code, code));
+    
+    return promoCode;
+  }
+  
+  async createPromoCode(promoCode: InsertPromoCode): Promise<PromoCode> {
+    const [newPromoCode] = await db
+      .insert(promoCodes)
+      .values(promoCode)
+      .returning();
+    
+    return newPromoCode;
+  }
+  
+  async updatePromoCode(id: number, promoCode: Partial<InsertPromoCode>): Promise<PromoCode | undefined> {
+    const [updatedPromoCode] = await db
+      .update(promoCodes)
+      .set(promoCode)
+      .where(eq(promoCodes.id, id))
+      .returning();
+    
+    return updatedPromoCode;
+  }
+  
+  async incrementPromoCodeUsage(id: number): Promise<boolean> {
+    await db
+      .update(promoCodes)
+      .set({
+        currentUsage: sql`${promoCodes.currentUsage} + 1`
+      })
+      .where(eq(promoCodes.id, id));
+    
+    return true;
+  }
+  
+  async deletePromoCode(id: number): Promise<boolean> {
+    await db
+      .delete(promoCodes)
+      .where(eq(promoCodes.id, id));
+    
+    return true;
+  }
+  
+  async validatePromoCode(code: string, orderTotal: number): Promise<{ valid: boolean; message?: string; discount?: number; }> {
+    const promoCode = await this.getPromoCodeByCode(code);
+    
+    if (!promoCode) {
+      return { valid: false, message: "Invalid promo code" };
+    }
+    
+    if (!promoCode.active) {
+      return { valid: false, message: "This promo code is not active" };
+    }
+    
+    const now = new Date();
+    if (promoCode.startDate && promoCode.startDate > now) {
+      return { valid: false, message: "This promo code is not active yet" };
+    }
+    
+    if (promoCode.endDate && promoCode.endDate < now) {
+      return { valid: false, message: "This promo code has expired" };
+    }
+    
+    if (promoCode.usageLimit && promoCode.currentUsage >= promoCode.usageLimit) {
+      return { valid: false, message: "This promo code has reached its usage limit" };
+    }
+    
+    if (promoCode.minOrderValue && orderTotal < promoCode.minOrderValue) {
+      return { 
+        valid: false, 
+        message: `This promo code requires a minimum order of $${promoCode.minOrderValue.toFixed(2)}` 
+      };
+    }
+    
+    let discount = 0;
+    
+    if (promoCode.discountType === "percentage") {
+      discount = (orderTotal * promoCode.discountValue) / 100;
+      
+      // Apply maximum discount if set
+      if (promoCode.maxDiscountAmount && discount > promoCode.maxDiscountAmount) {
+        discount = promoCode.maxDiscountAmount;
+      }
+    } else {
+      // Fixed amount discount
+      discount = Math.min(promoCode.discountValue, orderTotal);
+    }
+    
+    return { valid: true, discount };
+  }
+  
+  // System Settings
+  async getSystemSetting(key: string): Promise<string | undefined> {
+    const [setting] = await db
+      .select()
+      .from(systemSettings)
+      .where(eq(systemSettings.key, key));
+    
+    return setting?.value;
+  }
+  
+  async updateSystemSetting(key: string, value: string): Promise<boolean> {
+    await db
+      .insert(systemSettings)
+      .values({ key, value })
+      .onConflictDoUpdate({
+        target: systemSettings.key,
+        set: { value, updatedAt: new Date() }
+      });
+    
+    return true;
+  }
+  
+  async getServiceFee(): Promise<number> {
+    const fee = await this.getSystemSetting("service_fee");
+    return fee ? parseFloat(fee) : 2.99; // Default to 2.99 if not set
   }
 }
 

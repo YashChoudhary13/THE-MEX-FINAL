@@ -36,9 +36,14 @@ export default function MenuItemCard({ item }: MenuItemCardProps) {
   // Use mobile hook to detect screen size
   const isMobile = useIsMobile();
   
+  // Find the cart item for this menu item
+  const getCartItem = () => {
+    return cart.find(cartItem => cartItem.menuItemId === item.id);
+  };
+  
   // Check if item is already in cart and update state accordingly
   useEffect(() => {
-    const cartItem = cart.find(cartItem => cartItem.menuItemId === item.id);
+    const cartItem = getCartItem();
     if (cartItem) {
       setIsInCart(true);
       setCartQuantity(cartItem.quantity);
@@ -63,10 +68,13 @@ export default function MenuItemCard({ item }: MenuItemCardProps) {
         image: item.image
       });
       
-      toast({
-        title: "Added to cart",
-        description: `${quantity} ${quantity > 1 ? 'items' : 'item'} of ${item.name} added to your cart.`,
-      });
+      // Only show toast when adding from modal or detail view, not from quantity controls
+      if (quantity > 1) {
+        toast({
+          title: "Added to cart",
+          description: `${quantity} items of ${item.name} added to your cart.`,
+        });
+      }
       
       setIsAddingToCart(false);
       setQuantity(1); // Reset quantity after adding to cart
@@ -330,9 +338,15 @@ export default function MenuItemCard({ item }: MenuItemCardProps) {
                       className="h-7 w-7 rounded-full text-foreground hover:text-primary hover:bg-transparent p-0"
                       onClick={(e) => {
                         e.stopPropagation();
-                        updateCartItemQuantity(item.id, Math.max(0, cartQuantity - 1));
-                        if (cartQuantity <= 1) {
-                          setIsInCart(false);
+                        const cartItem = getCartItem();
+                        if (cartItem) {
+                          if (cartQuantity <= 1) {
+                            // Remove item completely if quantity will be 0
+                            removeFromCart(cartItem.id);
+                          } else {
+                            // Otherwise update the quantity
+                            updateCartItemQuantity(cartItem.id, cartQuantity - 1);
+                          }
                         }
                       }}
                     >
@@ -345,7 +359,10 @@ export default function MenuItemCard({ item }: MenuItemCardProps) {
                       className="h-7 w-7 rounded-full text-foreground hover:text-primary hover:bg-transparent p-0"
                       onClick={(e) => {
                         e.stopPropagation();
-                        updateCartItemQuantity(item.id, Math.min(10, cartQuantity + 1));
+                        const cartItem = getCartItem();
+                        if (cartItem) {
+                          updateCartItemQuantity(cartItem.id, Math.min(10, cartQuantity + 1));
+                        }
                       }}
                     >
                       <Plus className="h-3 w-3" />
@@ -357,9 +374,14 @@ export default function MenuItemCard({ item }: MenuItemCardProps) {
                     size="sm"
                     onClick={(e) => {
                       e.stopPropagation(); // Prevent opening the modal
-                      handleAddToCart(e);
-                      setIsInCart(true);
-                      setCartQuantity(1);
+                      addToCart({
+                        id: Date.now(), // unique ID for cart item
+                        menuItemId: item.id,
+                        name: item.name,
+                        price: item.price,
+                        quantity: 1,
+                        image: item.image
+                      });
                     }}
                     disabled={isAddingToCart}
                   >

@@ -772,22 +772,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  // Test endpoint to create a promo code (remove in production)
+  // Test endpoint to create promo codes (remove in production)
   app.post('/api/test/create-promo', async (req, res) => {
     try {
-      // Create a test promo code
-      const promoCode = await storage.createPromoCode({
-        code: "WELCOME10",
-        discount: 10,
-        type: "percentage",
-        minOrderAmount: 20,
-        maxUses: 100,
-        usageCount: 0,
-        expiresAt: new Date("2025-12-31"),
-        active: true
-      });
+      // Get promo code type from query param (percentage or fixed)
+      const type = req.query.type === 'fixed' ? 'fixed' : 'percentage';
       
-      res.status(201).json(promoCode);
+      if (type === 'fixed') {
+        // Create a fixed amount promo code
+        const promoCode = await storage.createPromoCode({
+          code: "FLAT5",
+          discountType: "amount", // Fixed amount discount
+          discountValue: 5,        // $5 off
+          minOrderValue: 25,       // Minimum order $25
+          usageLimit: 100,
+          currentUsage: 0,
+          endDate: new Date("2025-12-31"),
+          active: true
+        });
+        
+        res.status(201).json(promoCode);
+      } else {
+        // Create a percentage promo code (default)
+        const promoCode = await storage.createPromoCode({
+          code: "WELCOME10",
+          discountType: "percentage", // Percentage discount
+          discountValue: 10,          // 10% off
+          minOrderValue: 20,          // Minimum order $20
+          usageLimit: 100,
+          currentUsage: 0,
+          endDate: new Date("2025-12-31"),
+          active: true
+        });
+        
+        res.status(201).json(promoCode);
+      }
     } catch (error) {
       console.error('Error creating test promo code:', error);
       res.status(500).json({ message: 'Failed to create test promo code' });

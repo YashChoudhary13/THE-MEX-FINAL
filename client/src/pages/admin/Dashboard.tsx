@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { MenuCategory, MenuItem, Order, InsertMenuItem, InsertMenuCategory, InsertSpecialOffer } from "@shared/schema";
-import { CreditCard, Menu, ArrowRightLeft, Settings, BarChart3, Users, LogOut, ShoppingBag, Plus, Edit, Trash, AlertTriangle } from "lucide-react";
+import { CreditCard, Menu, ArrowRightLeft, Settings, BarChart3, Users, LogOut, ShoppingBag, Plus, Edit, Trash, AlertTriangle, Tag } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Card, CardHeader, CardContent, CardTitle, CardDescription } from "@/components/ui/card";
@@ -30,8 +30,11 @@ export default function AdminDashboard() {
   const [isEditMenuItemOpen, setIsEditMenuItemOpen] = useState(false);
   const [isAddCategoryOpen, setIsAddCategoryOpen] = useState(false);
   const [isUpdateSpecialOpen, setIsUpdateSpecialOpen] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isPromoCodeOpen, setIsPromoCodeOpen] = useState(false);
   const [selectedMenuItem, setSelectedMenuItem] = useState<MenuItem | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<MenuCategory | null>(null);
+  const [selectedPromoCode, setSelectedPromoCode] = useState<any>(null);
   const { toast } = useToast();
   
   // Fetch menu categories
@@ -52,6 +55,16 @@ export default function AdminDashboard() {
   // Fetch current special offer
   const { data: specialOffer, isLoading: specialOfferLoading } = useQuery<any>({
     queryKey: ["/api/special-offer"],
+  });
+  
+  // Fetch system settings
+  const { data: serviceFee, isLoading: serviceFeeLoading } = useQuery<{ serviceFee: number }>({
+    queryKey: ["/api/system-settings/service-fee"],
+  });
+  
+  // Fetch promo codes
+  const { data: promoCodes, isLoading: promoCodesLoading } = useQuery<any[]>({
+    queryKey: ["/api/admin/promo-codes"],
   });
 
   // Mutations for menu management
@@ -189,6 +202,118 @@ export default function AdminDashboard() {
       });
     }
   });
+  
+  // System settings mutations
+  const updateServiceFeeMutation = useMutation({
+    mutationFn: async (fee: number) => {
+      const response = await apiRequest("PATCH", "/api/admin/system-settings/service-fee", { fee });
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/system-settings/service-fee"] });
+      setIsSettingsOpen(false);
+      toast({
+        title: "Service fee updated",
+        description: "The service fee has been updated successfully",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Failed to update service fee",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  });
+  
+  const updateTaxRateMutation = useMutation({
+    mutationFn: async (rate: number) => {
+      const response = await apiRequest("PATCH", "/api/admin/system-settings/tax-rate", { rate });
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/system-settings/tax-rate"] });
+      setIsSettingsOpen(false);
+      toast({
+        title: "Tax rate updated",
+        description: "The tax rate has been updated successfully",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Failed to update tax rate",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  });
+  
+  // Promo code mutations
+  const createPromoCodeMutation = useMutation({
+    mutationFn: async (data: any) => {
+      const response = await apiRequest("POST", "/api/admin/promo-codes", data);
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/promo-codes"] });
+      setIsPromoCodeOpen(false);
+      toast({
+        title: "Promo code created",
+        description: "The promo code has been added successfully",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Failed to create promo code",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  });
+  
+  const updatePromoCodeMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: number, data: any }) => {
+      const response = await apiRequest("PATCH", `/api/admin/promo-codes/${id}`, data);
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/promo-codes"] });
+      setIsPromoCodeOpen(false);
+      setSelectedPromoCode(null);
+      toast({
+        title: "Promo code updated",
+        description: "The promo code has been updated successfully",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Failed to update promo code",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  });
+  
+  const deletePromoCodeMutation = useMutation({
+    mutationFn: async (id: number) => {
+      const response = await apiRequest("DELETE", `/api/admin/promo-codes/${id}`);
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/promo-codes"] });
+      toast({
+        title: "Promo code deleted",
+        description: "The promo code has been deleted successfully",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Failed to delete promo code",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  });
 
   const handleLogout = () => {
     // In a real app, we would handle authentication logout here
@@ -239,6 +364,22 @@ export default function AdminDashboard() {
             <CreditCard className="mr-2 h-4 w-4" />
             Today's Special
           </Button>
+          <Button 
+            variant={activeTab === "promo-codes" ? "secondary" : "ghost"}
+            className="w-full justify-start" 
+            onClick={() => setActiveTab("promo-codes")}
+          >
+            <Tag className="mr-2 h-4 w-4" />
+            Promo Codes
+          </Button>
+          <Button 
+            variant={activeTab === "settings" ? "secondary" : "ghost"}
+            className="w-full justify-start" 
+            onClick={() => setActiveTab("settings")}
+          >
+            <Settings className="mr-2 h-4 w-4" />
+            System Settings
+          </Button>
           
           <Separator className="my-4" />
           
@@ -249,13 +390,6 @@ export default function AdminDashboard() {
           >
             <ArrowRightLeft className="mr-2 h-4 w-4" />
             View Site
-          </Button>
-          <Button 
-            variant="ghost" 
-            className="w-full justify-start text-muted-foreground"
-          >
-            <Settings className="mr-2 h-4 w-4" />
-            Settings
           </Button>
         </nav>
         
@@ -315,12 +449,20 @@ export default function AdminDashboard() {
           <CreditCard className="h-5 w-5" />
         </Button>
         <Button 
-          variant="ghost"
+          variant={activeTab === "promo-codes" ? "secondary" : "ghost"}
           className="flex-1" 
           size="sm"
-          onClick={() => navigate("/")}
+          onClick={() => setActiveTab("promo-codes")}
         >
-          <ArrowRightLeft className="h-5 w-5" />
+          <Tag className="h-5 w-5" />
+        </Button>
+        <Button 
+          variant={activeTab === "settings" ? "secondary" : "ghost"}
+          className="flex-1" 
+          size="sm"
+          onClick={() => setActiveTab("settings")}
+        >
+          <Settings className="h-5 w-5" />
         </Button>
       </div>
       

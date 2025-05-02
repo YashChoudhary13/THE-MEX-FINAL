@@ -377,19 +377,87 @@ export default function Checkout() {
                   <span className="font-medium text-foreground">${subtotal.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Delivery Fee</span>
-                  <span className="font-medium text-foreground">${deliveryFee.toFixed(2)}</span>
+                  <span className="text-muted-foreground">Service Fee</span>
+                  <span className="font-medium text-foreground">${serviceFee.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Tax</span>
                   <span className="font-medium text-foreground">${tax.toFixed(2)}</span>
                 </div>
+                {discount > 0 && (
+                  <div className="flex justify-between text-sm">
+                    <span className="text-green-500 flex items-center">
+                      Promo ({promoCode}) <span className="ml-1 text-[10px] bg-green-500/10 px-1 py-0.5 rounded">APPLIED</span>
+                    </span>
+                    <span className="font-medium text-green-500">-${discount.toFixed(2)}</span>
+                  </div>
+                )}
                 <Separator />
                 <div className="flex justify-between font-bold">
                   <span className="text-primary">Total</span>
                   <span className="text-foreground">${total.toFixed(2)}</span>
                 </div>
               </div>
+              
+              {/* Promo Code Input */}
+              {currentStep === CheckoutStep.Payment && (
+                <div className="mt-4 pt-4">
+                  <h4 className="text-sm font-medium mb-2">Have a Promo Code?</h4>
+                  <div className="flex space-x-2">
+                    <Input
+                      placeholder="Enter promo code"
+                      value={promoCodeInput}
+                      onChange={(e) => setPromoCodeInput(e.target.value)}
+                      className="flex-1"
+                      disabled={isApplyingPromo || promoDiscount > 0}
+                    />
+                    {promoDiscount > 0 ? (
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        className="border-red-500 text-red-500 hover:bg-red-500/10"
+                        onClick={() => {
+                          clearPromoCode();
+                          setPromoCodeInput("");
+                        }}
+                        disabled={isApplyingPromo}
+                      >
+                        Remove
+                      </Button>
+                    ) : (
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        className="border-primary text-primary hover:bg-primary/10"
+                        onClick={async () => {
+                          if (!promoCodeInput.trim()) return;
+                          
+                          setIsApplyingPromo(true);
+                          const success = await applyPromoCode(promoCodeInput);
+                          
+                          if (success) {
+                            toast({
+                              title: "Promo Code Applied",
+                              description: `Discount of $${promoDiscount.toFixed(2)} has been applied to your order.`,
+                            });
+                          } else {
+                            toast({
+                              title: "Invalid Promo Code",
+                              description: "The promo code you entered is invalid or expired.",
+                              variant: "destructive",
+                            });
+                          }
+                          
+                          setIsApplyingPromo(false);
+                        }}
+                        disabled={isApplyingPromo || !promoCodeInput.trim()}
+                      >
+                        {isApplyingPromo ? "Applying..." : "Apply"}
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Navigation Buttons */}

@@ -4,12 +4,15 @@ import {
   Order, InsertOrder,
   User, InsertUser,
   SpecialOffer, InsertSpecialOffer,
-  users, menuCategories, menuItems, orders, specialOffers
+  PromoCode, InsertPromoCode,
+  SystemSetting, InsertSystemSetting,
+  users, menuCategories, menuItems, orders, specialOffers, promoCodes, systemSettings
 } from "@shared/schema";
 
 import session from "express-session";
-import { eq, and } from "drizzle-orm";
+import { eq, and, isNull, lte, gt, desc, or } from "drizzle-orm";
 import { db } from "./db";
+import { sql } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 import connectPg from "connect-pg-simple";
 import { pool } from "./db";
@@ -292,6 +295,49 @@ export class MemStorage implements IStorage {
   
   async deactivateAllSpecialOffers(): Promise<boolean> {
     return true;
+  }
+  
+  // Promo Codes
+  async getPromoCodes(): Promise<PromoCode[]> {
+    return [];
+  }
+  
+  async getPromoCodeByCode(code: string): Promise<PromoCode | undefined> {
+    return undefined;
+  }
+  
+  async createPromoCode(promoCode: InsertPromoCode): Promise<PromoCode> {
+    throw new Error("Not implemented in memory storage");
+  }
+  
+  async updatePromoCode(id: number, promoCode: Partial<InsertPromoCode>): Promise<PromoCode | undefined> {
+    throw new Error("Not implemented in memory storage");
+  }
+  
+  async incrementPromoCodeUsage(id: number): Promise<boolean> {
+    return false;
+  }
+  
+  async deletePromoCode(id: number): Promise<boolean> {
+    return false;
+  }
+  
+  async validatePromoCode(code: string, orderTotal: number): Promise<{ valid: boolean; message?: string; discount?: number; }> {
+    return { valid: false, message: "Promo codes not available in memory storage" };
+  }
+  
+  // System Settings
+  async getSystemSetting(key: string): Promise<string | undefined> {
+    if (key === "service_fee") return "2.99";
+    return undefined;
+  }
+  
+  async updateSystemSetting(key: string, value: string): Promise<boolean> {
+    return true;
+  }
+  
+  async getServiceFee(): Promise<number> {
+    return 2.99; // Default service fee for memory storage
   }
 
   // Initialize with default data

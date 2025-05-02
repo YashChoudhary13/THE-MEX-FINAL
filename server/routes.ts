@@ -771,6 +771,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: 'Failed to validate promo code' });
     }
   });
+  
+  // Test endpoint to create a promo code (remove in production)
+  app.post('/api/test/create-promo', async (req, res) => {
+    try {
+      // Create a test promo code
+      const promoCode = await storage.createPromoCode({
+        code: "WELCOME10",
+        discount: 10,
+        type: "percentage",
+        minOrderAmount: 20,
+        maxUses: 100,
+        usageCount: 0,
+        expiresAt: new Date("2025-12-31"),
+        active: true
+      });
+      
+      res.status(201).json(promoCode);
+    } catch (error) {
+      console.error('Error creating test promo code:', error);
+      res.status(500).json({ message: 'Failed to create test promo code' });
+    }
+  });
 
   // System settings routes
   app.get('/api/system-settings/service-fee', async (req, res) => {

@@ -911,6 +911,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: 'Failed to update service fee' });
     }
   });
+  
+  app.get('/api/system-settings/tax-rate', async (req, res) => {
+    try {
+      const taxRate = await storage.getSystemSetting('tax_rate') || '8';
+      res.json({ taxRate: parseFloat(taxRate) });
+    } catch (error) {
+      console.error('Error fetching tax rate:', error);
+      res.status(500).json({ message: 'Failed to fetch tax rate' });
+    }
+  });
+  
+  app.patch('/api/admin/system-settings/tax-rate', isAdmin, async (req, res) => {
+    try {
+      const { taxRate } = req.body;
+      
+      if (isNaN(parseFloat(taxRate)) || parseFloat(taxRate) < 0 || parseFloat(taxRate) > 100) {
+        return res.status(400).json({ message: 'Invalid tax rate value' });
+      }
+      
+      await storage.updateSystemSetting('tax_rate', taxRate.toString());
+      res.json({ taxRate: parseFloat(taxRate) });
+    } catch (error) {
+      console.error('Error updating tax rate:', error);
+      res.status(500).json({ message: 'Failed to update tax rate' });
+    }
+  });
 
   return httpServer;
 }

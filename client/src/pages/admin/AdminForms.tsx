@@ -1,63 +1,74 @@
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
+import React from "react";
 import { z } from "zod";
-import { Button } from "@/components/ui/button";
-import { DialogFooter } from "@/components/ui/dialog";
-import {
-  Form,
-  FormControl,
-  FormDescription,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
+import { Loader2 } from "lucide-react";
+import { PromoCode } from "@shared/schema";
+
+// PromoCode form
+export const promoCodeFormSchema = z.object({
+  code: z.string().min(3, "Code must be at least 3 characters").max(20, "Code cannot exceed 20 characters"),
+  discountType: z.enum(["percentage", "amount"], {
+    required_error: "Please select a discount type",
+  }),
+  discountValue: z.coerce.number()
+    .min(0.01, "Discount value must be greater than 0")
+    .refine(val => val <= 100, val => ({
+      message: val > 100 && val.toString().includes('%') ? "Percentage cannot exceed 100%" : "Percentage cannot exceed 100"
+    })),
+  minOrderValue: z.coerce.number()
+    .min(0, "Minimum order value must be at least 0"),
+  usageLimit: z.coerce.number()
+    .int("Usage limit must be a whole number")
+    .min(1, "Usage limit must be at least 1"),
+  endDate: z.string(),
+  active: z.boolean().default(true),
+});
+
+export type PromoCodeFormValues = z.infer<typeof promoCodeFormSchema>;
 
 export type PromoCodeFormProps = {
-  promoCode?: any;
-  onSubmit: (data: any) => void;
+  promoCode?: PromoCode;
+  onSubmit: (data: PromoCodeFormValues) => void;
   isSubmitting: boolean;
 };
 
 export function PromoCodeForm({ promoCode, onSubmit, isSubmitting }: PromoCodeFormProps) {
-  const promoCodeFormSchema = z.object({
-    code: z.string().min(3, "Code must be at least 3 characters")
-      .max(20, "Code must not exceed 20 characters")
-      .regex(/^[A-Z0-9_]+$/, "Code must contain only uppercase letters, numbers, and underscores"),
-    discountType: z.enum(["percentage", "fixed"]),
-    discountValue: z.coerce.number().positive("Discount must be a positive number"),
-    minOrderAmount: z.coerce.number().min(0, "Minimum order amount must be a positive number"),
-    maxUses: z.coerce.number().min(0, "Maximum uses must be a positive number").nullable(),
-    expiresAt: z.string().optional(),
-    active: z.boolean().default(true),
-  });
-  
-  const form = useForm<z.infer<typeof promoCodeFormSchema>>({
+  const form = useForm<PromoCodeFormValues>({
     resolver: zodResolver(promoCodeFormSchema),
-    defaultValues: {
-      code: promoCode?.code || "",
-      discountType: promoCode?.discountType || "percentage",
-      discountValue: promoCode?.discountValue || 0,
-      minOrderAmount: promoCode?.minOrderAmount || 0,
-      maxUses: promoCode?.maxUses === null ? null : (promoCode?.maxUses || 0),
-      expiresAt: promoCode?.expiresAt ? new Date(promoCode.expiresAt).toISOString().split('T')[0] : undefined,
-      active: promoCode?.active === false ? false : true,
+    defaultValues: promoCode ? {
+      code: promoCode.code,
+      discountType: promoCode.discountType as "percentage" | "amount",
+      discountValue: promoCode.discountValue,
+      minOrderValue: promoCode.minOrderValue,
+      usageLimit: promoCode.usageLimit,
+      endDate: promoCode.endDate ? new Date(promoCode.endDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+      active: promoCode.active,
+    } : {
+      code: "",
+      discountType: "percentage",
+      discountValue: 10,
+      minOrderValue: 0,
+      usageLimit: 100,
+      endDate: new Date().toISOString().split('T')[0],
+      active: true,
     },
   });
 
   const discountType = form.watch("discountType");
 
-  function handleSubmit(values: z.infer<typeof promoCodeFormSchema>) {
-    onSubmit(values);
+  function handleSubmit(values: PromoCodeFormValues) {
+    // Format the endDate as a Date object
+    const formattedValues = {
+      ...values,
+      endDate: new Date(values.endDate),
+    };
+    onSubmit(formattedValues);
   }
 
   return (
@@ -70,16 +81,16 @@ export function PromoCodeForm({ promoCode, onSubmit, isSubmitting }: PromoCodeFo
             <FormItem>
               <FormLabel>Promo Code</FormLabel>
               <FormControl>
-                <Input placeholder="WELCOME10" {...field} />
+                <Input {...field} placeholder="Enter promo code (e.g., WELCOME10)" />
               </FormControl>
               <FormDescription>
-                Case sensitive code customers will enter at checkout
+                This is the code customers will enter at checkout
               </FormDescription>
               <FormMessage />
             </FormItem>
           )}
         />
-        
+
         <FormField
           control={form.control}
           name="discountType"
@@ -87,24 +98,27 @@ export function PromoCodeForm({ promoCode, onSubmit, isSubmitting }: PromoCodeFo
             <FormItem>
               <FormLabel>Discount Type</FormLabel>
               <Select 
-                onValueChange={field.onChange}
+                onValueChange={field.onChange} 
                 defaultValue={field.value}
               >
                 <FormControl>
                   <SelectTrigger>
-                    <SelectValue placeholder="Select a discount type" />
+                    <SelectValue placeholder="Select discount type" />
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                  <SelectItem value="percentage">Percentage</SelectItem>
-                  <SelectItem value="fixed">Fixed Amount</SelectItem>
+                  <SelectItem value="percentage">Percentage (%)</SelectItem>
+                  <SelectItem value="amount">Fixed Amount ($)</SelectItem>
                 </SelectContent>
               </Select>
+              <FormDescription>
+                How the discount will be calculated
+              </FormDescription>
               <FormMessage />
             </FormItem>
           )}
         />
-        
+
         <FormField
           control={form.control}
           name="discountValue"
@@ -113,110 +127,118 @@ export function PromoCodeForm({ promoCode, onSubmit, isSubmitting }: PromoCodeFo
               <FormLabel>Discount Value</FormLabel>
               <FormControl>
                 <Input 
+                  {...field} 
                   type="number" 
-                  step={discountType === "percentage" ? "1" : "0.01"} 
-                  placeholder={discountType === "percentage" ? "10" : "5.00"} 
-                  {...field}
+                  step={discountType === "percentage" ? "1" : "0.01"}
+                  placeholder={discountType === "percentage" ? "e.g., 10 (for 10%)" : "e.g., 5.99 (for $5.99)"}
                 />
               </FormControl>
               <FormDescription>
-                {discountType === "percentage" ? "Percentage discount (e.g. 10 for 10% off)" : "Fixed amount discount (in dollars)"}
+                {discountType === "percentage" 
+                  ? "Enter percentage without the % symbol (e.g., 10 for 10%)" 
+                  : "Enter dollar amount (e.g., 5.99 for $5.99)"}
               </FormDescription>
               <FormMessage />
             </FormItem>
           )}
         />
-        
+
         <FormField
           control={form.control}
-          name="minOrderAmount"
+          name="minOrderValue"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Minimum Order Amount</FormLabel>
+              <FormLabel>Minimum Order Value</FormLabel>
               <FormControl>
-                <Input type="number" step="0.01" placeholder="20.00" {...field} />
+                <Input {...field} type="number" step="0.01" placeholder="e.g., 25.00" />
               </FormControl>
               <FormDescription>
-                Minimum subtotal required to use this code (0 for no minimum)
+                Minimum order subtotal required to use this promo code
               </FormDescription>
               <FormMessage />
             </FormItem>
           )}
         />
-        
+
         <FormField
           control={form.control}
-          name="maxUses"
+          name="usageLimit"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Maximum Uses</FormLabel>
+              <FormLabel>Usage Limit</FormLabel>
               <FormControl>
-                <Input 
-                  type="number" 
-                  placeholder="100" 
-                  value={field.value === null ? "" : field.value}
-                  onChange={(e) => {
-                    const value = e.target.value === "" ? null : parseInt(e.target.value);
-                    field.onChange(value);
-                  }}
-                />
+                <Input {...field} type="number" placeholder="e.g., 100" />
               </FormControl>
               <FormDescription>
-                Maximum number of times this code can be used (leave empty for unlimited)
+                Maximum number of times this code can be used
               </FormDescription>
               <FormMessage />
             </FormItem>
           )}
         />
-        
+
         <FormField
           control={form.control}
-          name="expiresAt"
+          name="endDate"
           render={({ field }) => (
             <FormItem>
               <FormLabel>Expiration Date</FormLabel>
               <FormControl>
-                <Input 
-                  type="date" 
-                  placeholder="Select a date" 
-                  {...field}
-                  value={field.value || ""}
-                />
+                <Input {...field} type="date" />
               </FormControl>
               <FormDescription>
-                When this code expires (leave empty for no expiration)
+                When this promo code expires
               </FormDescription>
               <FormMessage />
             </FormItem>
           )}
         />
-        
+
         <FormField
           control={form.control}
           name="active"
           render={({ field }) => (
-            <FormItem className="flex items-center gap-2 space-y-0">
+            <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+              <div className="space-y-0.5">
+                <FormLabel className="text-base">Active Status</FormLabel>
+                <FormDescription>
+                  Whether this promo code is currently active
+                </FormDescription>
+              </div>
               <FormControl>
-                <Switch 
+                <Switch
                   checked={field.value}
                   onCheckedChange={field.onChange}
                 />
               </FormControl>
-              <FormLabel>Active</FormLabel>
-              <FormDescription className="text-xs ml-auto">Enable this promo code</FormDescription>
             </FormItem>
           )}
         />
-        
-        <DialogFooter>
-          <Button type="submit" disabled={isSubmitting}>
-            {isSubmitting ? (promoCode ? "Updating..." : "Creating...") : (promoCode ? "Update Promo Code" : "Create Promo Code")}
-          </Button>
-        </DialogFooter>
+
+        <Button type="submit" className="w-full" disabled={isSubmitting}>
+          {isSubmitting ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Saving...
+            </>
+          ) : (
+            <>{promoCode ? "Update" : "Create"} Promo Code</>
+          )}
+        </Button>
       </form>
     </Form>
   );
 }
+
+// System Settings form
+export const settingsFormSchema = z.object({
+  serviceFee: z.coerce.number()
+    .min(0, "Service fee must be at least 0")
+    .max(100, "Service fee too high"),
+  taxRate: z.coerce.number()
+    .min(0, "Tax rate must be at least 0")
+    .max(100, "Tax rate cannot exceed 100%"),
+});
 
 export type SystemSettingsFormProps = {
   initialValues: {
@@ -228,16 +250,11 @@ export type SystemSettingsFormProps = {
 };
 
 export function SystemSettingsForm({ initialValues, onSubmit, isSubmitting }: SystemSettingsFormProps) {
-  const settingsFormSchema = z.object({
-    serviceFee: z.coerce.number().min(0, "Service fee must be a positive number or zero"),
-    taxRate: z.coerce.number().min(0, "Tax rate must be a positive number or zero").max(100, "Tax rate cannot exceed 100%"),
-  });
-  
   const form = useForm<z.infer<typeof settingsFormSchema>>({
     resolver: zodResolver(settingsFormSchema),
     defaultValues: {
-      serviceFee: initialValues.serviceFee,
-      taxRate: initialValues.taxRate,
+      serviceFee: initialValues.serviceFee || 2.99,
+      taxRate: initialValues.taxRate || 8,
     },
   });
 
@@ -255,16 +272,16 @@ export function SystemSettingsForm({ initialValues, onSubmit, isSubmitting }: Sy
             <FormItem>
               <FormLabel>Service Fee ($)</FormLabel>
               <FormControl>
-                <Input type="number" step="0.01" placeholder="2.99" {...field} />
+                <Input {...field} type="number" step="0.01" placeholder="e.g., 2.99" />
               </FormControl>
               <FormDescription>
-                Fixed service fee applied to all orders
+                Service fee applied to all orders
               </FormDescription>
               <FormMessage />
             </FormItem>
           )}
         />
-        
+
         <FormField
           control={form.control}
           name="taxRate"
@@ -272,21 +289,26 @@ export function SystemSettingsForm({ initialValues, onSubmit, isSubmitting }: Sy
             <FormItem>
               <FormLabel>Tax Rate (%)</FormLabel>
               <FormControl>
-                <Input type="number" step="0.1" placeholder="8" {...field} />
+                <Input {...field} type="number" step="0.1" placeholder="e.g., 8.5" />
               </FormControl>
               <FormDescription>
-                Percentage tax rate applied to order subtotals
+                Tax rate applied to all orders (percentage)
               </FormDescription>
               <FormMessage />
             </FormItem>
           )}
         />
-        
-        <DialogFooter>
-          <Button type="submit" disabled={isSubmitting}>
-            {isSubmitting ? "Updating..." : "Update Settings"}
-          </Button>
-        </DialogFooter>
+
+        <Button type="submit" className="w-full" disabled={isSubmitting}>
+          {isSubmitting ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Saving...
+            </>
+          ) : (
+            "Update Settings"
+          )}
+        </Button>
       </form>
     </Form>
   );

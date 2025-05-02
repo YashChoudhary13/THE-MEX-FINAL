@@ -63,8 +63,12 @@ export default function AdminDashboard() {
     queryKey: ["/api/system-settings/service-fee"],
   });
   
+  const { data: taxRate, isLoading: taxRateLoading } = useQuery<{ taxRate: number }>({
+    queryKey: ["/api/system-settings/tax-rate"],
+  });
+  
   // Fetch promo codes
-  const { data: promoCodes, isLoading: promoCodesLoading } = useQuery<any[]>({
+  const { data: promoCodes, isLoading: promoCodesLoading } = useQuery<PromoCode[]>({
     queryKey: ["/api/admin/promo-codes"],
   });
 
@@ -1169,7 +1173,7 @@ export default function AdminDashboard() {
             <SystemSettingsForm 
               initialValues={{
                 serviceFee: serviceFee?.serviceFee || 2.99,
-                taxRate: 8
+                taxRate: taxRate?.taxRate || 8
               }}
               onSubmit={(data) => {
                 updateServiceFeeMutation.mutate(data.serviceFee);

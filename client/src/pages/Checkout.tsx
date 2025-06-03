@@ -389,34 +389,16 @@ export default function Checkout() {
 
             {currentStep === CheckoutStep.Payment && (
               <div>
-                <h2 className="font-heading text-lg font-bold mb-4 text-primary">Payment</h2>
-                {(() => {
-                  const pendingOrderData = sessionStorage.getItem('pendingOrder');
-                  if (!pendingOrderData) {
-                    return (
-                      <div className="text-center py-8">
-                        <p className="text-muted-foreground mb-4">No order data found. Please complete the delivery information first.</p>
-                        <Button 
-                          onClick={() => setCurrentStep(CheckoutStep.Delivery)}
-                          variant="outline"
-                        >
-                          Go Back to Delivery Info
-                        </Button>
-                      </div>
-                    );
-                  }
-                  
-                  const orderData = JSON.parse(pendingOrderData);
-                  return (
-                    <PaymentPage 
-                      orderData={orderData}
-                      onSuccess={() => {
-                        clearCart();
-                        setCurrentStep(CheckoutStep.Confirmation);
-                      }}
-                    />
-                  );
-                })()}
+                <h2 className="font-heading text-lg font-bold mb-4 text-primary">Redirecting to GloriaFood</h2>
+                <div className="text-center py-8">
+                  <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full mx-auto mb-4"></div>
+                  <p className="text-muted-foreground mb-4">
+                    Redirecting you to GloriaFood to complete your order and payment...
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    You'll be able to pay securely through GloriaFood's platform.
+                  </p>
+                </div>
                 
                 {"Notification" in window && (
                   <div className="mt-6 border p-4 rounded-lg bg-card">

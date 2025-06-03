@@ -18,6 +18,7 @@ import {
   sendPasswordResetEmail 
 } from "./email";
 import { comparePasswords } from './auth';
+import { GloriaFoodService } from "./gloriafood";
 import { sendOrderStatusNotification } from './notification';
 import Stripe from 'stripe';
 
@@ -48,6 +49,35 @@ function broadcastOrderUpdate(orderId: number, orderData: any) {
 export async function registerRoutes(app: Express): Promise<Server> {
   // Set up authentication and get middleware
   const { isAuthenticated, isAdmin } = setupAuth(app);
+
+  // GloriaFood webhook endpoints
+  app.post("/webhooks/gloriafood/orders", async (req, res) => {
+    await GloriaFoodService.handleOrderWebhook(req, res);
+  });
+
+  app.post("/api/gloriafood/sync-menu", async (req, res) => {
+    try {
+      const success = await GloriaFoodService.syncMenu();
+      if (success) {
+        res.json({ success: true, message: "Menu synced successfully" });
+      } else {
+        res.status(500).json({ success: false, message: "Failed to sync menu" });
+      }
+    } catch (error) {
+      res.status(500).json({ success: false, message: "Menu sync error" });
+    }
+  });
+
+  app.post("/api/gloriafood/create-order", async (req, res) => {
+    try {
+      const orderData = req.body;
+      const result = await GloriaFoodService.sendOrderToGloriaFood(orderData);
+      res.json(result);
+    } catch (error) {
+      console.error('Error creating GloriaFood order:', error);
+      res.status(500).json({ error: 'Failed to create order' });
+    }
+  });
   
   // Stripe payment endpoint
   app.post("/api/create-payment-intent", async (req, res) => {

@@ -111,15 +111,14 @@ export default function Checkout() {
     try {
       setIsSubmitting(true);
 
-      // Create order payload
+      // Store checkout data for payment processing
       const orderData = {
         ...data,
         subtotal,
-        deliveryFee: serviceFee, // Map serviceFee to deliveryFee for the DB schema
+        deliveryFee: serviceFee,
         tax,
         discount,
         total,
-        status: "pending",
         promoCode: promoCode || null,
         items: cart.map(item => ({
           id: item.id,
@@ -132,19 +131,15 @@ export default function Checkout() {
         })),
       };
 
-      // Send order to the backend
-      const response = await apiRequest("POST", "/api/orders", orderData);
-      const order = await response.json();
-
-      // Clear the cart
-      clearCart();
-
-      // Navigate to confirmation page
-      navigate(`/order-confirmation/${order.id}`);
+      // Store order data in sessionStorage for payment processing
+      sessionStorage.setItem('pendingOrder', JSON.stringify(orderData));
+      
+      // Move to payment step instead of creating order immediately
+      setCurrentStep(CheckoutStep.Payment);
 
       toast({
-        title: "Order Placed Successfully",
-        description: "Your order has been placed and is being processed.",
+        title: "Proceeding to Payment",
+        description: "Please complete your payment to confirm the order.",
       });
     } catch (error) {
       console.error("Failed to place order:", error);
@@ -394,11 +389,14 @@ export default function Checkout() {
 
             {currentStep === CheckoutStep.Payment && (
               <div>
-                <h2 className="font-heading text-lg font-bold mb-4 text-primary">Payment Method</h2>
-                <div className="border p-4 rounded-lg bg-card">
-                  <h3 className="font-medium text-primary mb-2">Cash on Delivery</h3>
-                  <p className="text-sm text-foreground">Pay with cash upon pickup</p>
-                </div>
+                <h2 className="font-heading text-lg font-bold mb-4 text-primary">Payment</h2>
+                <PaymentPage 
+                  orderData={JSON.parse(sessionStorage.getItem('pendingOrder') || '{}')}
+                  onSuccess={() => {
+                    clearCart();
+                    setCurrentStep(CheckoutStep.Confirmation);
+                  }}
+                />
                 
                 {"Notification" in window && (
                   <div className="mt-6 border p-4 rounded-lg bg-card">

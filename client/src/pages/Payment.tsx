@@ -84,11 +84,39 @@ function PaymentForm({ orderData, onSuccess }: PaymentFormProps) {
       });
       setIsProcessing(false);
     } else if (paymentIntent.status === "succeeded") {
-      toast({
-        title: "Payment Successful",
-        description: "Your order has been placed successfully!",
-      });
-      onSuccess();
+      // Payment successful - now create the order
+      try {
+        const pendingOrderData = sessionStorage.getItem('pendingOrder');
+        if (pendingOrderData) {
+          const orderData = JSON.parse(pendingOrderData);
+          
+          // Create order in backend with confirmed status
+          const response = await apiRequest("POST", "/api/orders", {
+            ...orderData,
+            status: "confirmed",
+            paymentIntentId: paymentIntent.id,
+          });
+          
+          const order = await response.json();
+          
+          // Clear pending order data
+          sessionStorage.removeItem('pendingOrder');
+          
+          toast({
+            title: "Payment Successful",
+            description: "Your order has been confirmed and is being prepared!",
+          });
+          
+          onSuccess();
+        }
+      } catch (orderError) {
+        console.error("Failed to create order after payment:", orderError);
+        toast({
+          title: "Payment Successful",
+          description: "Payment completed but there was an issue creating your order. Please contact support.",
+          variant: "destructive",
+        });
+      }
     }
   };
 

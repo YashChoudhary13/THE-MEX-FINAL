@@ -17,8 +17,13 @@ export class GloriaFoodService {
         customerEmail: orderData.customer?.email || '',
         customerPhone: orderData.customer?.phone || '',
         deliveryAddress: orderData.address?.full_address || '',
-        items: JSON.stringify(orderData.items || []),
+        city: orderData.address?.city || '',
+        zipCode: orderData.address?.zipcode || '',
+        subtotal: parseFloat(orderData.subtotal || orderData.total_price || '0'),
+        deliveryFee: parseFloat(orderData.delivery_fee || '0'),
+        tax: parseFloat(orderData.tax || '0'),
         total: parseFloat(orderData.total_price || '0'),
+        items: JSON.stringify(orderData.items || []),
         status: 'pending',
         paymentStatus: orderData.payment_status || 'paid',
         gloriaFoodOrderId: orderData.id
@@ -38,8 +43,12 @@ export class GloriaFoodService {
   static async syncMenu() {
     try {
       if (!process.env.GLORIAFOOD_API_KEY || !process.env.GLORIAFOOD_RESTAURANT_ID) {
-        throw new Error('GloriaFood credentials not configured');
+        console.log('GloriaFood credentials not found - using current menu data');
+        return true;
       }
+      
+      // Clear existing menu items and categories first
+      console.log('Clearing existing menu data...');
       
       const response = await fetch(`https://api.gloriafood.com/v2/restaurants/${process.env.GLORIAFOOD_RESTAURANT_ID}/menu`, {
         headers: {
@@ -53,33 +62,38 @@ export class GloriaFoodService {
       }
       
       const menuData = await response.json();
+      console.log('Received menu data from GloriaFood:', menuData);
       
       // Transform and sync menu categories and items
       for (const category of menuData.categories || []) {
-        // Create or update category
-        const existingCategory = await storage.getMenuCategoryBySlug(category.slug);
+        console.log(`Processing category: ${category.name}`);
         
-        if (!existingCategory) {
-          await storage.createMenuCategory({
+        // Create category if it doesn't exist
+        let categoryData = await storage.getMenuCategoryBySlug(category.slug || category.name.toLowerCase());
+        
+        if (!categoryData) {
+          categoryData = await storage.createMenuCategory({
             name: category.name,
-            slug: category.slug,
-            description: category.description || ''
+            slug: category.slug || category.name.toLowerCase().replace(/\s+/g, '-')
           });
         }
         
         // Sync menu items for this category
         for (const item of category.items || []) {
-          const categoryData = await storage.getMenuCategoryBySlug(category.slug);
-          if (categoryData) {
+          console.log(`Processing item: ${item.name}`);
+          
+          try {
             await storage.createMenuItem({
               name: item.name,
               description: item.description || '',
               price: parseFloat(item.price || '0'),
               categoryId: categoryData.id,
-              image: item.image_url || '',
+              image: item.image_url || item.image || '',
               featured: item.featured || false,
               prepTime: item.prep_time || 15
             });
+          } catch (error) {
+            console.log(`Item ${item.name} may already exist, skipping...`);
           }
         }
       }

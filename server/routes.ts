@@ -20,10 +20,7 @@ import {
 import { comparePasswords } from './auth';
 import { GloriaFoodService } from "./gloriafood";
 import { sendOrderStatusNotification } from './notification';
-import Stripe from 'stripe';
-
-// Initialize Stripe with secret key
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
+// Stripe removed - using GloriaFood for payments
 
 // Map to keep track of WebSocket connections by order ID
 const orderSocketConnections = new Map<number, Set<WebSocket>>();
@@ -79,34 +76,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  // Stripe payment endpoint
-  app.post("/api/create-payment-intent", async (req, res) => {
-    try {
-      const { amount, currency = 'usd' } = req.body;
-
-      if (!amount || amount <= 0) {
-        return res.status(400).json({ message: "Invalid amount" });
-      }
-
-      const paymentIntent = await stripe.paymentIntents.create({
-        amount: Math.round(amount * 100), // Convert to cents
-        currency,
-        automatic_payment_methods: {
-          enabled: true,
-        },
-      });
-
-      res.json({
-        clientSecret: paymentIntent.client_secret,
-      });
-    } catch (error: any) {
-      console.error('Stripe payment intent error:', error);
-      res.status(500).json({ 
-        message: "Error creating payment intent",
-        error: error.message 
-      });
-    }
-  });
+  // Payment handled by GloriaFood - no local payment endpoints needed
 
   // API Routes for menu categories
   app.get("/api/categories", async (req, res) => {

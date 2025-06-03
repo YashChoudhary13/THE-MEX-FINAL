@@ -31,6 +31,15 @@ function PaymentForm({ orderData, onSuccess }: PaymentFormProps) {
   useEffect(() => {
     // Create payment intent when component mounts
     const createPaymentIntent = async () => {
+      if (!orderData?.total) {
+        toast({
+          title: "Order Error",
+          description: "No order data found. Please go back and complete your order.",
+          variant: "destructive",
+        });
+        return;
+      }
+
       try {
         const response = await apiRequest("POST", "/api/create-payment-intent", {
           amount: orderData.total,
@@ -48,7 +57,7 @@ function PaymentForm({ orderData, onSuccess }: PaymentFormProps) {
     };
 
     createPaymentIntent();
-  }, [orderData.total, toast]);
+  }, [orderData?.total, toast]);
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -154,7 +163,7 @@ function PaymentForm({ orderData, onSuccess }: PaymentFormProps) {
               <Lock className="h-4 w-4" />
               Secure payment
             </span>
-            <span>Total: ${orderData.total.toFixed(2)}</span>
+            <span>Total: ${orderData?.total?.toFixed(2) || '0.00'}</span>
           </div>
 
           <Button

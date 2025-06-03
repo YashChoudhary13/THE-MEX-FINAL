@@ -390,13 +390,33 @@ export default function Checkout() {
             {currentStep === CheckoutStep.Payment && (
               <div>
                 <h2 className="font-heading text-lg font-bold mb-4 text-primary">Payment</h2>
-                <PaymentPage 
-                  orderData={JSON.parse(sessionStorage.getItem('pendingOrder') || '{}')}
-                  onSuccess={() => {
-                    clearCart();
-                    setCurrentStep(CheckoutStep.Confirmation);
-                  }}
-                />
+                {(() => {
+                  const pendingOrderData = sessionStorage.getItem('pendingOrder');
+                  if (!pendingOrderData) {
+                    return (
+                      <div className="text-center py-8">
+                        <p className="text-muted-foreground mb-4">No order data found. Please complete the delivery information first.</p>
+                        <Button 
+                          onClick={() => setCurrentStep(CheckoutStep.Delivery)}
+                          variant="outline"
+                        >
+                          Go Back to Delivery Info
+                        </Button>
+                      </div>
+                    );
+                  }
+                  
+                  const orderData = JSON.parse(pendingOrderData);
+                  return (
+                    <PaymentPage 
+                      orderData={orderData}
+                      onSuccess={() => {
+                        clearCart();
+                        setCurrentStep(CheckoutStep.Confirmation);
+                      }}
+                    />
+                  );
+                })()}
                 
                 {"Notification" in window && (
                   <div className="mt-6 border p-4 rounded-lg bg-card">

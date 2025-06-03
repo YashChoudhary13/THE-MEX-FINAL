@@ -154,12 +154,21 @@ export default function MenuItemCard({ item }: MenuItemCardProps) {
           <div className="px-4 pt-4 pb-24 h-[calc(75vh-58px-68px)] overflow-y-auto no-scrollbar">
             {/* Image section */}
             <div className="relative w-full h-48 rounded-lg overflow-hidden mb-4">
-              <img 
-                src={item.image} 
-                alt={item.name} 
-                className="w-full h-full object-cover"
-                loading="eager"
-              />
+              {item.image ? (
+                <img 
+                  src={item.image} 
+                  alt={item.name} 
+                  className="w-full h-full object-cover"
+                  loading="eager"
+                />
+              ) : (
+                <div className="w-full h-full bg-muted flex items-center justify-center">
+                  <div className="text-center text-muted-foreground">
+                    <div className="text-6xl mb-2">🍽️</div>
+                    <div className="text-sm">No Image Available</div>
+                  </div>
+                </div>
+              )}
               
               {/* Labels */}
               {item.label && (
@@ -259,13 +268,22 @@ export default function MenuItemCard({ item }: MenuItemCardProps) {
           onClick={openModal}
         >
           <div className="flex h-full">
-            {/* Left side - Image */}
+            {/* Left side - Image or placeholder */}
             <div className="relative w-1/3 sm:w-2/5 h-full">
-              <img 
-                src={item.image} 
-                alt={item.name} 
-                className={`w-full h-full object-cover transition-transform duration-500 ${isHovering ? 'scale-110' : 'scale-100'}`}
-              />
+              {item.image ? (
+                <img 
+                  src={item.image} 
+                  alt={item.name} 
+                  className={`w-full h-full object-cover transition-transform duration-500 ${isHovering ? 'scale-110' : 'scale-100'}`}
+                />
+              ) : (
+                <div className="w-full h-full bg-muted flex items-center justify-center">
+                  <div className="text-center text-muted-foreground">
+                    <div className="text-2xl mb-1">🍽️</div>
+                    <div className="text-xs">No Image</div>
+                  </div>
+                </div>
+              )}
               
               {/* Labels */}
               {item.label && (

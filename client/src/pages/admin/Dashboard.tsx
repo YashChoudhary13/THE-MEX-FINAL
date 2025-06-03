@@ -4,6 +4,7 @@ import { useLocation } from "wouter";
 import { MenuCategory, MenuItem, Order, InsertMenuItem, InsertMenuCategory, InsertSpecialOffer, PromoCode, InsertPromoCode } from "@shared/schema";
 import { CreditCard, Menu, ArrowRightLeft, Settings, BarChart3, Users, LogOut, ShoppingBag, Plus, Edit, Trash, AlertTriangle, Tag } from "lucide-react";
 import { PromoCodeForm, SystemSettingsForm } from "./AdminForms";
+import MenuItemForm from "@/components/admin/MenuItemForm";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Card, CardHeader, CardContent, CardTitle, CardDescription } from "@/components/ui/card";

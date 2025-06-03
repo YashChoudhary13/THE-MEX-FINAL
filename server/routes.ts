@@ -22,9 +22,7 @@ import { sendOrderStatusNotification } from './notification';
 import Stripe from 'stripe';
 
 // Initialize Stripe with secret key
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2025-05-28.basil',
-});
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 
 // Map to keep track of WebSocket connections by order ID
 const orderSocketConnections = new Map<number, Set<WebSocket>>();

@@ -128,7 +128,7 @@ function PaymentForm({ orderData, onSuccess }: PaymentFormProps) {
   };
 
   return (
-    <Card className="w-full max-w-md mx-auto">
+    <Card className="w-full max-w-lg mx-auto">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <CreditCard className="h-5 w-5" />
@@ -140,18 +140,24 @@ function PaymentForm({ orderData, onSuccess }: PaymentFormProps) {
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="p-4 border rounded-lg">
+          <div className="p-4 border rounded-lg bg-white min-h-[50px]">
             <CardElement
               options={{
                 style: {
                   base: {
                     fontSize: "16px",
                     color: "#424770",
+                    fontFamily: '"Helvetica Neue", Helvetica, sans-serif',
+                    fontSmoothing: "antialiased",
                     "::placeholder": {
                       color: "#aab7c4",
                     },
                   },
+                  invalid: {
+                    color: "#9e2146",
+                  },
                 },
+                hidePostalCode: false,
               }}
             />
           </div>

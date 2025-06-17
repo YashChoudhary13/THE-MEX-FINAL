@@ -556,72 +556,75 @@ export default function Checkout() {
             </div>
 
             {/* Navigation Buttons */}
-            <div className="mt-8 flex justify-between p-6 bg-muted/20 border-t">
-              {currentStep > CheckoutStep.CustomerInfo ? (
-                <Button 
-                  onClick={goToPreviousStep} 
-                  variant="outline"
-                  disabled={isSubmitting}
-                >
-                  Back
-                </Button>
-              ) : (
-                <Button 
-                  onClick={() => navigate("/")} 
-                  variant="outline"
-                  disabled={isSubmitting}
-                >
-                  Return to Menu
-                </Button>
-              )}
+            <div className="mt-8 p-6 bg-muted/20 border-t">
+              <div className="flex flex-col sm:flex-row gap-3 sm:justify-between">
+                {currentStep > CheckoutStep.CustomerInfo ? (
+                  <Button 
+                    onClick={goToPreviousStep} 
+                    variant="outline"
+                    disabled={isSubmitting}
+                    className="w-full sm:w-auto"
+                  >
+                    Back
+                  </Button>
+                ) : (
+                  <Button 
+                    onClick={() => navigate("/")} 
+                    variant="outline"
+                    disabled={isSubmitting}
+                    className="w-full sm:w-auto"
+                  >
+                    Return to Menu
+                  </Button>
+                )}
 
-              {currentStep === CheckoutStep.CustomerInfo ? (
-                <Button 
-                  onClick={() => {
-                    form.trigger().then((isValid) => {
-                      if (isValid) goToNextStep();
-                    });
-                  }}
-                  className="bg-primary hover:bg-primary/90"
-                  disabled={isSubmitting}
-                >
-                  Continue to Order Confirmation
-                </Button>
-              ) : currentStep === CheckoutStep.OrderConfirmation ? (
-                <Button 
-                  onClick={() => {
-                    // Save order data to session storage and proceed to payment
-                    const orderData = {
-                      customerName: form.getValues("customerName"),
-                      customerPhone: form.getValues("customerPhone"),
-                      customerEmail: form.getValues("customerEmail"),
-                      preparationInstructions: form.getValues("preparationInstructions"),
-                      items: cart,
-                      subtotal,
-                      serviceFee,
-                      tax,
-                      discount,
-                      total,
-                      promoCode,
-                      promoDiscount
-                    };
-                    sessionStorage.setItem('pendingOrder', JSON.stringify(orderData));
-                    goToNextStep();
-                  }}
-                  className="bg-primary hover:bg-primary/90"
-                  disabled={isSubmitting}
-                >
-                  Proceed to Payment
-                </Button>
-              ) : currentStep === CheckoutStep.Payment ? (
-                <div className="text-center">
-                  <p className="text-sm text-muted-foreground">Complete payment to finish your order</p>
-                </div>
-              ) : currentStep === CheckoutStep.Success ? (
-                <div className="text-center">
-                  <p className="text-sm text-green-600">Your order has been successfully placed!</p>
-                </div>
-              ) : null}
+                {currentStep === CheckoutStep.CustomerInfo ? (
+                  <Button 
+                    onClick={() => {
+                      form.trigger().then((isValid) => {
+                        if (isValid) goToNextStep();
+                      });
+                    }}
+                    className="bg-primary hover:bg-primary/90 w-full sm:w-auto"
+                    disabled={isSubmitting}
+                  >
+                    Continue to Order Confirmation
+                  </Button>
+                ) : currentStep === CheckoutStep.OrderConfirmation ? (
+                  <Button 
+                    onClick={() => {
+                      // Save order data to session storage and proceed to payment
+                      const orderData = {
+                        customerName: form.getValues("customerName"),
+                        customerPhone: form.getValues("customerPhone"),
+                        customerEmail: form.getValues("customerEmail"),
+                        preparationInstructions: form.getValues("preparationInstructions"),
+                        items: cart,
+                        subtotal,
+                        serviceFee,
+                        tax,
+                        discount,
+                        total,
+                        promoCode,
+                        promoDiscount
+                      };
+                      sessionStorage.setItem('pendingOrder', JSON.stringify(orderData));
+                      goToNextStep();
+                    }}
+                    className="bg-primary hover:bg-primary/90 w-full sm:w-auto"
+                    disabled={isSubmitting}
+                  >
+                    Proceed to Payment
+                  </Button>
+                ) : currentStep === CheckoutStep.Payment ? (
+                  <div className="text-center w-full">
+                    <p className="text-sm text-muted-foreground">Complete payment to finish your order</p>
+                  </div>
+                ) : currentStep === CheckoutStep.Success ? (
+                  <div className="text-center w-full">
+                    <p className="text-sm text-green-600">Your order has been successfully placed!</p>
+                  </div>
+                ) : null}
             </div>
           </div>
         </div>

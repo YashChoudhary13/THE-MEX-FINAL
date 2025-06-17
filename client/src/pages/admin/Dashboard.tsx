@@ -42,6 +42,30 @@ export default function AdminDashboard() {
   const [selectedCategory, setSelectedCategory] = useState<MenuCategory | null>(null);
   const [selectedPromoCode, setSelectedPromoCode] = useState<any>(null);
   const { toast } = useToast();
+
+  // WebSocket connection for real-time updates
+  useWebSocket({
+    onMessage: (data) => {
+      console.log('Admin received WebSocket message:', data);
+      if (data.type === 'NEW_ORDER') {
+        toast({
+          title: "New Order Received",
+          description: `Order #${data.order.id} from ${data.order.customerName}`,
+        });
+      } else if (data.type === 'ORDER_UPDATE') {
+        toast({
+          title: "Order Updated",
+          description: `Order #${data.orderId} status changed to ${data.status}`,
+        });
+      }
+    },
+    onConnect: () => {
+      console.log('Admin WebSocket connected');
+    },
+    onDisconnect: () => {
+      console.log('Admin WebSocket disconnected');
+    }
+  });
   
   // Fetch menu categories
   const { data: categories, isLoading: categoriesLoading } = useQuery<MenuCategory[]>({
@@ -1389,7 +1413,7 @@ function EditMenuItemForm({ categories, menuItem, onSubmit, isSubmitting }: Edit
       price: menuItem.price,
       image: menuItem.image,
       categoryId: menuItem.categoryId,
-      featured: menuItem.featured,
+      featured: menuItem.featured ?? false,
       prepTime: menuItem.prepTime || 15,
     },
   });

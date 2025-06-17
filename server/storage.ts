@@ -357,6 +357,64 @@ export class MemStorage implements IStorage {
     return 2.99; // Default service fee for memory storage
   }
 
+  // Daily Reports - Memory implementation
+  async getDailyReports(days: number = 30): Promise<DailyReport[]> {
+    // For memory storage, return empty array
+    return [];
+  }
+
+  async createOrUpdateDailyReport(date: string, orders: number, revenue: number): Promise<DailyReport> {
+    const report: DailyReport = {
+      id: 1,
+      date,
+      totalOrders: orders,
+      totalRevenue: revenue,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+    return report;
+  }
+
+  async getCurrentDayStats(): Promise<{ totalOrders: number; totalRevenue: number }> {
+    const today = new Date().toISOString().split('T')[0];
+    const todayOrders = Array.from(this.orders.values()).filter(order => 
+      order.createdAt.toISOString().split('T')[0] === today
+    );
+    const totalOrders = todayOrders.length;
+    const totalRevenue = todayOrders.reduce((sum, order) => sum + order.total, 0);
+    return { totalOrders, totalRevenue };
+  }
+
+  async resetDailyStats(): Promise<boolean> {
+    // For memory storage, just return true
+    return true;
+  }
+
+  // Monthly Reports - Memory implementation
+  async getMonthlyReports(months: number = 12): Promise<MonthlyReport[]> {
+    // For memory storage, return empty array
+    return [];
+  }
+
+  async createOrUpdateMonthlyReport(year: number, month: number, orders: number, revenue: number): Promise<MonthlyReport> {
+    const report: MonthlyReport = {
+      id: 1,
+      year,
+      month,
+      totalOrders: orders,
+      totalRevenue: revenue,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+    return report;
+  }
+
+  // Data Cleanup - Memory implementation
+  async cleanupOldData(): Promise<boolean> {
+    // For memory storage, just return true
+    return true;
+  }
+
   // Initialize with default data
   private async initializeDefaultData() {
     // Create categories

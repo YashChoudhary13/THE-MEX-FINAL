@@ -120,7 +120,7 @@ export default function Checkout() {
       const data = await response.json();
       
       if (data.valid) {
-        applyPromoCode(promoCodeInput, data.discount);
+        applyPromoCode(promoCodeInput, data.discount || 0);
         setPromoCodeInput("");
         setPromoError("");
       } else {

@@ -11,7 +11,7 @@ interface CartContextProps {
   promoCode: string;
   setPromoCode: (code: string) => void;
   promoDiscount: number;
-  applyPromoCode: (code: string) => Promise<boolean>;
+  applyPromoCode: (code: string, discount?: number) => Promise<boolean>;
   clearPromoCode: () => void;
   calculateTotals: () => {
     subtotal: number;
@@ -113,10 +113,17 @@ export function CartProvider({ children }: CartProviderProps) {
   };
 
   // Apply promo code and get discount
-  const applyPromoCode = async (code: string): Promise<boolean> => {
+  const applyPromoCode = async (code: string, discount?: number): Promise<boolean> => {
     if (!code.trim()) {
       clearPromoCode();
       return false;
+    }
+
+    // If discount is provided directly, use it
+    if (discount !== undefined) {
+      setPromoCode(code);
+      setPromoDiscount(discount);
+      return true;
     }
 
     try {

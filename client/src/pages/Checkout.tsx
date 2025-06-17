@@ -288,10 +288,7 @@ export default function Checkout() {
                                 setIsApplyingPromo(true);
                                 try {
                                   await applyPromoCode(promoCodeInput.trim());
-                                  toast({
-                                    title: "Promo code applied!",
-                                    description: `You saved $${promoDiscount.toFixed(2)}`,
-                                  });
+                                  // Promo code applied successfully - no popup needed, discount shows in total
                                 } catch (error: any) {
                                   toast({
                                     title: "Invalid promo code",
@@ -405,87 +402,141 @@ export default function Checkout() {
 
               {currentStep === CheckoutStep.Success && (
                 <div>
-                  <div className="text-center mb-6">
-                    <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                      <CheckCircle className="h-8 w-8 text-green-600" />
-                    </div>
-                    <h2 className="font-heading text-2xl font-bold text-primary mb-2">Order Confirmed!</h2>
-                    <p className="text-muted-foreground">Thank you for your order. We'll prepare it for pickup.</p>
-                  </div>
-                  <div className="space-y-4">
-                    <div className="border rounded-lg overflow-hidden bg-card">
-                      <div className="bg-primary/10 p-3 border-b">
-                        <h3 className="font-medium text-primary">Items in your order</h3>
-                      </div>
-                      <div className="p-3 divide-y divide-border">
-                        {cart.map((item) => (
-                          <div key={item.id} className="py-2 flex justify-between items-center">
-                            <div className="flex items-center">
-                              <span className="font-medium text-primary">{item.quantity}x</span>
-                              <span className="ml-2 text-foreground">{item.name}</span>
+                  {(() => {
+                    const completedOrderData = sessionStorage.getItem('completedOrder');
+                    const orderData = completedOrderData ? JSON.parse(completedOrderData) : null;
+                    
+                    return (
+                      <>
+                        <div className="text-center mb-6">
+                          <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <CheckCircle className="h-8 w-8 text-green-600" />
+                          </div>
+                          <h2 className="font-heading text-2xl font-bold text-primary mb-2">Order Confirmed!</h2>
+                          <p className="text-muted-foreground mb-2">Thank you for your order. We'll prepare it for pickup.</p>
+                          {orderData && (
+                            <div className="bg-primary/10 rounded-lg p-3 mt-4">
+                              <p className="text-sm font-medium text-primary">Order Number: #{orderData.id}</p>
+                              <p className="text-xs text-muted-foreground">Keep this number for reference</p>
                             </div>
-                            <span className="font-medium text-foreground">${(item.price * item.quantity).toFixed(2)}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
+                          )}
+                        </div>
 
-                    <div className="border rounded-lg overflow-hidden bg-card">
-                      <div className="bg-primary/10 p-3 border-b">
-                        <h3 className="font-medium text-primary">Pickup Details</h3>
-                      </div>
-                      <div className="p-3 space-y-2 text-sm">
-                        <p><span className="font-medium text-primary">Name:</span> <span className="text-foreground">{form.getValues("customerName")}</span></p>
-                        <p><span className="font-medium text-primary">Phone:</span> <span className="text-foreground">{form.getValues("customerPhone")}</span></p>
-                        {form.getValues("customerEmail") && (
-                          <p><span className="font-medium text-primary">Email:</span> <span className="text-foreground">{form.getValues("customerEmail")}</span></p>
-                        )}
-                        {form.getValues("preparationInstructions") && (
-                          <p><span className="font-medium text-primary">Preparation Instructions:</span> <span className="text-foreground">{form.getValues("preparationInstructions")}</span></p>
-                        )}
-                      </div>
-                    </div>
-
-                    <div className="border rounded-lg overflow-hidden bg-card">
-                      <div className="bg-primary/10 p-3 border-b">
-                        <h3 className="font-medium text-primary">Order Summary</h3>
-                      </div>
-                      <div className="p-4 space-y-2">
-                        <div className="flex justify-between text-sm">
-                          <span className="text-muted-foreground">Subtotal</span>
-                          <span className="font-medium text-foreground">${subtotal.toFixed(2)}</span>
-                        </div>
-                        <div className="flex justify-between text-sm">
-                          <span className="text-muted-foreground">Service Fee</span>
-                          <span className="font-medium text-foreground">${serviceFee.toFixed(2)}</span>
-                        </div>
-                        <div className="flex justify-between text-sm">
-                          <span className="text-muted-foreground">Tax</span>
-                          <span className="font-medium text-foreground">${tax.toFixed(2)}</span>
-                        </div>
-                        {discount > 0 && (
-                          <div className="flex justify-between text-sm text-green-600">
-                            <span>Discount ({promoCode})</span>
-                            <span>-${discount.toFixed(2)}</span>
+                        {/* Notification Options */}
+                        {"Notification" in window && (
+                          <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                            <div className="flex items-center space-x-2 mb-2">
+                              <Bell className="h-4 w-4 text-blue-600" />
+                              <span className="text-sm font-medium text-blue-900">Order Status Notifications</span>
+                            </div>
+                            <p className="text-xs text-blue-700 mb-3">Get notified when your order status changes (confirmed → preparing → ready for pickup)</p>
+                            {Notification.permission === "granted" ? (
+                              <span className="text-xs text-green-600 flex items-center">
+                                <CheckCircle className="h-4 w-4 mr-1" />
+                                Notifications Enabled - You'll receive updates about your order
+                              </span>
+                            ) : (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={requestPermission}
+                                className="text-blue-600 border-blue-300 hover:bg-blue-100"
+                              >
+                                Enable Order Notifications
+                              </Button>
+                            )}
                           </div>
                         )}
-                        <Separator />
-                        <div className="flex justify-between font-bold">
-                          <span className="text-primary">Total Paid</span>
-                          <span className="text-foreground">${total.toFixed(2)}</span>
-                        </div>
-                      </div>
-                    </div>
 
-                    <div className="text-center mt-6">
-                      <Button 
-                        onClick={() => navigate("/")}
-                        className="bg-primary hover:bg-primary/90"
-                      >
-                        Continue Shopping
-                      </Button>
-                    </div>
-                  </div>
+                        <div className="space-y-4">
+                          <div className="border rounded-lg overflow-hidden bg-card">
+                            <div className="bg-primary/10 p-3 border-b">
+                              <h3 className="font-medium text-primary">Items Ordered</h3>
+                            </div>
+                            <div className="p-3 divide-y divide-border">
+                              {(orderData?.items || cart).map((item, index) => (
+                                <div key={index} className="py-2 flex justify-between items-center">
+                                  <div className="flex items-center">
+                                    <span className="font-medium text-primary">{item.quantity}x</span>
+                                    <span className="ml-2 text-foreground">{item.name}</span>
+                                  </div>
+                                  <span className="font-medium text-foreground">${(item.price * item.quantity).toFixed(2)}</span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+
+                          <div className="border rounded-lg overflow-hidden bg-card">
+                            <div className="bg-primary/10 p-3 border-b">
+                              <h3 className="font-medium text-primary">Pickup Details</h3>
+                            </div>
+                            <div className="p-3 space-y-2 text-sm">
+                              <p><span className="font-medium text-primary">Name:</span> <span className="text-foreground">{orderData?.customerName || form.getValues("customerName")}</span></p>
+                              <p><span className="font-medium text-primary">Phone:</span> <span className="text-foreground">{orderData?.customerPhone || form.getValues("customerPhone")}</span></p>
+                              {(orderData?.customerEmail || form.getValues("customerEmail")) && (
+                                <p><span className="font-medium text-primary">Email:</span> <span className="text-foreground">{orderData?.customerEmail || form.getValues("customerEmail")}</span></p>
+                              )}
+                              {(orderData?.preparationInstructions || form.getValues("preparationInstructions")) && (
+                                <p><span className="font-medium text-primary">Preparation Instructions:</span> <span className="text-foreground">{orderData?.preparationInstructions || form.getValues("preparationInstructions")}</span></p>
+                              )}
+                              <p><span className="font-medium text-primary">Status:</span> <span className="text-green-600 font-medium">Confirmed</span></p>
+                            </div>
+                          </div>
+
+                          <div className="border rounded-lg overflow-hidden bg-card">
+                            <div className="bg-primary/10 p-3 border-b">
+                              <h3 className="font-medium text-primary">Payment Summary</h3>
+                            </div>
+                            <div className="p-4 space-y-2">
+                              <div className="flex justify-between text-sm">
+                                <span className="text-muted-foreground">Subtotal</span>
+                                <span className="font-medium text-foreground">${(orderData?.subtotal || subtotal).toFixed(2)}</span>
+                              </div>
+                              <div className="flex justify-between text-sm">
+                                <span className="text-muted-foreground">Service Fee</span>
+                                <span className="font-medium text-foreground">${(orderData?.serviceFee || serviceFee).toFixed(2)}</span>
+                              </div>
+                              <div className="flex justify-between text-sm">
+                                <span className="text-muted-foreground">Tax</span>
+                                <span className="font-medium text-foreground">${(orderData?.tax || tax).toFixed(2)}</span>
+                              </div>
+                              {(orderData?.discount || discount) > 0 && (
+                                <div className="flex justify-between text-sm text-green-600">
+                                  <span>Discount ({orderData?.promoCode || promoCode})</span>
+                                  <span>-${(orderData?.discount || discount).toFixed(2)}</span>
+                                </div>
+                              )}
+                              <Separator />
+                              <div className="flex justify-between font-bold text-lg">
+                                <span className="text-primary">Total Paid</span>
+                                <span className="text-foreground">${(orderData?.total || total).toFixed(2)}</span>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="text-center mt-6 space-y-3">
+                            <p className="text-sm text-muted-foreground">
+                              Your order is being prepared. You'll receive notifications about status updates.
+                            </p>
+                            <div className="flex gap-3 justify-center">
+                              <Button 
+                                onClick={() => navigate("/")}
+                                className="bg-primary hover:bg-primary/90"
+                              >
+                                Continue Shopping
+                              </Button>
+                              <Button 
+                                onClick={() => navigate("/order-tracking")}
+                                variant="outline"
+                              >
+                                Track Order
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                      </>
+                    );
+                  })()}
                 </div>
               )}
             </div>

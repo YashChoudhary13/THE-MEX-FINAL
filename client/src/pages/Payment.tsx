@@ -111,10 +111,8 @@ function PaymentForm({ orderData, onSuccess }: PaymentFormProps) {
           // Clear pending order data
           sessionStorage.removeItem('pendingOrder');
           
-          toast({
-            title: "Payment Successful",
-            description: "Your order has been confirmed and is being prepared!",
-          });
+          // Store order data for success page
+          sessionStorage.setItem('completedOrder', JSON.stringify(order));
           
           onSuccess();
         }

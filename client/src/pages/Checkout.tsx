@@ -25,21 +25,18 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 
-// Form validation schema
+// Form validation schema for pickup-only
 const checkoutFormSchema = z.object({
   customerName: z.string().min(2, { message: "Name is required" }),
   customerEmail: z.string().email({ message: "Valid email is required" }).optional().or(z.literal("")),
   customerPhone: z.string().min(6, { message: "Phone number is required" }),
-  deliveryAddress: z.string().min(5, { message: "Address is required" }),
-  city: z.string().min(2, { message: "City is required" }),
-  zipCode: z.string().min(4, { message: "Zip code is required" }),
-  deliveryInstructions: z.string().optional(),
+  preparationInstructions: z.string().optional(),
 });
 
 type CheckoutFormValues = z.infer<typeof checkoutFormSchema>;
 
 enum CheckoutStep {
-  Delivery = 1,
+  CustomerInfo = 1,
   Payment = 2,
   Confirmation = 3,
 }
@@ -57,7 +54,7 @@ export default function Checkout() {
     applyPromoCode,
     clearPromoCode
   } = useCart();
-  const [currentStep, setCurrentStep] = useState<CheckoutStep>(CheckoutStep.Delivery);
+  const [currentStep, setCurrentStep] = useState<CheckoutStep>(CheckoutStep.CustomerInfo);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [promoCodeInput, setPromoCodeInput] = useState("");
   const [isApplyingPromo, setIsApplyingPromo] = useState(false);
@@ -90,10 +87,7 @@ export default function Checkout() {
       customerName: "",
       customerEmail: "",
       customerPhone: "",
-      deliveryAddress: "",
-      city: "",
-      zipCode: "",
-      deliveryInstructions: "",
+      preparationInstructions: "",
     },
   });
 
@@ -273,9 +267,9 @@ export default function Checkout() {
           </div>
 
           <div className="p-6">
-            {currentStep === CheckoutStep.Delivery && (
+            {currentStep === CheckoutStep.CustomerInfo && (
               <div>
-                <h2 className="font-heading text-lg font-bold mb-4 text-primary">Delivery Information</h2>
+                <h2 className="font-heading text-lg font-bold mb-4 text-primary">Customer Information</h2>
                 <Form {...form}>
                   <form className="space-y-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -323,56 +317,13 @@ export default function Checkout() {
 
                     <FormField
                       control={form.control}
-                      name="deliveryAddress"
+                      name="preparationInstructions"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Address</FormLabel>
-                          <FormControl>
-                            <Input placeholder="Enter your address" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <FormField
-                        control={form.control}
-                        name="city"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>City</FormLabel>
-                            <FormControl>
-                              <Input placeholder="Enter your city" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={form.control}
-                        name="zipCode"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Zip Code</FormLabel>
-                            <FormControl>
-                              <Input placeholder="Enter your zip code" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-
-                    <FormField
-                      control={form.control}
-                      name="deliveryInstructions"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Delivery Instructions (Optional)</FormLabel>
+                          <FormLabel>Preparation Instructions (Optional)</FormLabel>
                           <FormControl>
                             <Textarea 
-                              placeholder="Add any specific delivery instructions here" 
+                              placeholder="Any special requests for food preparation" 
                               className="resize-none" 
                               rows={3}
                               {...field} 
@@ -580,7 +531,7 @@ export default function Checkout() {
 
             {/* Navigation Buttons */}
             <div className="mt-8 flex justify-between">
-              {currentStep > CheckoutStep.Delivery ? (
+              {currentStep > CheckoutStep.CustomerInfo ? (
                 <Button 
                   onClick={goToPreviousStep} 
                   variant="outline"

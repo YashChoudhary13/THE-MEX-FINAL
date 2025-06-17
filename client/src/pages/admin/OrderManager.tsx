@@ -124,10 +124,11 @@ export default function OrderManager() {
     }
   });
   
-  // Filter orders based on status
+  // Filter orders based on status and sort by newest first
   const filteredOrders = statusFilter
     ? orders?.filter(order => order.status === statusFilter)
-    : orders;
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    : orders?.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   
   // Get counts for each status
   const statusCounts = {

@@ -25,15 +25,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 
-// Form validation schema
+// Form validation schema for pickup orders
 const checkoutFormSchema = z.object({
   customerName: z.string().min(2, { message: "Name is required" }),
   customerEmail: z.string().email({ message: "Valid email is required" }).optional().or(z.literal("")),
   customerPhone: z.string().min(6, { message: "Phone number is required" }),
-  deliveryAddress: z.string().min(5, { message: "Address is required" }),
-  city: z.string().min(2, { message: "City is required" }),
-  zipCode: z.string().min(4, { message: "Zip code is required" }),
-  deliveryInstructions: z.string().optional(),
+  pickupInstructions: z.string().optional(),
 });
 
 type CheckoutFormValues = z.infer<typeof checkoutFormSchema>;

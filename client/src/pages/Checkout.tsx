@@ -52,6 +52,7 @@ export default function Checkout() {
   const [promoCodeInput, setPromoCodeInput] = useState("");
   const [isApplyingPromo, setIsApplyingPromo] = useState(false);
   const [promoError, setPromoError] = useState("");
+  const [orderCompleted, setOrderCompleted] = useState(false);
 
   const form = useForm<CheckoutFormValues>({
     resolver: zodResolver(checkoutFormSchema),
@@ -67,10 +68,10 @@ export default function Checkout() {
   const { subtotal, serviceFee, tax, discount, total } = calculateTotals();
 
   useEffect(() => {
-    if (cart.length === 0 && currentStep !== CheckoutStep.Success) {
+    if (cart.length === 0 && currentStep !== CheckoutStep.Success && !orderCompleted) {
       navigate("/");
     }
-  }, [cart, navigate, currentStep]);
+  }, [cart, navigate, currentStep, orderCompleted]);
 
   const goToPreviousStep = () => {
     if (currentStep > CheckoutStep.CustomerInfo) {
@@ -376,6 +377,7 @@ export default function Checkout() {
                       <PaymentPage 
                         orderData={orderData}
                         onSuccess={() => {
+                          setOrderCompleted(true);
                           setCurrentStep(CheckoutStep.Success);
                           window.scrollTo({ top: 0, behavior: 'smooth' });
                           // Clear cart after a short delay to allow success screen to render

@@ -37,8 +37,9 @@ type CheckoutFormValues = z.infer<typeof checkoutFormSchema>;
 
 enum CheckoutStep {
   CustomerInfo = 1,
-  Payment = 2,
-  Confirmation = 3,
+  OrderConfirmation = 2,
+  Payment = 3,
+  Success = 4,
 }
 
 export default function Checkout() {
@@ -148,7 +149,7 @@ export default function Checkout() {
   };
 
   const goToNextStep = () => {
-    if (currentStep < CheckoutStep.Confirmation) {
+    if (currentStep < CheckoutStep.Success) {
       setCurrentStep(currentStep + 1);
     }
   };
@@ -248,21 +249,28 @@ export default function Checkout() {
           <div className="flex p-6 border-b border-border">
             <div className="flex-1 text-center">
               <div className={`w-9 h-9 ${currentStep === CheckoutStep.CustomerInfo ? 'bg-primary' : 'bg-secondary/20'} text-foreground rounded-full mx-auto flex items-center justify-center font-heading`}>1</div>
-              <span className={`text-xs mt-2 block font-medium font-menu ${currentStep === CheckoutStep.CustomerInfo ? 'text-primary' : 'text-muted-foreground'}`}>CUSTOMER INFO</span>
+              <span className={`text-xs mt-2 block font-medium font-menu ${currentStep === CheckoutStep.CustomerInfo ? 'text-primary' : 'text-muted-foreground'}`}>CUSTOMER</span>
+            </div>
+            <div className="flex-1 flex items-center">
+              <div className={`h-1 ${currentStep >= CheckoutStep.OrderConfirmation ? 'bg-primary' : 'bg-muted'} flex-1`}></div>
+            </div>
+            <div className="flex-1 text-center">
+              <div className={`w-9 h-9 ${currentStep === CheckoutStep.OrderConfirmation ? 'bg-primary' : 'bg-secondary/20'} text-foreground rounded-full mx-auto flex items-center justify-center font-heading`}>2</div>
+              <span className={`text-xs mt-2 block font-medium font-menu ${currentStep === CheckoutStep.OrderConfirmation ? 'text-primary' : 'text-muted-foreground'}`}>CONFIRM</span>
             </div>
             <div className="flex-1 flex items-center">
               <div className={`h-1 ${currentStep >= CheckoutStep.Payment ? 'bg-primary' : 'bg-muted'} flex-1`}></div>
             </div>
             <div className="flex-1 text-center">
-              <div className={`w-9 h-9 ${currentStep === CheckoutStep.Payment ? 'bg-primary' : 'bg-secondary/20'} text-foreground rounded-full mx-auto flex items-center justify-center font-heading`}>2</div>
+              <div className={`w-9 h-9 ${currentStep === CheckoutStep.Payment ? 'bg-primary' : 'bg-secondary/20'} text-foreground rounded-full mx-auto flex items-center justify-center font-heading`}>3</div>
               <span className={`text-xs mt-2 block font-medium font-menu ${currentStep === CheckoutStep.Payment ? 'text-primary' : 'text-muted-foreground'}`}>PAYMENT</span>
             </div>
             <div className="flex-1 flex items-center">
-              <div className={`h-1 ${currentStep >= CheckoutStep.Confirmation ? 'bg-primary' : 'bg-muted'} flex-1`}></div>
+              <div className={`h-1 ${currentStep >= CheckoutStep.Success ? 'bg-primary' : 'bg-muted'} flex-1`}></div>
             </div>
             <div className="flex-1 text-center">
-              <div className={`w-9 h-9 ${currentStep === CheckoutStep.Confirmation ? 'bg-primary' : 'bg-secondary/20'} text-foreground rounded-full mx-auto flex items-center justify-center font-heading`}>3</div>
-              <span className={`text-xs mt-2 block font-medium font-menu ${currentStep === CheckoutStep.Confirmation ? 'text-primary' : 'text-muted-foreground'}`}>CONFIRM</span>
+              <div className={`w-9 h-9 ${currentStep === CheckoutStep.Success ? 'bg-primary' : 'bg-secondary/20'} text-foreground rounded-full mx-auto flex items-center justify-center font-heading`}>4</div>
+              <span className={`text-xs mt-2 block font-medium font-menu ${currentStep === CheckoutStep.Success ? 'text-primary' : 'text-muted-foreground'}`}>SUCCESS</span>
             </div>
           </div>
 
@@ -338,6 +346,143 @@ export default function Checkout() {
               </div>
             )}
 
+            {currentStep === CheckoutStep.OrderConfirmation && (
+              <div>
+                <h2 className="font-heading text-lg font-bold mb-4 text-primary">Order Confirmation</h2>
+                
+                {/* Cart Summary */}
+                <div className="border rounded-lg overflow-hidden bg-card mb-6">
+                  <div className="bg-primary/10 p-3 border-b">
+                    <h3 className="font-medium text-primary">Your Order</h3>
+                  </div>
+                  <div className="p-3 space-y-3">
+                    {cart.map((item, index) => (
+                      <div key={index} className="flex justify-between items-center text-sm">
+                        <div className="flex-1">
+                          <span className="font-medium text-foreground">{item.name}</span>
+                          <span className="text-muted-foreground ml-2">x{item.quantity}</span>
+                        </div>
+                        <span className="font-medium text-foreground">${(item.price * item.quantity).toFixed(2)}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Customer Details */}
+                <div className="border rounded-lg overflow-hidden bg-card mb-6">
+                  <div className="bg-primary/10 p-3 border-b">
+                    <h3 className="font-medium text-primary">Pickup Details</h3>
+                  </div>
+                  <div className="p-3 space-y-2 text-sm">
+                    <p><span className="font-medium text-primary">Name:</span> <span className="text-foreground">{form.getValues("customerName")}</span></p>
+                    <p><span className="font-medium text-primary">Phone:</span> <span className="text-foreground">{form.getValues("customerPhone")}</span></p>
+                    {form.getValues("customerEmail") && (
+                      <p><span className="font-medium text-primary">Email:</span> <span className="text-foreground">{form.getValues("customerEmail")}</span></p>
+                    )}
+                    {form.getValues("preparationInstructions") && (
+                      <p><span className="font-medium text-primary">Preparation Instructions:</span> <span className="text-foreground">{form.getValues("preparationInstructions")}</span></p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Promo Code Section */}
+                <div className="border rounded-lg overflow-hidden bg-card mb-6">
+                  <div className="bg-primary/10 p-3 border-b">
+                    <h3 className="font-medium text-primary">Promo Code</h3>
+                  </div>
+                  <div className="p-4">
+                    {promoDiscount > 0 ? (
+                      <div className="flex items-center justify-between bg-green-50 border border-green-200 rounded-lg p-3">
+                        <div className="flex items-center space-x-2">
+                          <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                          <span className="text-green-700 font-medium">Promo code "{promoCode}" applied</span>
+                        </div>
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          onClick={() => {
+                            clearPromoCode();
+                            setPromoCodeInput("");
+                          }}
+                          className="text-green-700 hover:text-green-800"
+                        >
+                          Remove
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="space-y-3">
+                        <div className="flex space-x-2">
+                          <Input
+                            placeholder="Enter promo code"
+                            value={promoCodeInput}
+                            onChange={(e) => setPromoCodeInput(e.target.value)}
+                            className="flex-1"
+                            disabled={isApplyingPromo}
+                          />
+                          <Button 
+                            onClick={async () => {
+                              if (!promoCodeInput.trim()) return;
+                              
+                              setIsApplyingPromo(true);
+                              try {
+                                await applyPromoCode(promoCodeInput.trim());
+                                toast({
+                                  title: "Promo code applied!",
+                                  description: `You saved $${promoDiscount.toFixed(2)}`,
+                                });
+                              } catch (error: any) {
+                                toast({
+                                  title: "Invalid promo code",
+                                  description: error.message || "Please check your promo code and try again.",
+                                  variant: "destructive",
+                                });
+                              }
+                              setIsApplyingPromo(false);
+                            }}
+                            disabled={isApplyingPromo || !promoCodeInput.trim()}
+                          >
+                            {isApplyingPromo ? "Applying..." : "Apply"}
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Order Total */}
+                <div className="border rounded-lg overflow-hidden bg-card">
+                  <div className="bg-primary/10 p-3 border-b">
+                    <h3 className="font-medium text-primary">Order Total</h3>
+                  </div>
+                  <div className="p-4 space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Subtotal</span>
+                      <span className="font-medium text-foreground">${subtotal.toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Service Fee</span>
+                      <span className="font-medium text-foreground">${serviceFee.toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Tax</span>
+                      <span className="font-medium text-foreground">${tax.toFixed(2)}</span>
+                    </div>
+                    {discount > 0 && (
+                      <div className="flex justify-between text-sm text-green-600">
+                        <span>Discount ({promoCode})</span>
+                        <span>-${discount.toFixed(2)}</span>
+                      </div>
+                    )}
+                    <Separator />
+                    <div className="flex justify-between font-bold">
+                      <span className="text-primary">Total</span>
+                      <span className="text-foreground">${total.toFixed(2)}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {currentStep === CheckoutStep.Payment && (
               <div>
                 <h2 className="font-heading text-lg font-bold mb-4 text-primary">Payment</h2>
@@ -363,7 +508,7 @@ export default function Checkout() {
                       orderData={orderData}
                       onSuccess={() => {
                         clearCart();
-                        setCurrentStep(CheckoutStep.Confirmation);
+                        setCurrentStep(CheckoutStep.Success);
                       }}
                     />
                   );
@@ -402,9 +547,15 @@ export default function Checkout() {
               </div>
             )}
 
-            {currentStep === CheckoutStep.Confirmation && (
+            {currentStep === CheckoutStep.Success && (
               <div>
-                <h2 className="font-heading text-lg font-bold mb-4 text-primary">Order Summary</h2>
+                <div className="text-center mb-6">
+                  <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <CheckCircle className="h-8 w-8 text-green-600" />
+                  </div>
+                  <h2 className="font-heading text-2xl font-bold text-primary mb-2">Order Confirmed!</h2>
+                  <p className="text-muted-foreground">Thank you for your order. We'll prepare it for pickup.</p>
+                </div>
                 <div className="space-y-4">
                   <div className="border rounded-lg overflow-hidden bg-card">
                     <div className="bg-primary/10 p-3 border-b">
@@ -550,31 +701,49 @@ export default function Checkout() {
                 </Button>
               )}
 
-              {currentStep < CheckoutStep.Confirmation ? (
+              {currentStep === CheckoutStep.CustomerInfo ? (
                 <Button 
                   onClick={() => {
-                    // Validate form for step 1 before proceeding
-                    if (currentStep === CheckoutStep.CustomerInfo) {
-                      form.trigger().then((isValid) => {
-                        if (isValid) goToNextStep();
-                      });
-                    } else {
-                      goToNextStep();
-                    }
+                    form.trigger().then((isValid) => {
+                      if (isValid) goToNextStep();
+                    });
                   }}
                   className="bg-primary hover:bg-primary/90"
                   disabled={isSubmitting}
                 >
-                  Continue
+                  Continue to Order Confirmation
                 </Button>
-              ) : (
+              ) : currentStep === CheckoutStep.OrderConfirmation ? (
                 <Button 
-                  onClick={() => form.handleSubmit(onSubmit)()}
+                  onClick={() => {
+                    // Save order data to session storage and proceed to payment
+                    const orderData = {
+                      customerName: form.getValues("customerName"),
+                      customerPhone: form.getValues("customerPhone"),
+                      customerEmail: form.getValues("customerEmail"),
+                      preparationInstructions: form.getValues("preparationInstructions"),
+                      items: cart,
+                      subtotal,
+                      serviceFee,
+                      tax,
+                      discount,
+                      total,
+                      promoCode,
+                      promoDiscount
+                    };
+                    sessionStorage.setItem('pendingOrder', JSON.stringify(orderData));
+                    goToNextStep();
+                  }}
                   className="bg-primary hover:bg-primary/90"
                   disabled={isSubmitting}
                 >
-                  {isSubmitting ? "Processing..." : "Place Order"}
+                  Proceed to Payment
                 </Button>
+              ) : currentStep === CheckoutStep.Payment ? (
+                <div className="text-center">
+                  <p className="text-sm text-muted-foreground">Complete payment to finish your order</p>
+                </div>
+              ) : null}
               )}
             </div>
           </div>

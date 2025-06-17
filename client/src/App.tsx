@@ -16,6 +16,7 @@ import About from "@/pages/About";
 import Contact from "@/pages/Contact";
 import NotFound from "@/pages/not-found";
 import AdminDashboard from "@/pages/admin/Dashboard";
+import AdminReports from "@/pages/admin/Reports";
 import AuthPage from "@/pages/AuthPage";
 import ResetPasswordPage from "@/pages/ResetPasswordPage";
 import UserAccount from "@/pages/UserAccount";
@@ -40,6 +41,11 @@ function Router() {
       <Route path="/admin">
         <ProtectedRoute adminOnly>
           <AdminDashboard />
+        </ProtectedRoute>
+      </Route>
+      <Route path="/admin/reports">
+        <ProtectedRoute adminOnly>
+          <AdminReports />
         </ProtectedRoute>
       </Route>
       <Route component={NotFound} />

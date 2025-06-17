@@ -527,7 +527,10 @@ export default function AdminDashboard() {
             <div className="flex items-center gap-3">
               <AdminTimeDisplay />
               {activeTab === "overview" && (
-                <Button className="bg-primary hover:bg-primary/90">
+                <Button 
+                  className="bg-primary hover:bg-primary/90"
+                  onClick={() => navigate("/admin/reports")}
+                >
                   View Reports
                 </Button>
               )}

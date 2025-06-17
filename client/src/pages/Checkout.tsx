@@ -87,7 +87,7 @@ export default function Checkout() {
     }
   };
 
-  if (cart.length === 0) {
+  if (cart.length === 0 && currentStep !== CheckoutStep.Success && !orderCompleted) {
     return (
       <div className="min-h-screen bg-background">
         <Header />

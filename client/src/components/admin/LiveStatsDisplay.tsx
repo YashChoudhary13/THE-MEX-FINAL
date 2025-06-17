@@ -2,8 +2,8 @@ import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { TrendingUp, DollarSign, ShoppingCart, Clock } from "lucide-react";
-import { apiRequest } from "@/lib/queryClient";
+import { TrendingUp, DollarSign, ShoppingCart, Clock, Wifi, WifiOff } from "lucide-react";
+import { queryClient } from "@/lib/queryClient";
 
 interface CurrentStats {
   totalOrders: number;
@@ -12,19 +12,56 @@ interface CurrentStats {
 
 export default function LiveStatsDisplay() {
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
+  const [isConnected, setIsConnected] = useState(false);
 
-  // Fetch current day stats with automatic refresh
+  // Fetch current day stats
   const { data: currentStats, refetch } = useQuery<CurrentStats>({
     queryKey: ['/api/admin/current-stats'],
-    refetchInterval: 30000, // Refresh every 30 seconds
   });
 
-  // Update timestamp when data changes
+  // WebSocket connection for real-time updates
   useEffect(() => {
-    if (currentStats) {
-      setLastUpdated(new Date());
-    }
-  }, [currentStats]);
+    const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+    const wsUrl = `${protocol}//${window.location.host}/ws`;
+    const socket = new WebSocket(wsUrl);
+
+    socket.onopen = () => {
+      console.log('WebSocket connected for admin updates');
+      setIsConnected(true);
+      // Subscribe to admin updates
+      socket.send(JSON.stringify({ type: 'SUBSCRIBE_ADMIN' }));
+    };
+
+    socket.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        
+        if (data.type === 'NEW_ORDER' || data.type === 'ORDER_UPDATE') {
+          // Refresh stats when new orders or updates come in
+          refetch();
+          setLastUpdated(new Date());
+          // Also refresh order list
+          queryClient.invalidateQueries({ queryKey: ['/api/admin/orders'] });
+        }
+      } catch (error) {
+        console.error('Error parsing WebSocket message:', error);
+      }
+    };
+
+    socket.onclose = () => {
+      console.log('WebSocket disconnected');
+      setIsConnected(false);
+    };
+
+    socket.onerror = (error) => {
+      console.error('WebSocket error:', error);
+      setIsConnected(false);
+    };
+
+    return () => {
+      socket.close();
+    };
+  }, [refetch]);
 
   // Format currency
   const formatCurrency = (amount: number) => {

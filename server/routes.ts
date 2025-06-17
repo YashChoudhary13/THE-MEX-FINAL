@@ -24,25 +24,34 @@ import Stripe from 'stripe';
 // Initialize Stripe with secret key
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 
-// Map to keep track of WebSocket connections by order ID
-const orderSocketConnections = new Map<number, Set<WebSocket>>();
+// Map to keep track of admin WebSocket connections
+const adminSocketConnections = new Set<WebSocket>();
 
-// Function to broadcast order status updates to all connected clients for a specific order
+// Function to broadcast updates to all connected admin clients
+function broadcastToAdmins(message: any) {
+  const messageStr = JSON.stringify(message);
+  adminSocketConnections.forEach(client => {
+    if (client.readyState === WebSocket.OPEN) {
+      client.send(messageStr);
+    }
+  });
+}
+
+// Function to broadcast order updates to admin panel
 function broadcastOrderUpdate(orderId: number, orderData: any) {
-  const connections = orderSocketConnections.get(orderId);
-  if (connections) {
-    const message = JSON.stringify({
-      type: 'ORDER_UPDATE',
-      orderId,
-      order: orderData
-    });
-    
-    connections.forEach(client => {
-      if (client.readyState === WebSocket.OPEN) {
-        client.send(message);
-      }
-    });
-  }
+  broadcastToAdmins({
+    type: 'ORDER_UPDATE',
+    orderId,
+    order: orderData
+  });
+}
+
+// Function to broadcast new orders to admin panel
+function broadcastNewOrder(orderData: any) {
+  broadcastToAdmins({
+    type: 'NEW_ORDER',
+    order: orderData
+  });
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -1014,6 +1023,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Error updating tax rate:', error);
       res.status(500).json({ message: 'Failed to update tax rate' });
+    }
+  });
+
+  // Admin endpoints for real-time stats and reporting
+  app.get('/api/admin/current-stats', isAdmin, async (req, res) => {
+    try {
+      const stats = await storage.getCurrentDayStats();
+      res.json(stats);
+    } catch (error) {
+      console.error('Error fetching current stats:', error);
+      res.status(500).json({ message: 'Failed to fetch current stats' });
+    }
+  });
+
+  app.get('/api/admin/daily-reports', isAdmin, async (req, res) => {
+    try {
+      const reports = await storage.getDailyReports(30);
+      res.json(reports);
+    } catch (error) {
+      console.error('Error fetching daily reports:', error);
+      res.status(500).json({ message: 'Failed to fetch daily reports' });
+    }
+  });
+
+  app.get('/api/admin/monthly-reports', isAdmin, async (req, res) => {
+    try {
+      const reports = await storage.getMonthlyReports(12);
+      res.json(reports);
+    } catch (error) {
+      console.error('Error fetching monthly reports:', error);
+      res.status(500).json({ message: 'Failed to fetch monthly reports' });
     }
   });
 

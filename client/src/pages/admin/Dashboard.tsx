@@ -23,6 +23,7 @@ import { useToast } from "@/hooks/use-toast";
 import OrderManager from "./OrderManager";
 import LiveStatsDisplay from "@/components/admin/LiveStatsDisplay";
 import ReportsSection from "@/components/admin/ReportsSection";
+import AdminTimeDisplay from "@/components/admin/AdminTimeDisplay";
 
 // We'll wrap the admin component sections in conditional rendering
 // to avoid errors when the component files are being loaded
@@ -498,7 +499,8 @@ export default function AdminDashboard() {
               </p>
             </div>
             
-            <div>
+            <div className="flex items-center gap-3">
+              <AdminTimeDisplay />
               {activeTab === "overview" && (
                 <Button className="bg-primary hover:bg-primary/90">
                   View Reports

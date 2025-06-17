@@ -162,6 +162,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Create the order
       const order = await storage.createOrder(orderData);
       
+      // Broadcast new order to admin panel
+      broadcastNewOrder(order);
+      
       res.status(201).json(order);
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -685,36 +688,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   const httpServer = createServer(app);
   
-  // Setup WebSocket server for real-time order tracking
-  const wss = new WebSocketServer({ server: httpServer, path: '/ws' });
-  
+  // Setup WebSocket server for real-time admin updates
+  const wss = new WebSocketServer({ 
+    server: httpServer, 
+    path: '/ws' 
+  });
+
   wss.on('connection', (ws) => {
     console.log('WebSocket client connected');
     
-    // Handle client messages (e.g., when they subscribe to an order)
     ws.on('message', (message) => {
       try {
         const data = JSON.parse(message.toString());
         
-        // Handle subscription to order updates
-        if (data.type === 'SUBSCRIBE_TO_ORDER' && data.orderId) {
-          const orderId = parseInt(data.orderId);
-          
-          if (!isNaN(orderId)) {
-            // Store connection for this order
-            if (!orderSocketConnections.has(orderId)) {
-              orderSocketConnections.set(orderId, new Set());
-            }
-            
-            orderSocketConnections.get(orderId)?.add(ws);
-            
-            // Send confirmation
-            ws.send(JSON.stringify({
-              type: 'SUBSCRIPTION_CONFIRMED',
-              orderId
-            }));
-            
-            // Send current order data immediately if available
+        if (data.type === 'SUBSCRIBE_ADMIN') {
+          // Subscribe to admin updates
+          adminSocketConnections.add(ws);
+          console.log('Client subscribed to admin updates');
+        }
+      } catch (error) {
+        console.error('Error parsing WebSocket message:', error);
+      }
+    });
+    
+    ws.on('close', () => {
+      // Remove this connection from admin subscriptions
+      adminSocketConnections.delete(ws);
+      console.log('WebSocket client disconnected');
+    });
+  });
             storage.getOrder(orderId).then(order => {
               if (order && ws.readyState === WebSocket.OPEN) {
                 ws.send(JSON.stringify({
@@ -1129,6 +1131,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Start the daily reset scheduler
   scheduleDailyReset();
+
+  // Create WebSocket server on a separate path
+  const wss = new WebSocketServer({ 
+    server: httpServer, 
+    path: '/ws' 
+  });
+
+  wss.on('connection', (ws) => {
+    console.log('WebSocket client connected');
+    
+    ws.on('message', (message) => {
+      try {
+        const data = JSON.parse(message.toString());
+        
+        if (data.type === 'SUBSCRIBE_ADMIN') {
+          // Subscribe to admin updates
+          adminSocketConnections.add(ws);
+          console.log('Client subscribed to admin updates');
+        }
+      } catch (error) {
+        console.error('Error parsing WebSocket message:', error);
+      }
+    });
+    
+    ws.on('close', () => {
+      // Remove this connection from admin subscriptions
+      adminSocketConnections.delete(ws);
+      console.log('WebSocket client disconnected');
+    });
+  });
 
   return httpServer;
 }

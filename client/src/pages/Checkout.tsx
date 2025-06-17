@@ -109,7 +109,7 @@ export default function Checkout() {
       const orderData = {
         ...data,
         subtotal,
-        deliveryFee: serviceFee,
+        serviceFee,
         tax,
         discount,
         total,
@@ -346,12 +346,12 @@ export default function Checkout() {
                   if (!pendingOrderData) {
                     return (
                       <div className="text-center py-8">
-                        <p className="text-muted-foreground mb-4">No order data found. Please complete the delivery information first.</p>
+                        <p className="text-muted-foreground mb-4">No order data found. Please complete the customer information first.</p>
                         <Button 
-                          onClick={() => setCurrentStep(CheckoutStep.Delivery)}
+                          onClick={() => setCurrentStep(CheckoutStep.CustomerInfo)}
                           variant="outline"
                         >
-                          Go Back to Delivery Info
+                          Go Back to Customer Info
                         </Button>
                       </div>
                     );

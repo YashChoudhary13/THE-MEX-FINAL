@@ -214,7 +214,7 @@ export class MemStorage implements IStorage {
       id,
       status: order.status || 'pending',
       customerEmail: order.customerEmail || null,
-      deliveryInstructions: order.deliveryInstructions || null,
+      preparationInstructions: order.preparationInstructions || null,
       userId: order.userId ?? null,
       createdAt: new Date()
     };

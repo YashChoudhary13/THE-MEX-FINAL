@@ -12,9 +12,8 @@ import {
 } from "@shared/schema";
 
 import session from "express-session";
-import { eq, and, isNull, lte, gt, desc, or } from "drizzle-orm";
+import { eq, and, isNull, lte, gt, desc, or, lt, sql } from "drizzle-orm";
 import { db } from "./db";
-import { sql } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 import connectPg from "connect-pg-simple";
 import { pool } from "./db";
@@ -851,6 +850,159 @@ export class DatabaseStorage implements IStorage {
   async getServiceFee(): Promise<number> {
     const fee = await this.getSystemSetting("service_fee");
     return fee ? parseFloat(fee) : 2.99; // Default to 2.99 if not set
+  }
+
+  // Daily Reports
+  async getDailyReports(days: number = 30): Promise<DailyReport[]> {
+    const cutoffDate = new Date();
+    cutoffDate.setDate(cutoffDate.getDate() - days);
+    const cutoffDateStr = cutoffDate.toISOString().split('T')[0];
+
+    return await db
+      .select()
+      .from(dailyReports)
+      .where(gt(dailyReports.date, cutoffDateStr))
+      .orderBy(desc(dailyReports.date));
+  }
+
+  async createOrUpdateDailyReport(date: string, ordersCount: number, revenue: number): Promise<DailyReport> {
+    const existing = await db
+      .select()
+      .from(dailyReports)
+      .where(eq(dailyReports.date, date))
+      .limit(1);
+
+    if (existing.length > 0) {
+      const [updated] = await db
+        .update(dailyReports)
+        .set({
+          totalOrders: ordersCount,
+          totalRevenue: revenue.toString(),
+          updatedAt: new Date()
+        })
+        .where(eq(dailyReports.date, date))
+        .returning();
+      return updated;
+    } else {
+      const [created] = await db
+        .insert(dailyReports)
+        .values({
+          date,
+          totalOrders: ordersCount,
+          totalRevenue: revenue.toString()
+        })
+        .returning();
+      return created;
+    }
+  }
+
+  async getCurrentDayStats(): Promise<{ totalOrders: number; totalRevenue: number }> {
+    const today = new Date();
+    // Convert to Cork/Dublin timezone
+    const dublinDate = new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'Europe/Dublin',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit'
+    }).format(today);
+
+    const todayOrders = await db
+      .select()
+      .from(orders)
+      .where(
+        and(
+          gt(orders.createdAt, new Date(`${dublinDate}T00:00:00`)),
+          lte(orders.createdAt, new Date(`${dublinDate}T23:59:59`))
+        )
+      );
+
+    const totalOrders = todayOrders.length;
+    const totalRevenue = todayOrders.reduce((sum, order) => sum + parseFloat(order.total.toString()), 0);
+
+    return { totalOrders, totalRevenue };
+  }
+
+  async resetDailyStats(): Promise<boolean> {
+    // Archive current day stats to daily reports before reset
+    const stats = await this.getCurrentDayStats();
+    const today = new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'Europe/Dublin'
+    }).format(new Date());
+    
+    await this.createOrUpdateDailyReport(today, stats.totalOrders, stats.totalRevenue);
+    return true;
+  }
+
+  // Monthly Reports
+  async getMonthlyReports(months: number = 12): Promise<MonthlyReport[]> {
+    return await db
+      .select()
+      .from(monthlyReports)
+      .orderBy(desc(monthlyReports.year), desc(monthlyReports.month))
+      .limit(months);
+  }
+
+  async createOrUpdateMonthlyReport(year: number, month: number, ordersCount: number, revenue: number): Promise<MonthlyReport> {
+    const existing = await db
+      .select()
+      .from(monthlyReports)
+      .where(and(eq(monthlyReports.year, year), eq(monthlyReports.month, month)))
+      .limit(1);
+
+    if (existing.length > 0) {
+      const [updated] = await db
+        .update(monthlyReports)
+        .set({
+          totalOrders: ordersCount,
+          totalRevenue: revenue.toString(),
+          updatedAt: new Date()
+        })
+        .where(and(eq(monthlyReports.year, year), eq(monthlyReports.month, month)))
+        .returning();
+      return updated;
+    } else {
+      const [created] = await db
+        .insert(monthlyReports)
+        .values({
+          year,
+          month,
+          totalOrders: ordersCount,
+          totalRevenue: revenue.toString()
+        })
+        .returning();
+      return created;
+    }
+  }
+
+  // Data Cleanup
+  async cleanupOldData(): Promise<boolean> {
+    try {
+      // Remove daily reports older than 30 days
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+      const cutoffDate = thirtyDaysAgo.toISOString().split('T')[0];
+
+      await db.delete(dailyReports).where(lte(dailyReports.date, cutoffDate));
+
+      // Remove monthly reports older than 12 months
+      const twelveMonthsAgo = new Date();
+      twelveMonthsAgo.setMonth(twelveMonthsAgo.getMonth() - 12);
+
+      await db.delete(monthlyReports).where(
+        or(
+          lt(monthlyReports.year, twelveMonthsAgo.getFullYear()),
+          and(
+            eq(monthlyReports.year, twelveMonthsAgo.getFullYear()),
+            lt(monthlyReports.month, twelveMonthsAgo.getMonth() + 1)
+          )
+        )
+      );
+
+      return true;
+    } catch (error) {
+      console.error('Error cleaning up old data:', error);
+      return false;
+    }
   }
 }
 

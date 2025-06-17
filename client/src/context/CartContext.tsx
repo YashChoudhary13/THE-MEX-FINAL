@@ -169,11 +169,11 @@ export function CartProvider({ children }: CartProviderProps) {
       ? (serviceFeeData?.serviceFee || 2.99) 
       : 0;
     
-    // Calculate tax (8% for this demo)
-    const tax = subtotal * 0.08;
+    // Calculate tax (10% for this demo)
+    const tax = subtotal * 0.1;
     
     // Apply promo discount
-    const discount = promoDiscount;
+    const discount = promoDiscount || 0;
     
     // Calculate total (subtotal + service fee + tax - discount)
     const total = Math.max(0, subtotal + serviceFee + tax - discount);

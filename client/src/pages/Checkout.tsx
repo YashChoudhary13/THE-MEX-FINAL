@@ -45,7 +45,7 @@ enum CheckoutStep {
 export default function Checkout() {
   const [, navigate] = useLocation();
   const { toast } = useToast();
-  const { cart, clearCart, subtotal, promoCode, promoDiscount, applyPromoCode, clearPromoCode } = useCart();
+  const { cart, clearCart, promoCode, promoDiscount, applyPromoCode, clearPromoCode, calculateTotals } = useCart();
   const { requestPermission } = useNotifications();
   const [currentStep, setCurrentStep] = useState(CheckoutStep.CustomerInfo);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -62,15 +62,8 @@ export default function Checkout() {
     },
   });
 
-  // Fetch service fee
-  const { data: serviceFeeData } = useQuery({
-    queryKey: ["/api/system-settings/service-fee"],
-  });
-
-  const serviceFee = serviceFeeData?.serviceFee || 2.99;
-  const tax = subtotal * 0.1;
-  const discount = promoDiscount;
-  const total = Math.max(0, subtotal + serviceFee + tax - discount);
+  // Calculate totals from cart context
+  const { subtotal, serviceFee, tax, discount, total } = calculateTotals();
 
   useEffect(() => {
     if (cart.length === 0) {

@@ -1,7 +1,9 @@
 import { useMemo } from "react";
-import { MenuCategory } from "@shared/schema";
+import { MenuCategory, CartItem } from "@shared/schema";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Flame, ChevronRight } from "lucide-react";
+import { useCart } from "@/context/CartContext";
+import { useToast } from "@/hooks/use-toast";
 
 interface CategorySidebarProps {
   categories: MenuCategory[];
@@ -111,8 +113,22 @@ export default function CategorySidebar({
               <button 
                 className="w-full py-3 bg-primary text-white font-menu rounded-lg hover:bg-primary/90 transition-colors"
                 onClick={() => {
-                  // This could trigger adding the item to cart
-                  console.log('Special added to cart');
+                  if (todaysSpecial.menuItem) {
+                    // Add special offer item to cart
+                    const cartItem: CartItem = {
+                      id: Date.now(), // Generate a unique ID for the cart item
+                      menuItemId: todaysSpecial.menuItem.id,
+                      name: todaysSpecial.menuItem.name,
+                      price: todaysSpecial.price, // Use the special offer price
+                      quantity: 1,
+                      image: todaysSpecial.menuItem.image
+                    };
+                    addToCart(cartItem);
+                    toast({
+                      title: "Added to cart",
+                      description: `${todaysSpecial.menuItem.name} has been added to your cart`
+                    });
+                  }
                 }}
               >
                 ADD TO CART

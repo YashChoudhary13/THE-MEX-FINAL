@@ -432,53 +432,66 @@ export default function MenuItemCard({ item }: MenuItemCardProps) {
         onMouseLeave={() => setIsHovering(false)}
         onClick={openModal}
       >
-        <div className="relative h-52 overflow-hidden">
-          <img 
-            src={item.image} 
-            alt={item.name} 
-            className={`w-full h-full object-cover transition-transform duration-500 ${isHovering ? 'scale-110' : 'scale-100'}`}
-          />
-          
-          {/* Labels */}
-          {item.label && (
-            <div className="absolute top-3 right-3 bg-primary text-white px-3 py-1 rounded-full text-xs font-menu font-medium shadow-md flex items-center">
-              <Flame className="h-3 w-3 mr-1" />
-              {item.label.toUpperCase()}
-            </div>
-          )}
+        {/* Image section - only render if image exists */}
+        {item.image && (
+          <div className="relative h-52 overflow-hidden">
+            <img 
+              src={item.image} 
+              alt={item.name} 
+              className={`w-full h-full object-cover transition-transform duration-500 ${isHovering ? 'scale-110' : 'scale-100'}`}
+              onError={(e) => {
+                // Hide the image container if image fails to load
+                const target = e.target as HTMLImageElement;
+                const container = target.parentElement;
+                if (container) {
+                  container.style.display = 'none';
+                }
+              }}
+            />
+            
+            {/* Labels */}
+            {item.label && (
+              <div className="absolute top-3 right-3 bg-primary text-white px-3 py-1 rounded-full text-xs font-menu font-medium shadow-md flex items-center">
+                <Flame className="h-3 w-3 mr-1" />
+                {item.label.toUpperCase()}
+              </div>
+            )}
 
-          {/* Prep time badge */}
-          <div className="absolute bottom-3 right-3 bg-card/80 backdrop-blur-sm text-foreground px-3 py-1 rounded-full text-xs font-medium shadow-md flex items-center">
-            <Clock className="h-3 w-3 text-primary mr-1" />
-            {prepTime} min
-          </div>
+            {/* Prep time badge - only show if prepTime exists */}
+            {item.prepTime && (
+              <div className="absolute bottom-3 right-3 bg-card/80 backdrop-blur-sm text-foreground px-3 py-1 rounded-full text-xs font-medium shadow-md flex items-center">
+                <Clock className="h-3 w-3 text-primary mr-1" />
+                {prepTime} min
+              </div>
+            )}
 
-          {/* Rating badge */}
-          <div className="absolute bottom-3 left-3 bg-card/80 backdrop-blur-sm text-foreground px-3 py-1 rounded-full text-xs font-medium shadow-md flex items-center">
-            <div className="flex text-warning mr-1">
-              {stars.map((type, index) => (
-                <span key={index}>
-                  {type === "full" && (
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 text-primary" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/>
-                    </svg>
-                  )}
-                  {type === "half" && (
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 text-primary" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/>
-                    </svg>
-                  )}
-                  {type === "empty" && (
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 text-muted-foreground/30" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/>
-                    </svg>
-                  )}
-                </span>
-              ))}
+            {/* Rating badge */}
+            <div className="absolute bottom-3 left-3 bg-card/80 backdrop-blur-sm text-foreground px-3 py-1 rounded-full text-xs font-medium shadow-md flex items-center">
+              <div className="flex text-warning mr-1">
+                {stars.map((type, index) => (
+                  <span key={index}>
+                    {type === "full" && (
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 text-primary" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/>
+                      </svg>
+                    )}
+                    {type === "half" && (
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 text-primary" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/>
+                      </svg>
+                    )}
+                    {type === "empty" && (
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 text-muted-foreground/30" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/>
+                      </svg>
+                    )}
+                  </span>
+                ))}
+              </div>
+              <span className="text-muted-foreground">({item.reviewCount || '42'})</span>
             </div>
-            <span className="text-muted-foreground">({item.reviewCount || '42'})</span>
           </div>
-        </div>
+        )}
         
         <div className="p-5">
           <div className="flex justify-between items-start">

@@ -2,7 +2,9 @@ import { useState, useEffect } from "react";
 import { loadStripe } from "@stripe/stripe-js";
 import {
   Elements,
-  CardElement,
+  CardNumberElement,
+  CardExpiryElement,
+  CardCvcElement,
   useStripe,
   useElements,
 } from "@stripe/react-stripe-js";
@@ -68,16 +70,16 @@ function PaymentForm({ orderData, onSuccess }: PaymentFormProps) {
 
     setIsProcessing(true);
 
-    const cardElement = elements.getElement(CardElement);
+    const cardNumberElement = elements.getElement(CardNumberElement);
 
-    if (!cardElement) {
+    if (!cardNumberElement) {
       setIsProcessing(false);
       return;
     }
 
     const { error, paymentIntent } = await stripe.confirmCardPayment(clientSecret, {
       payment_method: {
-        card: cardElement,
+        card: cardNumberElement,
         billing_details: {
           name: orderData.customerName,
           email: orderData.customerEmail,
@@ -140,26 +142,82 @@ function PaymentForm({ orderData, onSuccess }: PaymentFormProps) {
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="p-4 border rounded-lg bg-white min-h-[50px]">
-            <CardElement
-              options={{
-                style: {
-                  base: {
-                    fontSize: "16px",
-                    color: "#424770",
-                    fontFamily: '"Helvetica Neue", Helvetica, sans-serif',
-                    fontSmoothing: "antialiased",
-                    "::placeholder": {
-                      color: "#aab7c4",
+          <div className="space-y-4">
+            {/* Card Number - Full width on all devices */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-foreground">Card Number</label>
+              <div className="p-4 border rounded-lg bg-white min-h-[50px] flex items-center">
+                <CardNumberElement
+                  options={{
+                    style: {
+                      base: {
+                        fontSize: "16px",
+                        color: "#424770",
+                        fontFamily: '"Helvetica Neue", Helvetica, sans-serif',
+                        fontSmoothing: "antialiased",
+                        "::placeholder": {
+                          color: "#aab7c4",
+                        },
+                      },
+                      invalid: {
+                        color: "#9e2146",
+                      },
                     },
-                  },
-                  invalid: {
-                    color: "#9e2146",
-                  },
-                },
-                hidePostalCode: false,
-              }}
-            />
+                  }}
+                />
+              </div>
+            </div>
+
+            {/* Expiry and CVC - Stack on mobile, side by side on larger screens */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-foreground">Expiry Date</label>
+                <div className="p-4 border rounded-lg bg-white min-h-[50px] flex items-center">
+                  <CardExpiryElement
+                    options={{
+                      style: {
+                        base: {
+                          fontSize: "16px",
+                          color: "#424770",
+                          fontFamily: '"Helvetica Neue", Helvetica, sans-serif',
+                          fontSmoothing: "antialiased",
+                          "::placeholder": {
+                            color: "#aab7c4",
+                          },
+                        },
+                        invalid: {
+                          color: "#9e2146",
+                        },
+                      },
+                    }}
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-foreground">CVC</label>
+                <div className="p-4 border rounded-lg bg-white min-h-[50px] flex items-center">
+                  <CardCvcElement
+                    options={{
+                      style: {
+                        base: {
+                          fontSize: "16px",
+                          color: "#424770",
+                          fontFamily: '"Helvetica Neue", Helvetica, sans-serif',
+                          fontSmoothing: "antialiased",
+                          "::placeholder": {
+                            color: "#aab7c4",
+                          },
+                        },
+                        invalid: {
+                          color: "#9e2146",
+                        },
+                      },
+                    }}
+                  />
+                </div>
+              </div>
+            </div>
           </div>
           
           <div className="flex items-center justify-between text-sm text-muted-foreground">

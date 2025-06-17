@@ -629,6 +629,51 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Admin reporting routes
+  app.get('/api/admin/current-stats', async (req, res) => {
+    if (!req.isAuthenticated() || req.user.username !== 'admin') {
+      return res.sendStatus(403);
+    }
+
+    try {
+      const stats = await storage.getCurrentDayStats();
+      res.json(stats);
+    } catch (error) {
+      console.error('Error fetching current stats:', error);
+      res.status(500).json({ message: "Error fetching current stats" });
+    }
+  });
+
+  app.get('/api/admin/daily-reports', async (req, res) => {
+    if (!req.isAuthenticated() || req.user.username !== 'admin') {
+      return res.sendStatus(403);
+    }
+
+    try {
+      const days = req.query.days ? parseInt(req.query.days as string) : 30;
+      const reports = await storage.getDailyReports(days);
+      res.json(reports);
+    } catch (error) {
+      console.error('Error fetching daily reports:', error);
+      res.status(500).json({ message: "Error fetching daily reports" });
+    }
+  });
+
+  app.get('/api/admin/monthly-reports', async (req, res) => {
+    if (!req.isAuthenticated() || req.user.username !== 'admin') {
+      return res.sendStatus(403);
+    }
+
+    try {
+      const months = req.query.months ? parseInt(req.query.months as string) : 12;
+      const reports = await storage.getMonthlyReports(months);
+      res.json(reports);
+    } catch (error) {
+      console.error('Error fetching monthly reports:', error);
+      res.status(500).json({ message: "Error fetching monthly reports" });
+    }
+  });
+
   const httpServer = createServer(app);
   
   // Setup WebSocket server for real-time order tracking
@@ -971,6 +1016,79 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: 'Failed to update tax rate' });
     }
   });
+
+  // Daily reset scheduler for Cork/Dublin timezone
+  const scheduleDailyReset = () => {
+    const now = new Date();
+    const dublinTime = new Intl.DateTimeFormat('en-US', {
+      timeZone: 'Europe/Dublin',
+      hour12: false,
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit'
+    }).format(now);
+
+    const [hours, minutes, seconds] = dublinTime.split(':').map(Number);
+    
+    // Calculate milliseconds until midnight in Dublin timezone
+    const msUntilMidnight = (24 * 60 * 60 * 1000) - (hours * 60 * 60 * 1000 + minutes * 60 * 1000 + seconds * 1000);
+    
+    console.log(`Scheduling daily reset in ${Math.round(msUntilMidnight / 1000 / 60)} minutes (Dublin time)`);
+    
+    setTimeout(async () => {
+      try {
+        console.log('Performing daily reset at midnight Dublin time...');
+        
+        // Archive current day stats
+        const stats = await storage.getCurrentDayStats();
+        const today = new Intl.DateTimeFormat('en-CA', {
+          timeZone: 'Europe/Dublin'
+        }).format(new Date());
+        
+        await storage.createOrUpdateDailyReport(today, stats.totalOrders, stats.totalRevenue);
+        
+        // Update monthly reports
+        const dublinDate = new Date().toLocaleDateString('en-CA', { timeZone: 'Europe/Dublin' });
+        const [year, month] = dublinDate.split('-').map(Number);
+        
+        const monthlyStats = await storage.getDailyReports(31);
+        const currentMonthStats = monthlyStats.filter(report => {
+          const reportDate = new Date(report.date);
+          return reportDate.getFullYear() === year && reportDate.getMonth() + 1 === month;
+        });
+        
+        const monthlyOrders = currentMonthStats.reduce((sum, report) => sum + report.totalOrders, 0);
+        const monthlyRevenue = currentMonthStats.reduce((sum, report) => sum + parseFloat(report.totalRevenue.toString()), 0);
+        
+        await storage.createOrUpdateMonthlyReport(year, month, monthlyOrders, monthlyRevenue);
+        
+        // Clean up old data
+        await storage.cleanupOldData();
+        
+        console.log('Daily reset completed successfully');
+        
+        // Broadcast reset notification to connected admin clients
+        wss.clients.forEach((client) => {
+          if (client.readyState === WebSocket.OPEN) {
+            client.send(JSON.stringify({
+              type: 'daily_reset',
+              message: 'Daily stats have been reset',
+              timestamp: new Date().toISOString()
+            }));
+          }
+        });
+        
+      } catch (error) {
+        console.error('Error during daily reset:', error);
+      }
+      
+      // Schedule next reset
+      scheduleDailyReset();
+    }, msUntilMidnight);
+  };
+
+  // Start the daily reset scheduler
+  scheduleDailyReset();
 
   return httpServer;
 }

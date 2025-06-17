@@ -1,0 +1,143 @@
+import { useState, useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { TrendingUp, DollarSign, ShoppingCart, Clock } from "lucide-react";
+import { apiRequest } from "@/lib/queryClient";
+
+interface CurrentStats {
+  totalOrders: number;
+  totalRevenue: number;
+}
+
+export default function LiveStatsDisplay() {
+  const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
+
+  // Fetch current day stats with automatic refresh
+  const { data: currentStats, refetch } = useQuery<CurrentStats>({
+    queryKey: ['/api/admin/current-stats'],
+    refetchInterval: 30000, // Refresh every 30 seconds
+  });
+
+  // Update timestamp when data changes
+  useEffect(() => {
+    if (currentStats) {
+      setLastUpdated(new Date());
+    }
+  }, [currentStats]);
+
+  // Format currency
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('en-IE', {
+      style: 'currency',
+      currency: 'EUR'
+    }).format(amount);
+  };
+
+  // Format time in Dublin timezone
+  const formatDublinTime = (date: Date) => {
+    return new Intl.DateTimeFormat('en-IE', {
+      timeZone: 'Europe/Dublin',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: false
+    }).format(date);
+  };
+
+  // WebSocket connection for real-time updates
+  useEffect(() => {
+    const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+    const wsUrl = `${protocol}//${window.location.host}/ws`;
+    const socket = new WebSocket(wsUrl);
+
+    socket.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        
+        if (data.type === 'daily_reset') {
+          // Refresh stats when daily reset occurs
+          refetch();
+        } else if (data.type === 'ORDER_UPDATE') {
+          // Refresh stats when orders are updated
+          refetch();
+        }
+      } catch (error) {
+        console.error('Error parsing WebSocket message:', error);
+      }
+    };
+
+    return () => {
+      socket.close();
+    };
+  }, [refetch]);
+
+  return (
+    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle className="text-sm font-medium">Today's Orders</CardTitle>
+          <ShoppingCart className="h-4 w-4 text-muted-foreground" />
+        </CardHeader>
+        <CardContent>
+          <div className="text-2xl font-bold">
+            {currentStats?.totalOrders ?? 0}
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Live count for today
+          </p>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle className="text-sm font-medium">Today's Revenue</CardTitle>
+          <DollarSign className="h-4 w-4 text-muted-foreground" />
+        </CardHeader>
+        <CardContent>
+          <div className="text-2xl font-bold">
+            {currentStats ? formatCurrency(currentStats.totalRevenue) : '€0.00'}
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Live revenue for today
+          </p>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle className="text-sm font-medium">Average Order</CardTitle>
+          <TrendingUp className="h-4 w-4 text-muted-foreground" />
+        </CardHeader>
+        <CardContent>
+          <div className="text-2xl font-bold">
+            {currentStats && currentStats.totalOrders > 0 
+              ? formatCurrency(currentStats.totalRevenue / currentStats.totalOrders)
+              : '€0.00'
+            }
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Per order today
+          </p>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle className="text-sm font-medium">Last Updated</CardTitle>
+          <Clock className="h-4 w-4 text-muted-foreground" />
+        </CardHeader>
+        <CardContent>
+          <div className="text-lg font-bold">
+            {formatDublinTime(lastUpdated)}
+          </div>
+          <div className="flex items-center gap-2">
+            <Badge variant="secondary" className="text-xs">
+              Dublin Time
+            </Badge>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}

@@ -62,7 +62,7 @@ enum OrderStatus {
   CONFIRMED = 'confirmed',
   PREPARING = 'preparing',
   READY = 'ready',
-  DELIVERED = 'delivered',
+  COMPLETED = 'completed',
   CANCELLED = 'cancelled'
 }
 
@@ -136,7 +136,7 @@ export default function OrderManager() {
     confirmed: orders?.filter(order => order.status === OrderStatus.CONFIRMED).length || 0,
     preparing: orders?.filter(order => order.status === OrderStatus.PREPARING).length || 0,
     ready: orders?.filter(order => order.status === OrderStatus.READY).length || 0,
-    delivered: orders?.filter(order => order.status === OrderStatus.DELIVERED).length || 0,
+    completed: orders?.filter(order => order.status === OrderStatus.COMPLETED).length || 0,
     cancelled: orders?.filter(order => order.status === OrderStatus.CANCELLED).length || 0,
   };
   
@@ -166,7 +166,7 @@ export default function OrderManager() {
         return 'default';
       case OrderStatus.READY:
         return 'default';
-      case OrderStatus.DELIVERED:
+      case OrderStatus.COMPLETED:
         return 'outline';
       case OrderStatus.CANCELLED:
         return 'destructive';
@@ -186,7 +186,7 @@ export default function OrderManager() {
         return <ChefHat className="h-4 w-4" />;
       case OrderStatus.READY:
         return <ShoppingBag className="h-4 w-4" />;
-      case OrderStatus.DELIVERED:
+      case OrderStatus.COMPLETED:
         return <CheckCircle className="h-4 w-4" />;
       case OrderStatus.CANCELLED:
         return <AlertCircle className="h-4 w-4" />;
@@ -277,8 +277,8 @@ export default function OrderManager() {
             <TabsTrigger value="ready" onClick={() => setStatusFilter(OrderStatus.READY)}>
               Ready ({statusCounts.ready})
             </TabsTrigger>
-            <TabsTrigger value="delivered" onClick={() => setStatusFilter(OrderStatus.DELIVERED)}>
-              Delivered ({statusCounts.delivered})
+            <TabsTrigger value="completed" onClick={() => setStatusFilter(OrderStatus.COMPLETED)}>
+              Completed ({statusCounts.completed})
             </TabsTrigger>
             <TabsTrigger value="cancelled" onClick={() => setStatusFilter(OrderStatus.CANCELLED)}>
               Cancelled ({statusCounts.cancelled})

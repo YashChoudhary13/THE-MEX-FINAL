@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Calendar, TrendingUp, DollarSign, BarChart3 } from "lucide-react";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
 
 interface DailyReport {
   id: number;
@@ -24,22 +25,28 @@ interface MonthlyReport {
   updatedAt: string;
 }
 
-export default function ReportsSection() {
-  const [selectedPeriod, setSelectedPeriod] = useState<'daily' | 'monthly'>('daily');
+interface Order {
+  id: number;
+  customerName: string;
+  customerEmail: string;
+  total: number;
+  status: string;
+  createdAt: string;
+}
 
-  // Fetch daily reports for last 30 days
+export default function ReportsSection() {
   const { data: dailyReports, isLoading: dailyLoading } = useQuery<DailyReport[]>({
     queryKey: ['/api/admin/daily-reports'],
-    enabled: selectedPeriod === 'daily'
   });
 
-  // Fetch monthly reports for last 12 months
   const { data: monthlyReports, isLoading: monthlyLoading } = useQuery<MonthlyReport[]>({
     queryKey: ['/api/admin/monthly-reports'],
-    enabled: selectedPeriod === 'monthly'
   });
 
-  // Format currency
+  const { data: recentOrders, isLoading: ordersLoading } = useQuery<Order[]>({
+    queryKey: ['/api/admin/orders'],
+  });
+
   const formatCurrency = (amount: string | number) => {
     const numAmount = typeof amount === 'string' ? parseFloat(amount) : amount;
     return new Intl.NumberFormat('en-IE', {
@@ -48,122 +55,139 @@ export default function ReportsSection() {
     }).format(numAmount);
   };
 
-  // Format date for display
-  const formatDate = (dateString: string) => {
-    return new Intl.DateTimeFormat('en-IE', {
-      timeZone: 'Europe/Dublin',
-      year: 'numeric',
+  const formatDate = (dateStr: string) => {
+    return new Date(dateStr).toLocaleDateString('en-IE', {
+      day: '2-digit',
       month: 'short',
-      day: 'numeric'
-    }).format(new Date(dateString));
+      year: 'numeric'
+    });
   };
 
-  // Format month for display
-  const formatMonth = (year: number, month: number) => {
-    const date = new Date(year, month - 1, 1);
-    return new Intl.DateTimeFormat('en-IE', {
-      year: 'numeric',
-      month: 'long'
-    }).format(date);
-  };
+  const dailyChartData = dailyReports?.map(report => ({
+    date: formatDate(report.date),
+    orders: report.totalOrders,
+    revenue: parseFloat(report.totalRevenue)
+  })) || [];
 
-  // Calculate totals for daily reports
-  const dailyTotals = dailyReports ? {
-    totalOrders: dailyReports.reduce((sum, report) => sum + report.totalOrders, 0),
-    totalRevenue: dailyReports.reduce((sum, report) => sum + parseFloat(report.totalRevenue), 0)
-  } : { totalOrders: 0, totalRevenue: 0 };
+  const monthlyChartData = monthlyReports?.map(report => ({
+    month: `${report.year}-${String(report.month).padStart(2, '0')}`,
+    orders: report.totalOrders,
+    revenue: parseFloat(report.totalRevenue)
+  })) || [];
 
-  // Calculate totals for monthly reports
-  const monthlyTotals = monthlyReports ? {
-    totalOrders: monthlyReports.reduce((sum, report) => sum + report.totalOrders, 0),
-    totalRevenue: monthlyReports.reduce((sum, report) => sum + parseFloat(report.totalRevenue), 0)
-  } : { totalOrders: 0, totalRevenue: 0 };
+  const thirtyDaysAgo = new Date();
+  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+  
+  const recentOrdersFiltered = recentOrders?.filter(order => 
+    new Date(order.createdAt) >= thirtyDaysAgo
+  ).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()) || [];
+
+  const totalDailyRevenue = dailyReports?.reduce((sum, report) => sum + parseFloat(report.totalRevenue), 0) || 0;
+  const totalDailyOrders = dailyReports?.reduce((sum, report) => sum + report.totalOrders, 0) || 0;
+  const totalMonthlyRevenue = monthlyReports?.reduce((sum, report) => sum + parseFloat(report.totalRevenue), 0) || 0;
+  const totalMonthlyOrders = monthlyReports?.reduce((sum, report) => sum + report.totalOrders, 0) || 0;
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold tracking-tight">Reports</h2>
-          <p className="text-muted-foreground">
-            View detailed reports for your restaurant performance
-          </p>
-        </div>
-        <Badge variant="outline" className="flex items-center gap-2">
-          <Calendar className="h-3 w-3" />
-          Cork, Ireland Time
-        </Badge>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Daily Revenue (30d)</CardTitle>
+            <DollarSign className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{formatCurrency(totalDailyRevenue)}</div>
+            <p className="text-xs text-muted-foreground">
+              {totalDailyOrders} orders total
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Monthly Revenue (12m)</CardTitle>
+            <TrendingUp className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{formatCurrency(totalMonthlyRevenue)}</div>
+            <p className="text-xs text-muted-foreground">
+              {totalMonthlyOrders} orders total
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Recent Orders</CardTitle>
+            <BarChart3 className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{recentOrdersFiltered.length}</div>
+            <p className="text-xs text-muted-foreground">
+              Last 30 days
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Avg Order Value</CardTitle>
+            <DollarSign className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {recentOrdersFiltered.length > 0 
+                ? formatCurrency(recentOrdersFiltered.reduce((sum, order) => sum + order.total, 0) / recentOrdersFiltered.length)
+                : '€0.00'
+              }
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Past 30 days
+            </p>
+          </CardContent>
+        </Card>
       </div>
 
-      <Tabs value={selectedPeriod} onValueChange={(value) => setSelectedPeriod(value as 'daily' | 'monthly')}>
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="daily">Daily Reports (Last 30 Days)</TabsTrigger>
-          <TabsTrigger value="monthly">Monthly Reports (Last 12 Months)</TabsTrigger>
+      <Tabs defaultValue="daily" className="w-full">
+        <TabsList className="grid w-full grid-cols-3">
+          <TabsTrigger value="daily">Daily Reports</TabsTrigger>
+          <TabsTrigger value="monthly">Monthly Reports</TabsTrigger>
+          <TabsTrigger value="orders">Recent Orders</TabsTrigger>
         </TabsList>
 
         <TabsContent value="daily" className="space-y-4">
-          <div className="grid gap-4 md:grid-cols-2">
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Total Orders (30 Days)</CardTitle>
-                <BarChart3 className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{dailyTotals.totalOrders}</div>
-                <p className="text-xs text-muted-foreground">
-                  Last 30 days combined
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Total Revenue (30 Days)</CardTitle>
-                <DollarSign className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{formatCurrency(dailyTotals.totalRevenue)}</div>
-                <p className="text-xs text-muted-foreground">
-                  Last 30 days combined
-                </p>
-              </CardContent>
-            </Card>
-          </div>
-
           <Card>
             <CardHeader>
-              <CardTitle>Daily Performance</CardTitle>
+              <CardTitle>Daily Revenue & Orders (Last 30 Days)</CardTitle>
               <CardDescription>
-                Individual day performance for the last 30 days
+                Revenue and order trends for the past 30 days
               </CardDescription>
             </CardHeader>
             <CardContent>
               {dailyLoading ? (
-                <div className="text-center py-8">Loading daily reports...</div>
-              ) : dailyReports && dailyReports.length > 0 ? (
-                <div className="space-y-3">
-                  {dailyReports.map((report) => (
-                    <div key={report.id} className="flex items-center justify-between p-3 border rounded-lg">
-                      <div className="flex items-center gap-3">
-                        <Calendar className="h-4 w-4 text-muted-foreground" />
-                        <div>
-                          <p className="font-medium">{formatDate(report.date)}</p>
-                          <p className="text-sm text-muted-foreground">
-                            {report.totalOrders} orders
-                          </p>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <p className="font-bold">{formatCurrency(report.totalRevenue)}</p>
-                        <p className="text-sm text-muted-foreground">
-                          Avg: {report.totalOrders > 0 ? formatCurrency(parseFloat(report.totalRevenue) / report.totalOrders) : '€0.00'}
-                        </p>
-                      </div>
-                    </div>
-                  ))}
+                <div className="h-[400px] flex items-center justify-center">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
                 </div>
+              ) : dailyChartData.length > 0 ? (
+                <ResponsiveContainer width="100%" height={400}>
+                  <LineChart data={dailyChartData}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="date" />
+                    <YAxis yAxisId="left" />
+                    <YAxis yAxisId="right" orientation="right" />
+                    <Tooltip 
+                      formatter={(value, name) => [
+                        name === 'revenue' ? formatCurrency(value as number) : value,
+                        name === 'revenue' ? 'Revenue' : 'Orders'
+                      ]}
+                    />
+                    <Bar yAxisId="right" dataKey="orders" fill="#8884d8" name="orders" />
+                    <Line yAxisId="left" type="monotone" dataKey="revenue" stroke="#82ca9d" name="revenue" />
+                  </LineChart>
+                </ResponsiveContainer>
               ) : (
-                <div className="text-center py-8 text-muted-foreground">
-                  No daily reports available yet
+                <div className="h-[400px] flex items-center justify-center text-muted-foreground">
+                  No daily data available yet
                 </div>
               )}
             </CardContent>
@@ -171,69 +195,84 @@ export default function ReportsSection() {
         </TabsContent>
 
         <TabsContent value="monthly" className="space-y-4">
-          <div className="grid gap-4 md:grid-cols-2">
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Total Orders (12 Months)</CardTitle>
-                <TrendingUp className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{monthlyTotals.totalOrders}</div>
-                <p className="text-xs text-muted-foreground">
-                  Last 12 months combined
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Total Revenue (12 Months)</CardTitle>
-                <DollarSign className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{formatCurrency(monthlyTotals.totalRevenue)}</div>
-                <p className="text-xs text-muted-foreground">
-                  Last 12 months combined
-                </p>
-              </CardContent>
-            </Card>
-          </div>
-
           <Card>
             <CardHeader>
-              <CardTitle>Monthly Performance</CardTitle>
+              <CardTitle>Monthly Revenue & Orders (Last 12 Months)</CardTitle>
               <CardDescription>
-                Monthly aggregated data for the last 12 months
+                Revenue and order trends for the past 12 months
               </CardDescription>
             </CardHeader>
             <CardContent>
               {monthlyLoading ? (
-                <div className="text-center py-8">Loading monthly reports...</div>
-              ) : monthlyReports && monthlyReports.length > 0 ? (
-                <div className="space-y-3">
-                  {monthlyReports.map((report) => (
-                    <div key={report.id} className="flex items-center justify-between p-3 border rounded-lg">
-                      <div className="flex items-center gap-3">
-                        <Calendar className="h-4 w-4 text-muted-foreground" />
-                        <div>
-                          <p className="font-medium">{formatMonth(report.year, report.month)}</p>
-                          <p className="text-sm text-muted-foreground">
-                            {report.totalOrders} orders
-                          </p>
+                <div className="h-[400px] flex items-center justify-center">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                </div>
+              ) : monthlyChartData.length > 0 ? (
+                <ResponsiveContainer width="100%" height={400}>
+                  <BarChart data={monthlyChartData}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="month" />
+                    <YAxis yAxisId="left" />
+                    <YAxis yAxisId="right" orientation="right" />
+                    <Tooltip 
+                      formatter={(value, name) => [
+                        name === 'revenue' ? formatCurrency(value as number) : value,
+                        name === 'revenue' ? 'Revenue' : 'Orders'
+                      ]}
+                    />
+                    <Bar yAxisId="left" dataKey="revenue" fill="#82ca9d" name="revenue" />
+                    <Bar yAxisId="right" dataKey="orders" fill="#8884d8" name="orders" />
+                  </BarChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="h-[400px] flex items-center justify-center text-muted-foreground">
+                  No monthly data available yet
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="orders" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Recent Orders (Last 30 Days)</CardTitle>
+              <CardDescription>
+                Detailed list of all orders from the past 30 days
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {ordersLoading ? (
+                <div className="h-[400px] flex items-center justify-center">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                </div>
+              ) : recentOrdersFiltered.length > 0 ? (
+                <div className="space-y-4 max-h-[500px] overflow-y-auto">
+                  {recentOrdersFiltered.map((order) => (
+                    <div key={order.id} className="flex items-center justify-between p-4 border rounded-lg">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3">
+                          <div className="font-medium">#{order.id}</div>
+                          <Badge variant={order.status === 'completed' ? 'default' : 'secondary'}>
+                            {order.status}
+                          </Badge>
+                        </div>
+                        <div className="text-sm text-muted-foreground mt-1">
+                          {order.customerName} • {order.customerEmail}
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          {formatDate(order.createdAt)} • {new Date(order.createdAt).toLocaleTimeString('en-IE', { hour: '2-digit', minute: '2-digit' })}
                         </div>
                       </div>
-                      <div className="text-right">
-                        <p className="font-bold">{formatCurrency(report.totalRevenue)}</p>
-                        <p className="text-sm text-muted-foreground">
-                          Avg: {report.totalOrders > 0 ? formatCurrency(parseFloat(report.totalRevenue) / report.totalOrders) : '€0.00'}
-                        </p>
+                      <div className="text-lg font-bold">
+                        {formatCurrency(order.total)}
                       </div>
                     </div>
                   ))}
                 </div>
               ) : (
-                <div className="text-center py-8 text-muted-foreground">
-                  No monthly reports available yet
+                <div className="h-[400px] flex items-center justify-center text-muted-foreground">
+                  No recent orders found
                 </div>
               )}
             </CardContent>

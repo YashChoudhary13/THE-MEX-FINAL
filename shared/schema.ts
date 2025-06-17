@@ -62,15 +62,12 @@ export const orders = pgTable("orders", {
   customerName: text("customer_name").notNull(),
   customerEmail: text("customer_email"),
   customerPhone: text("customer_phone").notNull(),
-  deliveryAddress: text("delivery_address").notNull(),
-  city: text("city").notNull(),
-  zipCode: text("zip_code").notNull(),
-  deliveryInstructions: text("delivery_instructions"),
+  preparationInstructions: text("preparation_instructions"),
   subtotal: doublePrecision("subtotal").notNull(),
-  deliveryFee: doublePrecision("delivery_fee").notNull(),
+  serviceFee: doublePrecision("service_fee").notNull(),
   tax: doublePrecision("tax").notNull(),
   total: doublePrecision("total").notNull(),
-  status: text("status").notNull().default("pending"), // pending, confirmed, preparing, ready, delivered, cancelled
+  status: text("status").notNull().default("pending"), // pending, confirmed, preparing, ready, completed, cancelled
   items: jsonb("items").notNull(), // Serialized cart items
   userId: integer("user_id"), // Optional: links to users table for authenticated orders
   createdAt: timestamp("created_at").defaultNow().notNull(),

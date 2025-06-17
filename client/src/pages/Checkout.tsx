@@ -154,7 +154,7 @@ export default function Checkout() {
   };
 
   const goToPreviousStep = () => {
-    if (currentStep > CheckoutStep.Delivery) {
+    if (currentStep > CheckoutStep.CustomerInfo) {
       setCurrentStep(currentStep - 1);
     }
   };
@@ -247,8 +247,8 @@ export default function Checkout() {
           {/* Step Indicators */}
           <div className="flex p-6 border-b border-border">
             <div className="flex-1 text-center">
-              <div className={`w-9 h-9 ${currentStep === CheckoutStep.Delivery ? 'bg-primary' : 'bg-secondary/20'} text-foreground rounded-full mx-auto flex items-center justify-center font-heading`}>1</div>
-              <span className={`text-xs mt-2 block font-medium font-menu ${currentStep === CheckoutStep.Delivery ? 'text-primary' : 'text-muted-foreground'}`}>PICKUP</span>
+              <div className={`w-9 h-9 ${currentStep === CheckoutStep.CustomerInfo ? 'bg-primary' : 'bg-secondary/20'} text-foreground rounded-full mx-auto flex items-center justify-center font-heading`}>1</div>
+              <span className={`text-xs mt-2 block font-medium font-menu ${currentStep === CheckoutStep.CustomerInfo ? 'text-primary' : 'text-muted-foreground'}`}>CUSTOMER INFO</span>
             </div>
             <div className="flex-1 flex items-center">
               <div className={`h-1 ${currentStep >= CheckoutStep.Payment ? 'bg-primary' : 'bg-muted'} flex-1`}></div>
@@ -425,15 +425,16 @@ export default function Checkout() {
 
                   <div className="border rounded-lg overflow-hidden bg-card">
                     <div className="bg-primary/10 p-3 border-b">
-                      <h3 className="font-medium text-primary">Delivery Details</h3>
+                      <h3 className="font-medium text-primary">Pickup Details</h3>
                     </div>
                     <div className="p-3 space-y-2 text-sm">
                       <p><span className="font-medium text-primary">Name:</span> <span className="text-foreground">{form.getValues("customerName")}</span></p>
                       <p><span className="font-medium text-primary">Phone:</span> <span className="text-foreground">{form.getValues("customerPhone")}</span></p>
-                      <p><span className="font-medium text-primary">Address:</span> <span className="text-foreground">{form.getValues("deliveryAddress")}</span></p>
-                      <p><span className="font-medium text-primary">City:</span> <span className="text-foreground">{form.getValues("city")}, {form.getValues("zipCode")}</span></p>
-                      {form.getValues("deliveryInstructions") && (
-                        <p><span className="font-medium text-primary">Instructions:</span> <span className="text-foreground">{form.getValues("deliveryInstructions")}</span></p>
+                      {form.getValues("customerEmail") && (
+                        <p><span className="font-medium text-primary">Email:</span> <span className="text-foreground">{form.getValues("customerEmail")}</span></p>
+                      )}
+                      {form.getValues("preparationInstructions") && (
+                        <p><span className="font-medium text-primary">Preparation Instructions:</span> <span className="text-foreground">{form.getValues("preparationInstructions")}</span></p>
                       )}
                     </div>
                   </div>
@@ -553,7 +554,7 @@ export default function Checkout() {
                 <Button 
                   onClick={() => {
                     // Validate form for step 1 before proceeding
-                    if (currentStep === CheckoutStep.Delivery) {
+                    if (currentStep === CheckoutStep.CustomerInfo) {
                       form.trigger().then((isValid) => {
                         if (isValid) goToNextStep();
                       });

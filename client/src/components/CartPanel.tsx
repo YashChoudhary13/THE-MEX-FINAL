@@ -39,6 +39,7 @@ export default function CartPanel({ isOpen, onClose }: CartPanelProps) {
     
     onClose();
     navigate("/checkout");
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const cartItemVariants = {
@@ -155,14 +156,19 @@ export default function CartPanel({ isOpen, onClose }: CartPanelProps) {
                       custom={index}
                       layout
                     >
-                      <div className="w-16 h-16 md:w-20 md:h-20 overflow-hidden rounded-lg border border-border flex-shrink-0">
-                        <img 
-                          src={item.image} 
-                          alt={item.name} 
-                          className="w-full h-full object-cover"
-                        />
-                      </div>
-                      <div className="ml-3 md:ml-4 flex-1 min-w-0">
+                      {item.image && (
+                        <div className="w-16 h-16 md:w-20 md:h-20 overflow-hidden rounded-lg border border-border flex-shrink-0 mr-3 md:mr-4">
+                          <img 
+                            src={item.image} 
+                            alt={item.name} 
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              e.currentTarget.parentElement!.style.display = 'none';
+                            }}
+                          />
+                        </div>
+                      )}
+                      <div className="flex-1 min-w-0">
                         <div className="flex justify-between items-start">
                           <h3 className="font-heading text-foreground text-sm md:text-base truncate mr-2">{item.name}</h3>
                           <Button 
@@ -202,27 +208,7 @@ export default function CartPanel({ isOpen, onClose }: CartPanelProps) {
                   ))}
                 </AnimatePresence>
 
-                {/* Pickup information */}
-                <div className="mt-4 p-3 md:p-4 bg-secondary/10 rounded-xl border border-border">
-                  <div className="flex items-center mb-2">
-                    <ShoppingBag className="h-4 w-4 md:h-5 md:w-5 text-primary mr-1 md:mr-2" />
-                    <h4 className="font-heading text-xs md:text-sm">PICKUP INFORMATION</h4>
-                  </div>
-                  <div className="flex items-center justify-between text-xs md:text-sm text-muted-foreground mb-1">
-                    <span>Estimated Ready:</span>
-                    <div className="flex items-center">
-                      <Clock className="h-3 w-3 md:h-4 md:w-4 mr-1 text-primary" />
-                      <span>{estimatedPickupTime()}</span>
-                    </div>
-                  </div>
-                  <div className="flex items-center justify-between text-xs md:text-sm text-muted-foreground">
-                    <span>Payment:</span>
-                    <div className="flex items-center">
-                      <Receipt className="h-3 w-3 md:h-4 md:w-4 mr-1 text-primary" />
-                      <span>Pay at Restaurant</span>
-                    </div>
-                  </div>
-                </div>
+
               </div>
             )}
           </div>

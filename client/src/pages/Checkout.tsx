@@ -75,12 +75,14 @@ export default function Checkout() {
   const goToPreviousStep = () => {
     if (currentStep > CheckoutStep.CustomerInfo) {
       setCurrentStep(currentStep - 1);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
 
   const goToNextStep = () => {
     if (currentStep < CheckoutStep.Success) {
       setCurrentStep(currentStep + 1);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
 
@@ -374,8 +376,10 @@ export default function Checkout() {
                       <PaymentPage 
                         orderData={orderData}
                         onSuccess={() => {
-                          clearCart();
                           setCurrentStep(CheckoutStep.Success);
+                          window.scrollTo({ top: 0, behavior: 'smooth' });
+                          // Clear cart after a short delay to allow success screen to render
+                          setTimeout(() => clearCart(), 100);
                         }}
                       />
                     );

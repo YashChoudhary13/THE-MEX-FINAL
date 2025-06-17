@@ -590,19 +590,7 @@ export default function AdminDashboard() {
                     </CardContent>
                   </Card>
                   
-                  <Card>
-                    <CardHeader className="pb-2">
-                      <CardTitle className="text-sm font-medium text-muted-foreground">
-                        Total Revenue
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="text-2xl font-bold">$1,245.89</div>
-                      <p className="text-xs text-muted-foreground">
-                        +2.5% from yesterday
-                      </p>
-                    </CardContent>
-                  </Card>
+                  <LiveStatsDisplay />
                   
                   <Card>
                     <CardHeader className="pb-2">

@@ -8,6 +8,8 @@ import { queryClient } from "@/lib/queryClient";
 interface CurrentStats {
   totalOrders: number;
   totalRevenue: number;
+  completedRevenue: number;
+  completedOrders: number;
 }
 
 export default function LiveStatsDisplay() {

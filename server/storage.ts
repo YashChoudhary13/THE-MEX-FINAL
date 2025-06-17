@@ -957,7 +957,7 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  async getCurrentDayStats(): Promise<{ totalOrders: number; totalRevenue: number }> {
+  async getCurrentDayStats(): Promise<{ totalOrders: number; totalRevenue: number; completedRevenue: number; completedOrders: number }> {
     const today = new Date();
     // Convert to Cork/Dublin timezone
     const dublinDate = new Intl.DateTimeFormat('en-CA', {
@@ -979,8 +979,13 @@ export class DatabaseStorage implements IStorage {
 
     const totalOrders = todayOrders.length;
     const totalRevenue = todayOrders.reduce((sum, order) => sum + parseFloat(order.total.toString()), 0);
+    
+    // Calculate completed orders only
+    const completedTodayOrders = todayOrders.filter(order => order.status === 'completed');
+    const completedOrders = completedTodayOrders.length;
+    const completedRevenue = completedTodayOrders.reduce((sum, order) => sum + parseFloat(order.total.toString()), 0);
 
-    return { totalOrders, totalRevenue };
+    return { totalOrders, totalRevenue, completedRevenue, completedOrders };
   }
 
   async resetDailyStats(): Promise<boolean> {

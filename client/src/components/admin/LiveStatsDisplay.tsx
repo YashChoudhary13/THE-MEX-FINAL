@@ -137,10 +137,10 @@ export default function LiveStatsDisplay() {
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold">
-            {currentStats ? formatCurrency(currentStats.totalRevenue) : '€0.00'}
+            {currentStats ? formatCurrency(currentStats.completedRevenue || 0) : '€0.00'}
           </div>
           <p className="text-xs text-muted-foreground">
-            Live revenue for today
+            Completed orders only
           </p>
         </CardContent>
       </Card>

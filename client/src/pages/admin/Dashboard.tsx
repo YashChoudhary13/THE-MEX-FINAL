@@ -24,6 +24,7 @@ import OrderManager from "./OrderManager";
 import LiveStatsDisplay from "@/components/admin/LiveStatsDisplay";
 import ReportsSection from "@/components/admin/ReportsSection";
 import AdminTimeDisplay from "@/components/admin/AdminTimeDisplay";
+import { useWebSocket } from "@/hooks/useWebSocket";
 
 // We'll wrap the admin component sections in conditional rendering
 // to avoid errors when the component files are being loaded

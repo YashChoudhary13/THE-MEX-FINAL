@@ -178,7 +178,8 @@ export class MemStorage implements IStorage {
       ingredients: item.ingredients || null,
       calories: item.calories || null,
       allergens: item.allergens || null,
-      dietaryInfo: item.dietaryInfo || null
+      dietaryInfo: item.dietaryInfo || null,
+      prepTime: item.prepTime ?? 15
     };
     this.menuItems.set(id, newItem);
     return newItem;
@@ -213,7 +214,9 @@ export class MemStorage implements IStorage {
       id,
       status: order.status || 'pending',
       customerEmail: order.customerEmail || null,
-      deliveryInstructions: order.deliveryInstructions || null
+      deliveryInstructions: order.deliveryInstructions || null,
+      userId: order.userId ?? null,
+      createdAt: new Date()
     };
     this.orders.set(id, newOrder);
     return newOrder;

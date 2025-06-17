@@ -309,8 +309,8 @@ export default function OrderManager() {
               <TabsTrigger value="ready" onClick={() => setStatusFilter(OrderStatus.READY)}>
                 Ready ({statusCounts.ready})
               </TabsTrigger>
-              <TabsTrigger value="delivered" onClick={() => setStatusFilter(OrderStatus.DELIVERED)}>
-                Delivered ({statusCounts.delivered})
+              <TabsTrigger value="completed" onClick={() => setStatusFilter(OrderStatus.COMPLETED)}>
+                Completed ({statusCounts.completed})
               </TabsTrigger>
               <TabsTrigger value="cancelled" onClick={() => setStatusFilter(OrderStatus.CANCELLED)}>
                 Cancelled ({statusCounts.cancelled})
@@ -329,8 +329,8 @@ export default function OrderManager() {
               </TabsTrigger>
             </TabsList>
             <TabsList className="grid grid-cols-2">
-              <TabsTrigger value="delivered" onClick={() => setStatusFilter(OrderStatus.DELIVERED)}>
-                Delivered ({statusCounts.delivered})
+              <TabsTrigger value="completed" onClick={() => setStatusFilter(OrderStatus.COMPLETED)}>
+                Completed ({statusCounts.completed})
               </TabsTrigger>
               <TabsTrigger value="cancelled" onClick={() => setStatusFilter(OrderStatus.CANCELLED)}>
                 Cancelled ({statusCounts.cancelled})
@@ -354,7 +354,7 @@ export default function OrderManager() {
         <TabsContent value="ready" className="space-y-4">
           {renderOrderCards(filteredOrders || [])}
         </TabsContent>
-        <TabsContent value="delivered" className="space-y-4">
+        <TabsContent value="completed" className="space-y-4">
           {renderOrderCards(filteredOrders || [])}
         </TabsContent>
         <TabsContent value="cancelled" className="space-y-4">
@@ -383,7 +383,7 @@ export default function OrderManager() {
             ${order.status === OrderStatus.CONFIRMED ? 'border-blue-400' : ''}
             ${order.status === OrderStatus.PREPARING ? 'border-orange-400' : ''}
             ${order.status === OrderStatus.READY ? 'border-green-500 border-2' : ''}
-            ${order.status === OrderStatus.DELIVERED ? 'border-gray-500' : ''}
+            ${order.status === OrderStatus.COMPLETED ? 'border-gray-500' : ''}
             ${order.status === OrderStatus.CANCELLED ? 'border-red-400' : ''}
           `}>
             <CardHeader className="pb-2">
@@ -501,12 +501,12 @@ export default function OrderManager() {
                   )}
                   
                   {order.status === OrderStatus.READY && (
-                    <Button size="sm" className="col-span-2" onClick={() => handleStatusUpdate(order.id, OrderStatus.DELIVERED)}>
-                      Mark as Delivered
+                    <Button size="sm" className="col-span-2" onClick={() => handleStatusUpdate(order.id, OrderStatus.COMPLETED)}>
+                      Mark as Completed
                     </Button>
                   )}
                   
-                  {(order.status === OrderStatus.DELIVERED || order.status === OrderStatus.CANCELLED) && (
+                  {(order.status === OrderStatus.COMPLETED || order.status === OrderStatus.CANCELLED) && (
                     <Button size="sm" variant="outline" className="col-span-2" disabled>
                       Order Completed
                     </Button>

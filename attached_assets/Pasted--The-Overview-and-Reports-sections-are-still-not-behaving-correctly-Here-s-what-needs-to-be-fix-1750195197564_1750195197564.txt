@@ -1,0 +1,60 @@
+---
+
+The Overview and Reports sections are still not behaving correctly. Here's what needs to be fixed:
+
+---
+
+### ✅ Overview Tab — Show Only Today's Data
+
+1. **Today's Orders & Revenue Only**
+
+   * Show only **today’s orders** and **today’s revenue from completed orders**.
+   * Currently it's mixing in older data — this needs to be filtered by today’s date (Cork timezone).
+
+2. **Recent Orders Section**
+
+   * Show **only today’s orders**, sorted by **latest status update time** (e.g. when moved to "completed").
+   * Don’t display all statuses or timestamps — show just the **latest status and its update time**.
+
+3. **Clean UI**
+
+   * Remove or move unrelated metrics like “Average Order” and “Last Updated” to the Reports section — the Overview tab should show **only today’s snapshot**.
+
+---
+
+### 📊 View Reports Page — Fix the Following:
+
+1. **New Orders Not Reflected**
+
+   * Recent new orders (including the ones just added) are **not appearing** in the reports.
+   * Reports page must update to include:
+
+     * Orders from today
+     * Any newly created orders (real or test)
+     * Revenue calculations based on completed orders
+
+2. **30 Test Orders Missing**
+
+   * You added 30 test orders spread across 2 months — but they **do not appear** in any report or chart.
+   * Reports must accurately reflect:
+
+     * **Daily revenue (last 30 days)**
+     * **Monthly revenue (last 12 months)**
+     * And show **all orders and revenue from the test data** where applicable.
+
+3. **Charts Must Reflect Real Data**
+
+   * Daily and monthly revenue charts must pull from actual stored order records (with correct timestamps and statuses).
+
+Make sure the Reports section is pulling from the same source as the Overview tab but for the last 30 days.
+---
+
+### ✅ Final Checklist
+
+* [ ] Overview tab shows only today’s orders, revenue, and recent activity
+* [ ] “Recent Orders” only includes today’s orders, sorted by last status time
+* [ ] View Reports shows newly added orders (real-time or on refresh)
+* [ ] 30 test orders are reflected accurately in charts and totals
+* [ ] Unrelated stats removed from Overview, if not tied to today
+
+---

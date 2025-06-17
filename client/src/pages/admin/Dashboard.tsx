@@ -575,44 +575,14 @@ export default function AdminDashboard() {
           <div>
             {activeTab === "overview" && (
               <div className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  <Card>
-                    <CardHeader className="pb-2">
-                      <CardTitle className="text-sm font-medium text-muted-foreground">
-                        Today's Orders
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="text-2xl font-bold">{orders?.length || 0}</div>
-                      <p className="text-xs text-muted-foreground">
-                        +12.5% from yesterday
-                      </p>
-                    </CardContent>
-                  </Card>
-                  
-                  <LiveStatsDisplay />
-                  
-                  <Card>
-                    <CardHeader className="pb-2">
-                      <CardTitle className="text-sm font-medium text-muted-foreground">
-                        Menu Items
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="text-2xl font-bold">{menuItems?.length || 0}</div>
-                      <p className="text-xs text-muted-foreground">
-                        Across {categories?.length || 0} categories
-                      </p>
-                    </CardContent>
-                  </Card>
-                </div>
+                <LiveStatsDisplay />
                 
                 <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
                   <Card className="md:col-span-2">
                     <CardHeader>
-                      <CardTitle>Recent Orders</CardTitle>
+                      <CardTitle>Today's Orders</CardTitle>
                       <CardDescription>
-                        View and manage recent customer orders
+                        Orders placed today (Cork/Dublin timezone)
                       </CardDescription>
                     </CardHeader>
                     <CardContent>
@@ -620,34 +590,57 @@ export default function AdminDashboard() {
                         <div className="flex items-center justify-center h-48">
                           <p>Loading orders...</p>
                         </div>
-                      ) : !orders || orders.length === 0 ? (
-                        <div className="flex items-center justify-center h-48 border rounded-md">
-                          <p className="text-muted-foreground">No recent orders found</p>
-                        </div>
-                      ) : (
-                        <div className="space-y-4">
-                          {orders.slice(0, 5).map((order) => (
-                            <div key={order.id} className="flex items-center justify-between border-b pb-3">
-                              <div>
-                                <p className="font-medium">Order #{order.id}</p>
-                                <p className="text-sm text-muted-foreground">{order.customerName}</p>
-                              </div>
-                              <div className="text-right">
-                                <p className="font-medium">${order.total.toFixed(2)}</p>
-                                <span className={`text-xs px-2 py-1 rounded-full ${
-                                  order.status === 'completed' 
-                                    ? 'bg-green-500/10 text-green-500' 
-                                    : order.status === 'processing' 
-                                      ? 'bg-blue-500/10 text-blue-500'
-                                      : 'bg-orange-500/10 text-orange-500'
-                                }`}>
-                                  {order.status.toUpperCase()}
-                                </span>
-                              </div>
+                      ) : (() => {
+                          // Filter orders for today only (Cork/Dublin timezone)
+                          const today = new Date();
+                          const dublinToday = new Intl.DateTimeFormat('en-CA', {
+                            timeZone: 'Europe/Dublin'
+                          }).format(today);
+                          
+                          const todaysOrders = orders?.filter(order => {
+                            const orderDate = new Intl.DateTimeFormat('en-CA', {
+                              timeZone: 'Europe/Dublin'
+                            }).format(new Date(order.createdAt));
+                            return orderDate === dublinToday;
+                          }) || [];
+
+                          return !todaysOrders || todaysOrders.length === 0 ? (
+                            <div className="flex items-center justify-center h-48 border rounded-md">
+                              <p className="text-muted-foreground">No orders placed today</p>
                             </div>
-                          ))}
-                        </div>
-                      )}
+                          ) : (
+                            <div className="space-y-4">
+                              {todaysOrders.slice(0, 5).map((order) => (
+                                <div key={order.id} className="flex items-center justify-between border-b pb-3">
+                                  <div>
+                                    <p className="font-medium">Order #{order.id}</p>
+                                    <p className="text-sm text-muted-foreground">{order.customerName}</p>
+                                    <p className="text-xs text-muted-foreground">
+                                      {new Date(order.createdAt).toLocaleTimeString('en-IE', { 
+                                        timeZone: 'Europe/Dublin',
+                                        hour: '2-digit', 
+                                        minute: '2-digit' 
+                                      })}
+                                    </p>
+                                  </div>
+                                  <div className="text-right">
+                                    <p className="font-medium">€{order.total.toFixed(2)}</p>
+                                    <span className={`text-xs px-2 py-1 rounded-full ${
+                                      order.status === 'completed' 
+                                        ? 'bg-green-500/10 text-green-500' 
+                                        : order.status === 'processing' 
+                                          ? 'bg-blue-500/10 text-blue-500'
+                                          : 'bg-orange-500/10 text-orange-500'
+                                    }`}>
+                                      {order.status.toUpperCase()}
+                                    </span>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          );
+                        })()
+                      }
                     </CardContent>
                   </Card>
                   

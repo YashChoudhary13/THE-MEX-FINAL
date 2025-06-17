@@ -51,6 +51,7 @@ export default function Checkout() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [promoCodeInput, setPromoCodeInput] = useState("");
   const [isApplyingPromo, setIsApplyingPromo] = useState(false);
+  const [promoError, setPromoError] = useState("");
 
   const form = useForm<CheckoutFormValues>({
     resolver: zodResolver(checkoutFormSchema),
@@ -66,10 +67,10 @@ export default function Checkout() {
   const { subtotal, serviceFee, tax, discount, total } = calculateTotals();
 
   useEffect(() => {
-    if (cart.length === 0) {
+    if (cart.length === 0 && currentStep !== CheckoutStep.Success) {
       navigate("/");
     }
-  }, [cart, navigate]);
+  }, [cart, navigate, currentStep]);
 
   const goToPreviousStep = () => {
     if (currentStep > CheckoutStep.CustomerInfo) {
@@ -286,15 +287,17 @@ export default function Checkout() {
                                 if (!promoCodeInput.trim()) return;
                                 
                                 setIsApplyingPromo(true);
+                                setPromoError("");
                                 try {
-                                  await applyPromoCode(promoCodeInput.trim());
-                                  // Promo code applied successfully - no popup needed, discount shows in total
+                                  const success = await applyPromoCode(promoCodeInput.trim());
+                                  if (!success) {
+                                    setPromoError("Invalid promo code. Please check spelling — codes are case-sensitive.");
+                                  } else {
+                                    setPromoError("");
+                                    setPromoCodeInput("");
+                                  }
                                 } catch (error: any) {
-                                  toast({
-                                    title: "Invalid promo code",
-                                    description: error.message || "Please check your promo code and try again.",
-                                    variant: "destructive",
-                                  });
+                                  setPromoError("Invalid promo code. Please check spelling — codes are case-sensitive.");
                                 }
                                 setIsApplyingPromo(false);
                               }}
@@ -303,6 +306,11 @@ export default function Checkout() {
                               {isApplyingPromo ? "Applying..." : "Apply"}
                             </Button>
                           </div>
+                          {promoError && (
+                            <div className="mt-2 text-sm text-red-600 bg-red-50 border border-red-200 rounded p-2">
+                              {promoError}
+                            </div>
+                          )}
                         </div>
                       )}
                     </div>

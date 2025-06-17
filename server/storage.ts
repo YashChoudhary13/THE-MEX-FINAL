@@ -368,7 +368,7 @@ export class MemStorage implements IStorage {
       id: 1,
       date,
       totalOrders: orders,
-      totalRevenue: revenue,
+      totalRevenue: revenue.toFixed(2),
       createdAt: new Date(),
       updatedAt: new Date()
     };
@@ -402,7 +402,7 @@ export class MemStorage implements IStorage {
       year,
       month,
       totalOrders: orders,
-      totalRevenue: revenue,
+      totalRevenue: revenue.toFixed(2),
       createdAt: new Date(),
       updatedAt: new Date()
     };

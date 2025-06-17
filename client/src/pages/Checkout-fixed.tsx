@@ -1,17 +1,13 @@
 import { useState, useEffect } from "react";
-import { useLocation } from "wouter";
-import { Bell, CheckCircle, ArrowLeft, ArrowRight } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
+import { useNavigate } from "wouter";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { useCart } from "@/context/CartContext";
-import { useNotifications } from "@/context/NotificationContext";
-import { apiRequest } from "@/lib/queryClient";
-import Header from "@/components/Header";
-import Footer from "@/components/Footer";
-import PaymentPage from "@/pages/Payment";
-
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Separator } from "@/components/ui/separator";
+import { CheckCircle, Bell } from "lucide-react";
 import {
   Form,
   FormControl,
@@ -20,30 +16,32 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
-import { Separator } from "@/components/ui/separator";
-import { useQuery } from "@tanstack/react-query";
+import { useCart } from "@/context/CartContext";
+import { useToast } from "@/hooks/use-toast";
+import { useNotifications } from "@/context/NotificationContext";
+import { apiRequest } from "@/lib/queryClient";
+import Header from "@/components/Header";
+import Footer from "@/components/Footer";
+import PaymentPage from "./Payment";
+
+enum CheckoutStep {
+  CustomerInfo = 0,
+  OrderConfirmation = 1,
+  Payment = 2,
+  Success = 3,
+}
 
 const checkoutFormSchema = z.object({
   customerName: z.string().min(2, "Name must be at least 2 characters"),
   customerPhone: z.string().min(10, "Phone number must be at least 10 digits"),
-  customerEmail: z.string().email("Please enter a valid email").optional().or(z.literal("")),
+  customerEmail: z.string().email("Please enter a valid email address").optional().or(z.literal("")),
   preparationInstructions: z.string().optional(),
 });
 
 type CheckoutFormValues = z.infer<typeof checkoutFormSchema>;
 
-enum CheckoutStep {
-  CustomerInfo = 1,
-  OrderConfirmation = 2,
-  Payment = 3,
-  Success = 4,
-}
-
 export default function Checkout() {
-  const [, navigate] = useLocation();
+  const navigate = useNavigate();
   const { toast } = useToast();
   const { cart, clearCart, promoCode, promoDiscount, applyPromoCode, clearPromoCode, calculateTotals } = useCart();
   const { requestPermission } = useNotifications();
@@ -104,6 +102,39 @@ export default function Checkout() {
     );
   }
 
+  const handleApplyPromoCode = async () => {
+    if (!promoCodeInput.trim()) {
+      setPromoError("Please enter a promo code");
+      return;
+    }
+
+    setIsApplyingPromo(true);
+    setPromoError("");
+    
+    try {
+      const response = await apiRequest("POST", "/api/validate-promo", {
+        code: promoCodeInput,
+        orderTotal: subtotal,
+      });
+      
+      const data = await response.json();
+      
+      if (data.valid) {
+        applyPromoCode(promoCodeInput, data.discount);
+        setPromoCodeInput("");
+        setPromoError("");
+      } else {
+        setPromoError(data.message || "Invalid promo code");
+        clearPromoCode();
+      }
+    } catch (error) {
+      setPromoError("Failed to validate promo code");
+      clearPromoCode();
+    } finally {
+      setIsApplyingPromo(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <Header />
@@ -120,22 +151,13 @@ export default function Checkout() {
                 <div className={`w-9 h-9 ${currentStep === CheckoutStep.CustomerInfo ? 'bg-primary' : 'bg-secondary/20'} text-foreground rounded-full mx-auto flex items-center justify-center font-heading`}>1</div>
                 <span className={`text-xs mt-2 block font-medium font-menu ${currentStep === CheckoutStep.CustomerInfo ? 'text-primary' : 'text-muted-foreground'}`}>CUSTOMER</span>
               </div>
-              <div className="flex-1 flex items-center">
-                <div className={`h-1 ${currentStep >= CheckoutStep.OrderConfirmation ? 'bg-primary' : 'bg-muted'} flex-1`}></div>
-              </div>
               <div className="flex-1 text-center">
                 <div className={`w-9 h-9 ${currentStep === CheckoutStep.OrderConfirmation ? 'bg-primary' : 'bg-secondary/20'} text-foreground rounded-full mx-auto flex items-center justify-center font-heading`}>2</div>
                 <span className={`text-xs mt-2 block font-medium font-menu ${currentStep === CheckoutStep.OrderConfirmation ? 'text-primary' : 'text-muted-foreground'}`}>CONFIRM</span>
               </div>
-              <div className="flex-1 flex items-center">
-                <div className={`h-1 ${currentStep >= CheckoutStep.Payment ? 'bg-primary' : 'bg-muted'} flex-1`}></div>
-              </div>
               <div className="flex-1 text-center">
                 <div className={`w-9 h-9 ${currentStep === CheckoutStep.Payment ? 'bg-primary' : 'bg-secondary/20'} text-foreground rounded-full mx-auto flex items-center justify-center font-heading`}>3</div>
                 <span className={`text-xs mt-2 block font-medium font-menu ${currentStep === CheckoutStep.Payment ? 'text-primary' : 'text-muted-foreground'}`}>PAYMENT</span>
-              </div>
-              <div className="flex-1 flex items-center">
-                <div className={`h-1 ${currentStep >= CheckoutStep.Success ? 'bg-primary' : 'bg-muted'} flex-1`}></div>
               </div>
               <div className="flex-1 text-center">
                 <div className={`w-9 h-9 ${currentStep === CheckoutStep.Success ? 'bg-primary' : 'bg-secondary/20'} text-foreground rounded-full mx-auto flex items-center justify-center font-heading`}>4</div>
@@ -143,48 +165,54 @@ export default function Checkout() {
               </div>
             </div>
 
+            {/* Step Content */}
             <div className="p-6">
               {currentStep === CheckoutStep.CustomerInfo && (
                 <div>
                   <h2 className="font-heading text-lg font-bold mb-4 text-primary">Customer Information</h2>
                   <Form {...form}>
                     <form className="space-y-4">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <FormField
-                          control={form.control}
-                          name="customerName"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Name</FormLabel>
-                              <FormControl>
-                                <Input placeholder="Your full name" {...field} />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        <FormField
-                          control={form.control}
-                          name="customerPhone"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Phone</FormLabel>
-                              <FormControl>
-                                <Input placeholder="Your phone number" {...field} />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                      </div>
+                      <FormField
+                        control={form.control}
+                        name="customerName"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-primary font-medium">Full Name *</FormLabel>
+                            <FormControl>
+                              <Input placeholder="Enter your full name" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="customerPhone"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-primary font-medium">Phone Number *</FormLabel>
+                            <FormControl>
+                              <Input 
+                                placeholder="Enter your phone number" 
+                                {...field} 
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
                       <FormField
                         control={form.control}
                         name="customerEmail"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Email (Optional)</FormLabel>
+                            <FormLabel className="text-primary font-medium">Email Address (Optional)</FormLabel>
                             <FormControl>
-                              <Input placeholder="Your email address" {...field} />
+                              <Input 
+                                type="email" 
+                                placeholder="Enter your email address" 
+                                {...field} 
+                              />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
@@ -195,7 +223,7 @@ export default function Checkout() {
                         name="preparationInstructions"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Preparation Instructions (Optional)</FormLabel>
+                            <FormLabel className="text-primary font-medium">Preparation Instructions (Optional)</FormLabel>
                             <FormControl>
                               <Textarea 
                                 placeholder="Any special instructions for preparing your order..."
@@ -222,7 +250,7 @@ export default function Checkout() {
                       <h3 className="font-medium text-primary">Your Order</h3>
                     </div>
                     <div className="p-3 space-y-3">
-                      {cart.map((item, index) => (
+                      {cart.map((item: any, index: number) => (
                         <div key={index} className="flex justify-between items-center text-sm">
                           <div className="flex-1">
                             <span className="font-medium text-foreground">{item.name}</span>
@@ -256,75 +284,53 @@ export default function Checkout() {
                     <div className="bg-primary/10 p-3 border-b">
                       <h3 className="font-medium text-primary">Promo Code</h3>
                     </div>
-                    <div className="p-4">
-                      {promoDiscount > 0 ? (
-                        <div className="flex items-center justify-between bg-green-50 border border-green-200 rounded-lg p-3">
-                          <div className="flex items-center space-x-2">
-                            <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                            <span className="text-green-700 font-medium">Promo code "{promoCode}" applied</span>
-                          </div>
-                          <Button 
-                            variant="ghost" 
-                            size="sm"
+                    <div className="p-3">
+                      {!promoCode ? (
+                        <div className="flex gap-2">
+                          <Input
+                            placeholder="Enter promo code"
+                            value={promoCodeInput}
+                            onChange={(e) => setPromoCodeInput(e.target.value)}
+                            className="flex-1"
+                          />
+                          <Button
+                            onClick={handleApplyPromoCode}
+                            disabled={isApplyingPromo}
+                            variant="outline"
+                          >
+                            {isApplyingPromo ? "Applying..." : "Apply"}
+                          </Button>
+                        </div>
+                      ) : (
+                        <div className="flex items-center justify-between">
+                          <span className="text-green-600 font-medium">
+                            {promoCode} applied (-${promoDiscount.toFixed(2)})
+                          </span>
+                          <Button
                             onClick={() => {
                               clearPromoCode();
                               setPromoCodeInput("");
+                              setPromoError("");
                             }}
-                            className="text-green-700 hover:text-green-800"
+                            variant="outline"
+                            size="sm"
                           >
                             Remove
                           </Button>
                         </div>
-                      ) : (
-                        <div className="space-y-3">
-                          <div className="flex space-x-2">
-                            <Input
-                              placeholder="Enter promo code"
-                              value={promoCodeInput}
-                              onChange={(e) => setPromoCodeInput(e.target.value)}
-                              className="flex-1"
-                              disabled={isApplyingPromo}
-                            />
-                            <Button 
-                              onClick={async () => {
-                                if (!promoCodeInput.trim()) return;
-                                
-                                setIsApplyingPromo(true);
-                                setPromoError("");
-                                try {
-                                  const success = await applyPromoCode(promoCodeInput.trim());
-                                  if (!success) {
-                                    setPromoError("Invalid promo code. Please check spelling — codes are case-sensitive.");
-                                  } else {
-                                    setPromoError("");
-                                    setPromoCodeInput("");
-                                  }
-                                } catch (error: any) {
-                                  setPromoError("Invalid promo code. Please check spelling — codes are case-sensitive.");
-                                }
-                                setIsApplyingPromo(false);
-                              }}
-                              disabled={isApplyingPromo || !promoCodeInput.trim()}
-                            >
-                              {isApplyingPromo ? "Applying..." : "Apply"}
-                            </Button>
-                          </div>
-                          {promoError && (
-                            <div className="mt-2 text-sm text-red-600 bg-red-50 border border-red-200 rounded p-2">
-                              {promoError}
-                            </div>
-                          )}
-                        </div>
+                      )}
+                      {promoError && (
+                        <p className="text-red-500 text-sm mt-2">{promoError}</p>
                       )}
                     </div>
                   </div>
 
-                  {/* Order Total */}
+                  {/* Order Summary */}
                   <div className="border rounded-lg overflow-hidden bg-card">
                     <div className="bg-primary/10 p-3 border-b">
-                      <h3 className="font-medium text-primary">Order Total</h3>
+                      <h3 className="font-medium text-primary">Order Summary</h3>
                     </div>
-                    <div className="p-4 space-y-2">
+                    <div className="p-3 space-y-2">
                       <div className="flex justify-between text-sm">
                         <span className="text-muted-foreground">Subtotal</span>
                         <span className="font-medium text-foreground">${subtotal.toFixed(2)}</span>
@@ -387,30 +393,6 @@ export default function Checkout() {
                     );
                   })()}
                   
-                  {"Notification" in window && (
-                    <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                      <div className="flex items-center space-x-2 mb-2">
-                        <Bell className="h-4 w-4 text-blue-600" />
-                        <span className="text-sm font-medium text-blue-900">Enable Order Notifications</span>
-                      </div>
-                      <p className="text-xs text-blue-700 mb-3">Get notified when your order status changes</p>
-                      {Notification.permission === "granted" ? (
-                        <span className="text-xs text-green-600 flex items-center">
-                          <CheckCircle className="h-4 w-4" />
-                          Notifications Enabled
-                        </span>
-                      ) : (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={requestPermission}
-                          className="text-blue-600 border-blue-300 hover:bg-blue-100"
-                        >
-                          Enable Notifications
-                        </Button>
-                      )}
-                    </div>
-                  )}
                 </div>
               )}
 
@@ -423,10 +405,8 @@ export default function Checkout() {
                     return (
                       <>
                         <div className="text-center mb-6">
-                          <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                            <CheckCircle className="h-8 w-8 text-green-600" />
-                          </div>
-                          <h2 className="font-heading text-2xl font-bold text-primary mb-2">Order Confirmed!</h2>
+                          <CheckCircle className="h-16 w-16 text-green-500 mx-auto mb-4" />
+                          <h2 className="font-heading text-2xl font-bold text-green-600 mb-2">Order Placed Successfully!</h2>
                           <p className="text-muted-foreground mb-2">Thank you for your order. We'll prepare it for pickup.</p>
                           {orderData && (
                             <div className="bg-primary/10 rounded-lg p-3 mt-4">
@@ -468,7 +448,7 @@ export default function Checkout() {
                               <h3 className="font-medium text-primary">Items Ordered</h3>
                             </div>
                             <div className="p-3 divide-y divide-border">
-                              {(orderData?.items || cart).map((item, index) => (
+                              {(orderData?.items || cart).map((item: any, index: number) => (
                                 <div key={index} className="py-2 flex justify-between items-center">
                                   <div className="flex items-center">
                                     <span className="font-medium text-primary">{item.quantity}x</span>
@@ -482,26 +462,9 @@ export default function Checkout() {
 
                           <div className="border rounded-lg overflow-hidden bg-card">
                             <div className="bg-primary/10 p-3 border-b">
-                              <h3 className="font-medium text-primary">Pickup Details</h3>
+                              <h3 className="font-medium text-primary">Order Summary</h3>
                             </div>
-                            <div className="p-3 space-y-2 text-sm">
-                              <p><span className="font-medium text-primary">Name:</span> <span className="text-foreground">{orderData?.customerName || form.getValues("customerName")}</span></p>
-                              <p><span className="font-medium text-primary">Phone:</span> <span className="text-foreground">{orderData?.customerPhone || form.getValues("customerPhone")}</span></p>
-                              {(orderData?.customerEmail || form.getValues("customerEmail")) && (
-                                <p><span className="font-medium text-primary">Email:</span> <span className="text-foreground">{orderData?.customerEmail || form.getValues("customerEmail")}</span></p>
-                              )}
-                              {(orderData?.preparationInstructions || form.getValues("preparationInstructions")) && (
-                                <p><span className="font-medium text-primary">Preparation Instructions:</span> <span className="text-foreground">{orderData?.preparationInstructions || form.getValues("preparationInstructions")}</span></p>
-                              )}
-                              <p><span className="font-medium text-primary">Status:</span> <span className="text-green-600 font-medium">Confirmed</span></p>
-                            </div>
-                          </div>
-
-                          <div className="border rounded-lg overflow-hidden bg-card">
-                            <div className="bg-primary/10 p-3 border-b">
-                              <h3 className="font-medium text-primary">Payment Summary</h3>
-                            </div>
-                            <div className="p-4 space-y-2">
+                            <div className="p-3 space-y-2">
                               <div className="flex justify-between text-sm">
                                 <span className="text-muted-foreground">Subtotal</span>
                                 <span className="font-medium text-foreground">${(orderData?.subtotal || subtotal).toFixed(2)}</span>
@@ -532,16 +495,17 @@ export default function Checkout() {
                             <p className="text-sm text-muted-foreground">
                               Your order is being prepared. You'll receive notifications about status updates.
                             </p>
-                            <div className="flex gap-3 justify-center">
+                            <div className="flex flex-col sm:flex-row gap-3 justify-center">
                               <Button 
                                 onClick={() => navigate("/")}
-                                className="bg-primary hover:bg-primary/90"
+                                className="bg-primary hover:bg-primary/90 w-full sm:w-auto"
                               >
                                 Continue Shopping
                               </Button>
                               <Button 
                                 onClick={() => navigate("/order-tracking")}
                                 variant="outline"
+                                className="w-full sm:w-auto"
                               >
                                 Track Order
                               </Button>

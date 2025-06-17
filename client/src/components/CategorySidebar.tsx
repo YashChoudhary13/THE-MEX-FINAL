@@ -18,6 +18,9 @@ export default function CategorySidebar({
   activeCategory, 
   onCategoryChange 
 }: CategorySidebarProps) {
+  const { addToCart } = useCart();
+  const { toast } = useToast();
+
   // Find today's special - using a featured burger for demo
   const todaysSpecial = useMemo(() => {
     if (categories.length > 0) {
@@ -27,7 +30,24 @@ export default function CategorySidebar({
         originalPrice: 17.99,
         image: "https://images.unsplash.com/photo-1594212699903-ec8a3eca50f5?auto=format&fit=crop&w=800",
         label: "CHEF'S CHOICE",
-        description: "Two smashed beef patties, melted cheese, caramelized onions, special sauce, crispy pickles"
+        description: "Two smashed beef patties, melted cheese, caramelized onions, special sauce, crispy pickles",
+        menuItem: {
+          id: 5, // Corresponds to Classic Burger in the menu
+          name: "Double Smash Burger",
+          image: "https://images.unsplash.com/photo-1594212699903-ec8a3eca50f5?auto=format&fit=crop&w=800"
+        }
+      } as {
+        name: string;
+        price: number;
+        originalPrice: number;
+        image: string;
+        label: string;
+        description: string;
+        menuItem: {
+          id: number;
+          name: string;
+          image: string;
+        };
       };
     }
     return null;

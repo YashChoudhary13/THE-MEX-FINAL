@@ -687,69 +687,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   const httpServer = createServer(app);
-  
-  // Setup WebSocket server for real-time admin updates
-  const wss = new WebSocketServer({ 
-    server: httpServer, 
-    path: '/ws' 
-  });
-
-  wss.on('connection', (ws) => {
-    console.log('WebSocket client connected');
-    
-    ws.on('message', (message) => {
-      try {
-        const data = JSON.parse(message.toString());
-        
-        if (data.type === 'SUBSCRIBE_ADMIN') {
-          // Subscribe to admin updates
-          adminSocketConnections.add(ws);
-          console.log('Client subscribed to admin updates');
-        }
-      } catch (error) {
-        console.error('Error parsing WebSocket message:', error);
-      }
-    });
-    
-    ws.on('close', () => {
-      // Remove this connection from admin subscriptions
-      adminSocketConnections.delete(ws);
-      console.log('WebSocket client disconnected');
-    });
-  });
-            storage.getOrder(orderId).then(order => {
-              if (order && ws.readyState === WebSocket.OPEN) {
-                ws.send(JSON.stringify({
-                  type: 'ORDER_UPDATE',
-                  orderId,
-                  order
-                }));
-              }
-            }).catch(err => {
-              console.error(`Error fetching order ${orderId}:`, err);
-            });
-          }
-        }
-      } catch (error) {
-        console.error('Error processing WebSocket message:', error);
-      }
-    });
-    
-    // Handle disconnection
-    ws.on('close', () => {
-      console.log('WebSocket client disconnected');
-      
-      // Remove this connection from all order subscriptions
-      orderSocketConnections.forEach((connections, orderId) => {
-        connections.delete(ws);
-        
-        // Clean up empty sets
-        if (connections.size === 0) {
-          orderSocketConnections.delete(orderId);
-        }
-      });
-    });
-  });
 
   // Admin route for updating order status
   app.patch("/api/orders/:id/status", isAdmin, async (req, res) => {
@@ -1110,14 +1047,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.log('Daily reset completed successfully');
         
         // Broadcast reset notification to connected admin clients
-        wss.clients.forEach((client) => {
-          if (client.readyState === WebSocket.OPEN) {
-            client.send(JSON.stringify({
-              type: 'daily_reset',
-              message: 'Daily stats have been reset',
-              timestamp: new Date().toISOString()
-            }));
-          }
+        broadcastToAdmins({
+          type: 'daily_reset',
+          message: 'Daily stats have been reset',
+          timestamp: new Date().toISOString()
         });
         
       } catch (error) {
@@ -1132,7 +1065,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Start the daily reset scheduler
   scheduleDailyReset();
 
-  // Create WebSocket server on a separate path
+  // Setup WebSocket server for real-time admin updates
   const wss = new WebSocketServer({ 
     server: httpServer, 
     path: '/ws' 
@@ -1146,7 +1079,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const data = JSON.parse(message.toString());
         
         if (data.type === 'SUBSCRIBE_ADMIN') {
-          // Subscribe to admin updates
           adminSocketConnections.add(ws);
           console.log('Client subscribed to admin updates');
         }
@@ -1156,7 +1088,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
     
     ws.on('close', () => {
-      // Remove this connection from admin subscriptions
       adminSocketConnections.delete(ws);
       console.log('WebSocket client disconnected');
     });

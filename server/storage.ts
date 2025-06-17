@@ -6,7 +6,9 @@ import {
   SpecialOffer, InsertSpecialOffer,
   PromoCode, InsertPromoCode,
   SystemSetting, InsertSystemSetting,
-  users, menuCategories, menuItems, orders, specialOffers, promoCodes, systemSettings
+  DailyReport, InsertDailyReport,
+  MonthlyReport, InsertMonthlyReport,
+  users, menuCategories, menuItems, orders, specialOffers, promoCodes, systemSettings, dailyReports, monthlyReports
 } from "@shared/schema";
 
 import session from "express-session";
@@ -70,6 +72,19 @@ export interface IStorage {
   getSystemSetting(key: string): Promise<string | undefined>;
   updateSystemSetting(key: string, value: string): Promise<boolean>;
   getServiceFee(): Promise<number>;
+  
+  // Daily Reports
+  getDailyReports(days?: number): Promise<DailyReport[]>;
+  createOrUpdateDailyReport(date: string, orders: number, revenue: number): Promise<DailyReport>;
+  getCurrentDayStats(): Promise<{ totalOrders: number; totalRevenue: number }>;
+  resetDailyStats(): Promise<boolean>;
+  
+  // Monthly Reports
+  getMonthlyReports(months?: number): Promise<MonthlyReport[]>;
+  createOrUpdateMonthlyReport(year: number, month: number, orders: number, revenue: number): Promise<MonthlyReport>;
+  
+  // Data Cleanup
+  cleanupOldData(): Promise<boolean>;
   
   // Session store
   sessionStore: session.Store;

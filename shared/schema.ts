@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, boolean, jsonb, doublePrecision, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, jsonb, doublePrecision, timestamp, date, decimal, unique } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -190,6 +190,47 @@ export const insertSystemSettingSchema = createInsertSchema(systemSettings).pick
 
 export type InsertSystemSetting = z.infer<typeof insertSystemSettingSchema>;
 export type SystemSetting = typeof systemSettings.$inferSelect;
+
+// Daily Reports Table - stores daily aggregated data for the last 30 days
+export const dailyReports = pgTable("daily_reports", {
+  id: serial("id").primaryKey(),
+  date: date("date").notNull().unique(), // YYYY-MM-DD format
+  totalOrders: integer("total_orders").notNull().default(0),
+  totalRevenue: decimal("total_revenue", { precision: 10, scale: 2 }).notNull().default("0.00"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertDailyReportSchema = createInsertSchema(dailyReports).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type InsertDailyReport = z.infer<typeof insertDailyReportSchema>;
+export type DailyReport = typeof dailyReports.$inferSelect;
+
+// Monthly Reports Table - stores monthly aggregated data for the last 12 months
+export const monthlyReports = pgTable("monthly_reports", {
+  id: serial("id").primaryKey(),
+  year: integer("year").notNull(),
+  month: integer("month").notNull(), // 1-12
+  totalOrders: integer("total_orders").notNull().default(0),
+  totalRevenue: decimal("total_revenue", { precision: 10, scale: 2 }).notNull().default("0.00"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => ({
+  uniqueYearMonth: unique().on(table.year, table.month),
+}));
+
+export const insertMonthlyReportSchema = createInsertSchema(monthlyReports).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type InsertMonthlyReport = z.infer<typeof insertMonthlyReportSchema>;
+export type MonthlyReport = typeof monthlyReports.$inferSelect;
 
 // Cart Item (client-side type only)
 export type CartItem = {

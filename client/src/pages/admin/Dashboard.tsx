@@ -602,7 +602,7 @@ export default function AdminDashboard() {
                               timeZone: 'Europe/Dublin'
                             }).format(new Date(order.createdAt));
                             return orderDate === dublinToday;
-                          }) || [];
+                          }).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()) || [];
 
                           return !todaysOrders || todaysOrders.length === 0 ? (
                             <div className="flex items-center justify-center h-48 border rounded-md">

@@ -37,11 +37,13 @@ export default function LiveStatsDisplay() {
         const data = JSON.parse(event.data);
         
         if (data.type === 'NEW_ORDER' || data.type === 'ORDER_UPDATE') {
-          // Refresh stats when new orders or updates come in
+          // Immediately refresh current stats and all related queries
           refetch();
           setLastUpdated(new Date());
-          // Also refresh order list
           queryClient.invalidateQueries({ queryKey: ['/api/admin/orders'] });
+          queryClient.invalidateQueries({ queryKey: ['/api/admin/current-stats'] });
+          queryClient.invalidateQueries({ queryKey: ['/api/admin/daily-reports'] });
+          queryClient.invalidateQueries({ queryKey: ['/api/admin/monthly-reports'] });
         }
       } catch (error) {
         console.error('Error parsing WebSocket message:', error);

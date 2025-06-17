@@ -114,8 +114,8 @@ export default function MenuItemCard({ item }: MenuItemCardProps) {
     stars.push("empty");
   }
 
-  // Generate a random prep time between 10-25 minutes for the demo
-  const prepTime = Math.floor(Math.random() * 16) + 10;
+  // Use the item's prep time or calculate a fixed one based on item ID to avoid fluctuation
+  const prepTime = item.prepTime || (10 + (item.id % 16)); // Fixed time based on item ID
 
   // Menu Item Detail Modal
   const MenuItemDetailModal = () => {
@@ -268,49 +268,52 @@ export default function MenuItemCard({ item }: MenuItemCardProps) {
           onClick={openModal}
         >
           <div className="flex h-full">
-            {/* Left side - Image or placeholder */}
-            <div className="relative w-1/3 sm:w-2/5 h-full">
-              {item.image ? (
+            {/* Left side - Image only if available */}
+            {item.image && (
+              <div className="relative w-1/3 sm:w-2/5 h-full">
                 <img 
                   src={item.image} 
                   alt={item.name} 
                   className={`w-full h-full object-cover transition-transform duration-500 ${isHovering ? 'scale-110' : 'scale-100'}`}
+                  onError={(e) => {
+                    // Hide the image container if image fails to load
+                    const target = e.target as HTMLImageElement;
+                    const container = target.parentElement;
+                    if (container) {
+                      container.style.display = 'none';
+                    }
+                  }}
                 />
-              ) : (
-                <div className="w-full h-full bg-muted flex items-center justify-center">
-                  <div className="text-center text-muted-foreground">
-                    <div className="text-2xl mb-1">🍽️</div>
-                    <div className="text-xs">No Image</div>
+                
+                {/* Labels */}
+                {item.label && (
+                  <div className="absolute top-2 left-2 bg-primary text-white px-2 py-0.5 rounded-full text-xs font-menu font-medium shadow-md flex items-center">
+                    <Flame className="h-3 w-3 mr-0.5" />
+                    {item.label.toUpperCase()}
                   </div>
+                )}
+                
+                {/* Price badge overlay */}
+                <div className="absolute bottom-2 left-2 bg-card/90 backdrop-blur-sm text-primary px-2 py-0.5 rounded-full text-xs font-bold shadow-md">
+                  ${item.price.toFixed(2)}
                 </div>
-              )}
-              
-              {/* Labels */}
-              {item.label && (
-                <div className="absolute top-2 left-2 bg-primary text-white px-2 py-0.5 rounded-full text-xs font-menu font-medium shadow-md flex items-center">
-                  <Flame className="h-3 w-3 mr-0.5" />
-                  {item.label.toUpperCase()}
-                </div>
-              )}
-              
-              {/* Price badge overlay */}
-              <div className="absolute bottom-2 left-2 bg-card/90 backdrop-blur-sm text-primary px-2 py-0.5 rounded-full text-xs font-bold shadow-md">
-                ${item.price.toFixed(2)}
               </div>
-            </div>
+            )}
             
             {/* Right side - Content */}
-            <div className="flex-1 p-3 flex flex-col justify-between relative">
+            <div className={`flex-1 p-3 flex flex-col justify-between relative ${!item.image ? 'w-full' : ''}`}>
               {/* Top section - Title and rating */}
               <div>
                 <div className="flex justify-between items-start mb-1.5">
                   <h3 className="font-heading text-base sm:text-lg text-foreground pr-16 line-clamp-1">{item.name}</h3>
                   
-                  {/* Prep time badge - top right */}
-                  <div className="absolute top-3 right-3 bg-muted/80 text-foreground px-2 py-0.5 rounded-full text-[10px] flex items-center">
-                    <Clock className="h-2.5 w-2.5 text-primary mr-0.5" />
-                    {prepTime} min
-                  </div>
+                  {/* Prep time badge - top right (only show if prepTime exists) */}
+                  {item.prepTime && (
+                    <div className="absolute top-3 right-3 bg-muted/80 text-foreground px-2 py-0.5 rounded-full text-[10px] flex items-center">
+                      <Clock className="h-2.5 w-2.5 text-primary mr-0.5" />
+                      {prepTime} min
+                    </div>
+                  )}
                 </div>
                 
                 {/* Description */}

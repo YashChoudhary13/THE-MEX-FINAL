@@ -5,6 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Calendar, TrendingUp, DollarSign, BarChart3 } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
+import RecentOrdersTabs from './RecentOrdersTabs';
 
 interface DailyReport {
   id: number;
@@ -205,7 +206,7 @@ export default function ReportsSection() {
         <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="daily">Daily Reports</TabsTrigger>
           <TabsTrigger value="monthly">Monthly Reports</TabsTrigger>
-          <TabsTrigger value="orders">Recent Orders</TabsTrigger>
+          <TabsTrigger value="orders">Order History</TabsTrigger>
         </TabsList>
 
         <TabsContent value="daily" className="space-y-4">
@@ -287,49 +288,7 @@ export default function ReportsSection() {
         </TabsContent>
 
         <TabsContent value="orders" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Recent Orders (Last 30 Days)</CardTitle>
-              <CardDescription>
-                Detailed list of all orders from the past 30 days
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {ordersLoading ? (
-                <div className="h-[400px] flex items-center justify-center">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-                </div>
-              ) : recentOrdersFiltered.length > 0 ? (
-                <div className="space-y-4 max-h-[500px] overflow-y-auto">
-                  {recentOrdersFiltered.map((order) => (
-                    <div key={order.id} className="flex items-center justify-between p-4 border rounded-lg">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-3">
-                          <div className="font-medium">#{order.id}</div>
-                          <Badge variant={order.status === 'completed' ? 'default' : 'secondary'}>
-                            {order.status}
-                          </Badge>
-                        </div>
-                        <div className="text-sm text-muted-foreground mt-1">
-                          {order.customerName} • {order.customerEmail}
-                        </div>
-                        <div className="text-xs text-muted-foreground">
-                          {formatDate(order.createdAt)} • {new Date(order.createdAt).toLocaleTimeString('en-IE', { hour: '2-digit', minute: '2-digit' })}
-                        </div>
-                      </div>
-                      <div className="text-lg font-bold">
-                        {formatCurrency(order.total)}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="h-[400px] flex items-center justify-center text-muted-foreground">
-                  No recent orders found
-                </div>
-              )}
-            </CardContent>
-          </Card>
+          <RecentOrdersTabs />
         </TabsContent>
       </Tabs>
     </div>

@@ -12,7 +12,7 @@ import {
 } from "@shared/schema";
 
 import session from "express-session";
-import { eq, and, isNull, lte, gt, desc, or, lt, sql } from "drizzle-orm";
+import { eq, and, isNull, lte, gt, desc, or, lt, sql, gte } from "drizzle-orm";
 import { db } from "./db";
 import bcrypt from "bcryptjs";
 import connectPg from "connect-pg-simple";
@@ -203,15 +203,41 @@ export class MemStorage implements IStorage {
 
   // Orders
   async getOrders(): Promise<Order[]> {
-    return Array.from(this.orders.values());
+    return Array.from(this.orders.values()).sort((a, b) => 
+      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    );
+  }
+
+  async getTodaysOrders(): Promise<Order[]> {
+    const today = new Date().toISOString().split('T')[0];
+    return Array.from(this.orders.values())
+      .filter(order => new Date(order.createdAt).toISOString().split('T')[0] === today)
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  }
+
+  async getOrdersByDateRange(startDate: string, endDate: string): Promise<Order[]> {
+    return Array.from(this.orders.values())
+      .filter(order => {
+        const orderDate = new Date(order.createdAt).toISOString().split('T')[0];
+        return orderDate >= startDate && orderDate <= endDate;
+      })
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   }
 
   async getOrder(id: number): Promise<Order | undefined> {
     return this.orders.get(id);
   }
 
+  async getNextDailyOrderNumber(): Promise<number> {
+    const today = new Date().toISOString().split('T')[0];
+    const todaysOrders = Array.from(this.orders.values())
+      .filter(order => new Date(order.createdAt).toISOString().split('T')[0] === today);
+    return todaysOrders.length + 1;
+  }
+
   async createOrder(order: InsertOrder): Promise<Order> {
     const id = this.orderIdCounter++;
+    const dailyOrderNumber = await this.getNextDailyOrderNumber();
     const newOrder: Order = { 
       ...order, 
       id,
@@ -219,6 +245,9 @@ export class MemStorage implements IStorage {
       customerEmail: order.customerEmail || null,
       preparationInstructions: order.preparationInstructions || null,
       userId: order.userId ?? null,
+      dailyOrderNumber,
+      paymentReference: null,
+      completedAt: null,
       createdAt: new Date()
     };
     this.orders.set(id, newOrder);

@@ -21,6 +21,7 @@ import { z } from "zod";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import OrderManager from "./OrderManager";
+import TodayOrderManager from "@/components/admin/TodayOrderManager";
 import LiveStatsDisplay from "@/components/admin/LiveStatsDisplay";
 import ReportsSection from "@/components/admin/ReportsSection";
 import AdminTimeDisplay from "@/components/admin/AdminTimeDisplay";

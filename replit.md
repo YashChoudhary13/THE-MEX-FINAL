@@ -102,6 +102,7 @@ Changelog:
 - June 18, 2025. Implemented Track Order button functionality with correct order ID routing
 - June 18, 2025. Resolved Stripe console errors (ad blocker blocking analytics is safe to ignore)
 - June 18, 2025. Eliminated localhost:undefined WebSocket fallback issues completely
+- June 18, 2025. Fixed duplicate WebSocket connections in LiveStatsDisplay component
 ```
 
 ## User Preferences

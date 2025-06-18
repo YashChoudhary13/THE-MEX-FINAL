@@ -30,16 +30,16 @@ export default function LiveStatsDisplay() {
     socket.onopen = () => {
       console.log('WebSocket connected for admin updates');
       setIsConnected(true);
-      // Subscribe to admin updates
       socket.send(JSON.stringify({ type: 'SUBSCRIBE_ADMIN' }));
     };
 
     socket.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data);
-        
-        if (data.type === 'NEW_ORDER' || data.type === 'ORDER_UPDATE') {
-          // Immediately refresh current stats and all related queries
+
+        const updateTypes = ['NEW_ORDER', 'ORDER_UPDATE', 'daily_reset'];
+
+        if (updateTypes.includes(data.type)) {
           refetch();
           setLastUpdated(new Date());
           queryClient.invalidateQueries({ queryKey: ['/api/admin/orders'] });
@@ -67,51 +67,6 @@ export default function LiveStatsDisplay() {
     };
   }, [refetch]);
 
-  // Format currency
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-IE', {
-      style: 'currency',
-      currency: 'EUR'
-    }).format(amount);
-  };
-
-  // Format time in Dublin timezone
-  const formatDublinTime = (date: Date) => {
-    return new Intl.DateTimeFormat('en-IE', {
-      timeZone: 'Europe/Dublin',
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-      hour12: false
-    }).format(date);
-  };
-
-  // WebSocket connection for real-time updates
-  useEffect(() => {
-    const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-    const wsUrl = `${protocol}//${window.location.host}/ws`;
-    const socket = new WebSocket(wsUrl);
-
-    socket.onmessage = (event) => {
-      try {
-        const data = JSON.parse(event.data);
-        
-        if (data.type === 'daily_reset') {
-          // Refresh stats when daily reset occurs
-          refetch();
-        } else if (data.type === 'ORDER_UPDATE') {
-          // Refresh stats when orders are updated
-          refetch();
-        }
-      } catch (error) {
-        console.error('Error parsing WebSocket message:', error);
-      }
-    };
-
-    return () => {
-      socket.close();
-    };
-  }, [refetch]);
 
   return (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">

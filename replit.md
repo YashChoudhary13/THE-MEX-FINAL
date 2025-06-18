@@ -105,6 +105,9 @@ Changelog:
 - June 18, 2025. Implemented tabbed Recent Orders showing last 30 days with comprehensive order details
 - June 18, 2025. Added daily reset order numbering system with separate today's order management
 - June 18, 2025. Enhanced database schema with dailyOrderNumber, paymentReference, and completedAt fields
+- June 18, 2025. Fixed order number consistency across all views (success page, admin dashboard, order confirmation)
+- June 18, 2025. Restored original OrderManager functionality limited to today's orders only with real-time updates
+- June 18, 2025. Fixed checkout success page to properly display daily order numbers and maintain flow
 ```
 
 ## User Preferences

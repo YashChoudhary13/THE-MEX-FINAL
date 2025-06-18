@@ -489,6 +489,14 @@ export default function Checkout() {
                               >
                                 Continue Shopping
                               </Button>
+                              {orderData && (
+                                <Button 
+                                  onClick={() => setLocation(`/order-confirmation/${orderData.id}`)}
+                                  className="w-full sm:w-auto"
+                                >
+                                  View Order Details
+                                </Button>
+                              )}
                             </div>
                           </div>
                         </div>

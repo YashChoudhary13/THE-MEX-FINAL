@@ -32,66 +32,68 @@ export default function Contact() {
         </section>
         
         {/* Contact Information */}
-        <section className="container mx-auto px-4 py-12">
-          <div className="max-w-4xl mx-auto">
+        <section className="container mx-auto px-4 py-16">
+          <div className="max-w-6xl mx-auto">
             <motion.div
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.5, delay: 0.2 }}
             >
-              <h2 className="text-3xl font-heading mb-6 text-primary text-center">CONTACT INFORMATION</h2>
-              <p className="text-muted-foreground mb-8 text-center max-w-2xl mx-auto">
-                We're here to help! Reach out to us through any of the channels below, 
-                and we'll get back to you as soon as possible.
-              </p>
+              <div className="text-center mb-12">
+                <h2 className="text-4xl font-heading mb-4 text-primary">CONTACT INFORMATION</h2>
+                <p className="text-muted-foreground text-lg max-w-3xl mx-auto leading-relaxed">
+                  We're here to help! Reach out to us through any of the channels below, 
+                  and we'll get back to you as soon as possible.
+                </p>
+              </div>
               
-              <div className="grid md:grid-cols-2 gap-8 mb-10">
-                <div className="flex items-start">
-                  <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center mr-4 mt-1">
-                    <MapPin className="text-primary h-5 w-5" />
+              <div className="grid md:grid-cols-2 gap-10 mb-12">
+                <div className="flex items-start p-6 bg-card rounded-xl border border-border hover:shadow-md transition-shadow">
+                  <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mr-4 flex-shrink-0">
+                    <MapPin className="text-primary h-6 w-6" />
                   </div>
                   <div>
-                    <h3 className="text-lg font-heading mb-1">Our Location</h3>
-                    <p className="text-muted-foreground">
+                    <h3 className="text-xl font-heading mb-2 text-foreground">Our Location</h3>
+                    <p className="text-muted-foreground leading-relaxed">
                       123 Taco Street<br />
                       Burrito Hills, CA 90210
                     </p>
                   </div>
                 </div>
                 
-                <div className="flex items-start">
-                  <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center mr-4 mt-1">
-                    <Phone className="text-primary h-5 w-5" />
+                <div className="flex items-start p-6 bg-card rounded-xl border border-border hover:shadow-md transition-shadow">
+                  <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mr-4 flex-shrink-0">
+                    <Phone className="text-primary h-6 w-6" />
                   </div>
                   <div>
-                    <h3 className="text-lg font-heading mb-1">Phone Number</h3>
-                    <p className="text-muted-foreground">(555) 123-4567</p>
-                    <p className="text-sm text-muted-foreground mt-1">
+                    <h3 className="text-xl font-heading mb-2 text-foreground">Phone Number</h3>
+                    <p className="text-muted-foreground text-lg font-medium mb-1">(555) 123-4567</p>
+                    <p className="text-sm text-muted-foreground">
                       Mon-Fri 9am-10pm, Sat-Sun 10am-11pm
                     </p>
                   </div>
                 </div>
                 
-                <div className="flex items-start">
-                  <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center mr-4 mt-1">
-                    <Mail className="text-primary h-5 w-5" />
+                <div className="flex items-start p-6 bg-card rounded-xl border border-border hover:shadow-md transition-shadow">
+                  <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mr-4 flex-shrink-0">
+                    <Mail className="text-primary h-6 w-6" />
                   </div>
                   <div>
-                    <h3 className="text-lg font-heading mb-1">Email Address</h3>
-                    <p className="text-muted-foreground">info@themex.com</p>
-                    <p className="text-sm text-muted-foreground mt-1">
+                    <h3 className="text-xl font-heading mb-2 text-foreground">Email Address</h3>
+                    <p className="text-muted-foreground text-lg font-medium mb-1">info@themex.com</p>
+                    <p className="text-sm text-muted-foreground">
                       We aim to respond within 24 hours
                     </p>
                   </div>
                 </div>
                 
-                <div className="flex items-start">
-                  <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center mr-4 mt-1">
-                    <Clock className="text-primary h-5 w-5" />
+                <div className="flex items-start p-6 bg-card rounded-xl border border-border hover:shadow-md transition-shadow">
+                  <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mr-4 flex-shrink-0">
+                    <Clock className="text-primary h-6 w-6" />
                   </div>
                   <div>
-                    <h3 className="text-lg font-heading mb-1">Business Hours</h3>
-                    <p className="text-muted-foreground">
+                    <h3 className="text-xl font-heading mb-2 text-foreground">Business Hours</h3>
+                    <p className="text-muted-foreground leading-relaxed">
                       Monday-Friday: 9am-10pm<br />
                       Saturday-Sunday: 10am-11pm
                     </p>

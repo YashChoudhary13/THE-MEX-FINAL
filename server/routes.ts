@@ -167,7 +167,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // API Route for creating an order (supports both authenticated and guest users)
   app.post("/api/orders", async (req, res) => {
     try {
-      // Validate request body
+      // Validate request body (dailyOrderNumber is auto-generated on backend)
       const orderData = insertOrderSchema.parse(req.body);
       
       console.log("📝 Creating order with data:", orderData);
@@ -177,7 +177,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         orderData.userId = req.user.id;
       }
       
-      // Create the order
+      // Create the order (dailyOrderNumber will be auto-generated)
       const order = await storage.createOrder(orderData);
       console.log("✅ Order created:", order);
       

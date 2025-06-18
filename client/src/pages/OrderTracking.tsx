@@ -39,6 +39,9 @@ export default function OrderTracking() {
   // Enable WebSocket notifications for this specific order
   useWebSocketNotifications({ orderId: trackingOrderId || undefined, enabled: !!trackingOrderId });
   
+  // Force render with tracking order ID if we have one from URL
+  const shouldShowTracker = trackingOrderId || (match && orderId);
+  
   // Make sure we only pass non-null orderId to the OrderTracker component
   
   // Form setup
@@ -71,7 +74,7 @@ export default function OrderTracking() {
       <Header onCartToggle={() => {}} hideSearch={true} />
       
       <div className="container mx-auto flex-1 py-10 px-4">
-        {trackingOrderId ? (
+        {shouldShowTracker ? (
           <div className="max-w-3xl mx-auto">
             <div className="mb-6">
               <Button 
@@ -86,7 +89,7 @@ export default function OrderTracking() {
             </div>
             
             <OrderTracker 
-              orderId={trackingOrderId} 
+              orderId={trackingOrderId || orderId!} 
               onRefresh={() => {
                 // Optional callback if needed
               }}

@@ -61,6 +61,11 @@ export default function OrderTracking() {
     form.reset({ orderId: '' });
   };
 
+  // If we have no match and no tracking order ID, render the form
+  if (!match && !trackingOrderId) {
+    console.log('No route match and no tracking order ID - rendering form');
+  }
+
   return (
     <div className="min-h-screen flex flex-col bg-muted/30">
       <Header onCartToggle={() => {}} hideSearch={true} />

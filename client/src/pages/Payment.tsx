@@ -78,6 +78,9 @@ function PaymentForm({ orderData, onSuccess }: PaymentFormProps) {
             description: `Your order #${order.id} has been placed successfully.`,
           });
           
+          // Navigate to order confirmation page with order ID
+          window.location.href = `/order-confirmation/${order.id}`;
+          
           onSuccess();
         }
       } catch (orderError) {

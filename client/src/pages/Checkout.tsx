@@ -443,6 +443,16 @@ export default function Checkout() {
                         )}
 
                         <div className="space-y-4">
+                          {/* Track Order Button - Navigate to tracking page */}
+                          {orderData && (
+                            <Button 
+                              onClick={() => setLocation(`/tracking/${orderData.id}`)}
+                              className="w-full bg-primary hover:bg-primary/90"
+                            >
+                              Track Your Order
+                            </Button>
+                          )}
+                          
                           <div className="border rounded-lg overflow-hidden bg-card">
                             <div className="bg-primary/10 p-3 border-b">
                               <h3 className="font-medium text-primary">Items Ordered</h3>
@@ -498,16 +508,10 @@ export default function Checkout() {
                             <div className="flex flex-col sm:flex-row gap-3 justify-center">
                               <Button 
                                 onClick={() => setLocation("/")}
-                                className="bg-primary hover:bg-primary/90 w-full sm:w-auto"
-                              >
-                                Continue Shopping
-                              </Button>
-                              <Button 
-                                onClick={() => setLocation("/order-tracking")}
                                 variant="outline"
                                 className="w-full sm:w-auto"
                               >
-                                Track Order
+                                Continue Shopping
                               </Button>
                             </div>
                           </div>

@@ -41,7 +41,7 @@ export default function AdminDashboard() {
   const [isPromoCodeOpen, setIsPromoCodeOpen] = useState(false);
   const [selectedMenuItem, setSelectedMenuItem] = useState<MenuItem | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<MenuCategory | null>(null);
-  const [selectedPromoCode, setSelectedPromoCode] = useState<any>(null);
+  const [selectedPromoCode, setSelectedPromoCode] = useState<PromoCode | null>(null);
   const { toast } = useToast();
 
   // WebSocket connection for real-time updates
@@ -936,7 +936,10 @@ export default function AdminDashboard() {
                         <p className="text-sm text-muted-foreground mb-6 max-w-md mx-auto">
                           Create promotional codes to offer discounts to your customers.
                         </p>
-                        <Button onClick={() => setIsPromoCodeOpen(true)}>
+                        <Button onClick={() => {
+                          setSelectedPromoCode(null); // Clear any selected promo code
+                          setIsPromoCodeOpen(true);
+                        }}>
                           Create New Promo Code
                         </Button>
                       </div>
@@ -1193,7 +1196,7 @@ export default function AdminDashboard() {
               </DialogDescription>
             </DialogHeader>
             <PromoCodeForm 
-              promoCode={selectedPromoCode}
+              promoCode={selectedPromoCode || undefined}
               onSubmit={(data) => {
                 if (selectedPromoCode) {
                   updatePromoCodeMutation.mutate({ id: selectedPromoCode.id, data });

@@ -39,35 +39,63 @@ export type PromoCodeFormProps = {
 };
 
 export function PromoCodeForm({ promoCode, onSubmit, isSubmitting }: PromoCodeFormProps) {
+  const defaultValues = {
+    code: "",
+    discountType: "percentage" as const,
+    discountValue: 10,
+    minOrderValue: 0,
+    usageLimit: 100,
+    endDate: new Date().toISOString().split('T')[0],
+    active: true,
+  };
+
   const form = useForm<PromoCodeFormValues>({
     resolver: zodResolver(promoCodeFormSchema),
     defaultValues: promoCode ? {
       code: promoCode.code,
       discountType: promoCode.discountType as "percentage" | "amount",
       discountValue: promoCode.discountValue,
-      minOrderValue: promoCode.minOrderValue,
-      usageLimit: promoCode.usageLimit,
+      minOrderValue: promoCode.minOrderValue || 0,
+      usageLimit: promoCode.usageLimit || 100,
       endDate: promoCode.endDate ? new Date(promoCode.endDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
       active: promoCode.active,
-    } : {
-      code: "",
-      discountType: "percentage",
-      discountValue: 10,
-      minOrderValue: 0,
-      usageLimit: 100,
-      endDate: new Date().toISOString().split('T')[0],
-      active: true,
-    },
+    } : defaultValues,
   });
+
+  // Reset form when promoCode prop changes
+  React.useEffect(() => {
+    if (promoCode) {
+      // Editing mode - populate with existing data
+      form.reset({
+        code: promoCode.code,
+        discountType: promoCode.discountType as "percentage" | "amount",
+        discountValue: promoCode.discountValue,
+        minOrderValue: promoCode.minOrderValue || 0,
+        usageLimit: promoCode.usageLimit || 100,
+        endDate: promoCode.endDate ? new Date(promoCode.endDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+        active: promoCode.active,
+      });
+    } else {
+      // Add mode - reset to defaults
+      form.reset(defaultValues);
+    }
+  }, [promoCode, form]);
 
   const discountType = form.watch("discountType");
 
   function handleSubmit(values: PromoCodeFormValues) {
-    // Format the endDate as a Date object
+    // Create end date at end of day in Cork/Dublin timezone 
+    const endDateTime = new Date(values.endDate + 'T23:59:59');
+    
     const formattedValues = {
       ...values,
-      endDate: new Date(values.endDate),
+      minOrderValue: Number(values.minOrderValue) || 0,
+      usageLimit: Number(values.usageLimit) || null,
+      discountValue: Number(values.discountValue),
+      endDate: endDateTime,
     };
+    
+    console.log("📝 Submitting promo code form with data:", formattedValues);
     onSubmit(formattedValues);
   }
 
@@ -219,7 +247,7 @@ export function PromoCodeForm({ promoCode, onSubmit, isSubmitting }: PromoCodeFo
           {isSubmitting ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Saving...
+              {promoCode ? "Updating..." : "Creating..."}
             </>
           ) : (
             <>{promoCode ? "Update" : "Create"} Promo Code</>

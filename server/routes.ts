@@ -849,15 +849,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.patch('/api/admin/promo-codes/:id', isAdmin, async (req, res) => {
     try {
       const { id } = req.params;
-      const updatedPromoCode = await storage.updatePromoCode(parseInt(id), req.body);
+      console.log("📝 Updating promo code ID:", id, "with payload:", req.body);
+      
+      // Process dates if they exist, similar to create endpoint
+      const processedData = {
+        ...req.body,
+        startDate: req.body.startDate ? new Date(req.body.startDate) : undefined,
+        endDate: req.body.endDate ? new Date(req.body.endDate) : undefined,
+        minOrderValue: req.body.minOrderValue || 0,
+      };
+      
+      // Remove undefined values to avoid database issues
+      Object.keys(processedData).forEach(key => 
+        processedData[key] === undefined && delete processedData[key]
+      );
+      
+      console.log("📝 Processed update data:", processedData);
+      
+      const updatedPromoCode = await storage.updatePromoCode(parseInt(id), processedData);
       
       if (!updatedPromoCode) {
         return res.status(404).json({ message: 'Promo code not found' });
       }
       
+      console.log("✅ Promo code updated successfully:", updatedPromoCode);
       res.json(updatedPromoCode);
     } catch (error) {
-      console.error('Error updating promo code:', error);
+      console.error('❌ Error updating promo code:', error);
       res.status(500).json({ message: 'Failed to update promo code' });
     }
   });

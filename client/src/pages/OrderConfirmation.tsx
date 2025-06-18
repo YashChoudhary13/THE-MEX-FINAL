@@ -207,7 +207,10 @@ export default function OrderConfirmation() {
                 <div>
                   <Button 
                     className="w-full bg-primary hover:bg-primary/90"
-                    onClick={() => navigate(`/tracking/${order.id}`)}
+                    onClick={() => {
+                      console.log('Track Order clicked, navigating to:', `/tracking/${order.id}`);
+                      navigate(`/tracking/${order.id}`);
+                    }}
                   >
                     Track Your Order
                   </Button>

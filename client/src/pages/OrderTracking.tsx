@@ -21,9 +21,17 @@ const trackingSchema = z.object({
 });
 
 export default function OrderTracking() {
+  console.log('OrderTracking component loaded');
+  
   // Check if we have an order ID in the URL
-  const [, params] = useRoute<{ orderId: string }>('/tracking/:orderId');
+  const [match, params] = useRoute<{ orderId: string }>('/tracking/:orderId');
   const orderId = params?.orderId ? parseInt(params.orderId) : null;
+  
+  // Debug logging
+  console.log('OrderTracking - Route match:', match);
+  console.log('OrderTracking - Route params:', params);
+  console.log('OrderTracking - Order ID:', orderId);
+  console.log('OrderTracking - Current URL:', window.location.pathname);
   
   // State to track whether we're showing the form or the tracker
   const [trackingOrderId, setTrackingOrderId] = useState<number | null>(orderId);

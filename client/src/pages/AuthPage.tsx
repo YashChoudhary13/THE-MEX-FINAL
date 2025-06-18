@@ -51,6 +51,10 @@ type NewPasswordFormValues = z.infer<typeof newPasswordSchema>;
 export default function AuthPage() {
   const [activeTab, setActiveTab] = useState<string>("login");
   const [showResetForm, setShowResetForm] = useState(false);
+  const [resetStep, setResetStep] = useState<'username' | 'security' | 'password'>('username');
+  const [securityQuestion, setSecurityQuestion] = useState<string>('');
+  const [resetToken, setResetToken] = useState<string>('');
+  const [currentUsername, setCurrentUsername] = useState<string>('');
   const [resetSuccess, setResetSuccess] = useState(false);
   const [isResettingPassword, setIsResettingPassword] = useState(false);
   const [loginError, setLoginError] = useState<string | null>(null);
@@ -115,6 +119,21 @@ export default function AuthPage() {
     },
   });
 
+  const securityForm = useForm<SecurityAnswerFormValues>({
+    resolver: zodResolver(securityAnswerSchema),
+    defaultValues: {
+      securityAnswer: "",
+    },
+  });
+
+  const passwordForm = useForm<NewPasswordFormValues>({
+    resolver: zodResolver(newPasswordSchema),
+    defaultValues: {
+      newPassword: "",
+      confirmPassword: "",
+    },
+  });
+
   const onLoginSubmit = (data: LoginFormValues) => {
     setLoginError(null);
     loginMutation.mutate(data, {
@@ -141,7 +160,7 @@ export default function AuthPage() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ email: data.email }),
+        body: JSON.stringify({ username: data.username }),
       });
       
       if (response.ok) {

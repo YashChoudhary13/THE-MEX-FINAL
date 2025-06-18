@@ -73,13 +73,13 @@ function PaymentForm({ orderData, onSuccess }: PaymentFormProps) {
           // Store order data for success page
           sessionStorage.setItem('completedOrder', JSON.stringify(order));
           
+          // Store order data in session storage for success page
+          sessionStorage.setItem('completedOrder', JSON.stringify(order));
+          
           toast({
             title: "Payment Successful!",
-            description: `Your order #${order.id} has been placed successfully.`,
+            description: `Your order #${order.dailyOrderNumber || order.id} has been placed successfully.`,
           });
-          
-          // Navigate to order confirmation page with order ID
-          window.location.href = `/order-confirmation/${order.id}`;
           
           onSuccess();
         }

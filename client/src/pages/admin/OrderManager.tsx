@@ -438,7 +438,7 @@ export default function OrderManager() {
                         <span>{item.quantity || 0}x {item.name || 'Unknown item'}</span>
                         <span>${((item.price || 0) * (item.quantity || 0)).toFixed(2)}</span>
                       </li>
-                    ))}
+                    )) as React.ReactNode}
                     {(!order.items || !Array.isArray(order.items) || order.items.length === 0) && (
                       <li className="p-2 text-muted-foreground text-sm">No items available</li>
                     )}

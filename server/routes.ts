@@ -168,7 +168,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/orders", async (req, res) => {
     try {
       // Validate request body (dailyOrderNumber is auto-generated on backend)
-      const orderData = insertOrderSchema.parse(req.body);
+      const orderData = createOrderSchema.parse(req.body);
       
       console.log("📝 Creating order with data:", orderData);
       

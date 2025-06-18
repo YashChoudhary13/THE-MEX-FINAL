@@ -40,7 +40,7 @@ export interface IStorage {
   getTodaysOrders(): Promise<Order[]>;
   getOrdersByDateRange(startDate: string, endDate: string): Promise<Order[]>;
   getOrder(id: number): Promise<Order | undefined>;
-  createOrder(order: Omit<InsertOrder, 'dailyOrderNumber'>): Promise<Order>;
+  createOrder(order: CreateOrder): Promise<Order>;
   updateOrderStatus(id: number, status: string): Promise<Order | undefined>;
   deleteOrder(id: number): Promise<boolean>;
   getNextDailyOrderNumber(): Promise<number>;
@@ -236,7 +236,7 @@ export class MemStorage implements IStorage {
     return todaysOrders.length + 1;
   }
 
-  async createOrder(order: Omit<InsertOrder, 'dailyOrderNumber'>): Promise<Order> {
+  async createOrder(order: CreateOrder): Promise<Order> {
     const id = this.orderIdCounter++;
     const dailyOrderNumber = await this.getNextDailyOrderNumber();
     const newOrder: Order = { 

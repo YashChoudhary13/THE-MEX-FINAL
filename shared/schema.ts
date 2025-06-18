@@ -100,12 +100,21 @@ export const insertOrderSchema = createInsertSchema(orders).pick({
   status: true,
   items: true,
   userId: true,
+  dailyOrderNumber: true,
   paymentReference: true,
   completedAt: true,
   promoCode: true,
 });
 
+// Schema for creating orders (excludes auto-generated fields)
+export const createOrderSchema = insertOrderSchema.omit({
+  dailyOrderNumber: true,
+  paymentReference: true,
+  completedAt: true,
+});
+
 export type InsertOrder = z.infer<typeof insertOrderSchema>;
+export type CreateOrder = z.infer<typeof createOrderSchema>;
 export type Order = typeof orders.$inferSelect;
 
 // Users

@@ -435,7 +435,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Admin routes for special offers management
   app.post("/api/admin/special-offers", isAdmin, async (req, res) => {
     try {
-      const offerData = insertSpecialOfferSchema.parse(req.body);
+      // Convert date strings to Date objects before validation
+      const processedData = {
+        ...req.body,
+        startDate: req.body.startDate ? new Date(req.body.startDate) : new Date(),
+        endDate: req.body.endDate ? new Date(req.body.endDate) : null
+      };
+      
+      const offerData = insertSpecialOfferSchema.parse(processedData);
       const offer = await storage.createSpecialOffer(offerData);
       res.status(201).json(offer);
     } catch (error) {

@@ -28,11 +28,11 @@ import { useToast } from "@/hooks/use-toast";
 
 interface Order {
   id: number;
-  dailyOrderNumber: number;
+  dailyOrderNumber?: number;
   customerName: string;
-  customerEmail: string;
+  customerEmail?: string;
   customerPhone: string;
-  preparationInstructions: string | null;
+  preparationInstructions?: string | null;
   total: number;
   status: string;
   items: any[];
@@ -57,6 +57,14 @@ export default function TodayOrderManager() {
   const { data: todaysOrders = [], isLoading, error, refetch } = useQuery<Order[]>({
     queryKey: ['/api/admin/orders/today'],
     refetchInterval: 5000, // auto refresh every 5 seconds
+    retry: 3,
+    staleTime: 1000,
+    onSuccess: (data) => {
+      console.log('Today orders loaded:', data);
+    },
+    onError: (err) => {
+      console.error('Today orders query error:', err);
+    }
   });
 
   // Update order status mutation
@@ -145,20 +153,26 @@ export default function TodayOrderManager() {
   };
 
   if (error) {
+    console.error('Today orders error:', error);
     return (
       <Card>
         <CardHeader>
           <CardTitle>Today's Orders</CardTitle>
-          <CardDescription>Error loading orders</CardDescription>
+          <CardDescription>Error loading orders: {error.message}</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="h-32 flex items-center justify-center text-muted-foreground">
-            Failed to load orders. Please try refreshing.
+          <div className="h-32 flex flex-col items-center justify-center text-muted-foreground gap-2">
+            <span>Failed to load today's orders</span>
+            <Button onClick={() => refetch()} variant="outline" size="sm">
+              Try Again
+            </Button>
           </div>
         </CardContent>
       </Card>
     );
   }
+
+  console.log('TodayOrderManager render:', { todaysOrders, isLoading, error });
 
   return (
     <div className="space-y-6">
@@ -166,7 +180,7 @@ export default function TodayOrderManager() {
         <div>
           <h2 className="text-2xl font-bold">Today's Orders</h2>
           <p className="text-muted-foreground">
-            Manage orders placed today • {todaysOrders.length} total orders
+            Manage orders placed today • {todaysOrders?.length || 0} total orders
           </p>
         </div>
         <Button onClick={() => refetch()} variant="outline" size="sm" disabled={isLoading}>

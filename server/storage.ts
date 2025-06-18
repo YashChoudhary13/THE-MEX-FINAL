@@ -683,7 +683,36 @@ export class DatabaseStorage implements IStorage {
 
   // Orders
   async getOrders(): Promise<Order[]> {
-    return await db.select().from(orders);
+    return await db.select().from(orders).orderBy(desc(orders.createdAt));
+  }
+
+  async getTodaysOrders(): Promise<Order[]> {
+    const today = new Date();
+    const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59, 999);
+    
+    return await db.select().from(orders)
+      .where(
+        and(
+          gte(orders.createdAt, startOfDay),
+          lte(orders.createdAt, endOfDay)
+        )
+      )
+      .orderBy(desc(orders.createdAt));
+  }
+
+  async getOrdersByDateRange(startDate: string, endDate: string): Promise<Order[]> {
+    const start = new Date(startDate + 'T00:00:00.000Z');
+    const end = new Date(endDate + 'T23:59:59.999Z');
+    
+    return await db.select().from(orders)
+      .where(
+        and(
+          gte(orders.createdAt, start),
+          lte(orders.createdAt, end)
+        )
+      )
+      .orderBy(desc(orders.createdAt));
   }
 
   async getOrder(id: number): Promise<Order | undefined> {
@@ -691,8 +720,31 @@ export class DatabaseStorage implements IStorage {
     return order;
   }
 
+  async getNextDailyOrderNumber(): Promise<number> {
+    const today = new Date();
+    const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59, 999);
+    
+    const todaysOrders = await db.select().from(orders)
+      .where(
+        and(
+          gte(orders.createdAt, startOfDay),
+          lte(orders.createdAt, endOfDay)
+        )
+      );
+    
+    return todaysOrders.length + 1;
+  }
+
   async createOrder(order: InsertOrder): Promise<Order> {
-    const [newOrder] = await db.insert(orders).values(order).returning();
+    const dailyOrderNumber = await this.getNextDailyOrderNumber();
+    const [newOrder] = await db
+      .insert(orders)
+      .values({
+        ...order,
+        dailyOrderNumber
+      })
+      .returning();
     return newOrder;
   }
 

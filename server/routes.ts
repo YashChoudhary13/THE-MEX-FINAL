@@ -237,6 +237,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Fetch today's orders only
+  app.get("/api/admin/orders/today", isAdmin, async (req, res) => {
+    try {
+      const orders = await storage.getTodaysOrders();
+      console.log(`Fetched ${orders.length} orders for today`);
+      res.json(orders);
+    } catch (error) {
+      console.error("Error fetching today's orders:", error);
+      res.status(500).json({ message: "Failed to fetch today's orders" });
+    }
+  });
+
+  // Fetch orders by date range (for 30-day tabs)
+  app.get("/api/admin/orders/range", isAdmin, async (req, res) => {
+    try {
+      const { startDate, endDate } = req.query;
+      if (!startDate || !endDate) {
+        return res.status(400).json({ message: "Start date and end date are required" });
+      }
+      const orders = await storage.getOrdersByDateRange(startDate as string, endDate as string);
+      res.json(orders);
+    } catch (error) {
+      console.error("Error fetching orders by date range:", error);
+      res.status(500).json({ message: "Failed to fetch orders by date range" });
+    }
+  });
+
   // API Route for deleting an order (admin only)
   app.delete("/api/orders/:id", isAdmin, async (req, res) => {
     try {

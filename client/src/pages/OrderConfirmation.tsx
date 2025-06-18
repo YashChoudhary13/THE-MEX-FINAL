@@ -7,7 +7,7 @@ import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Order } from "@shared/schema";
-import { useNotifications } from "@/context/NotificationContext";
+
 import { useToast } from "@/hooks/use-toast";
 import { useWebSocketNotifications } from "@/hooks/use-websocket-notifications";
 
@@ -21,7 +21,7 @@ export default function OrderConfirmation() {
     isBrowserSupported, 
     requestPermission, 
     sendNotification 
-  } = useNotifications();
+
   
   const orderId = parseInt(id || "0");
   

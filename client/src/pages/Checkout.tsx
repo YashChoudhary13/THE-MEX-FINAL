@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
-import { CheckCircle, Bell } from "lucide-react";
+import { CheckCircle } from "lucide-react";
 import {
   Form,
   FormControl,
@@ -44,7 +44,7 @@ export default function Checkout() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const { cart, clearCart, promoCode, promoDiscount, applyPromoCode, clearPromoCode, calculateTotals } = useCart();
-  const { requestPermission } = useNotifications();
+
   const [currentStep, setCurrentStep] = useState(CheckoutStep.CustomerInfo);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [promoCodeInput, setPromoCodeInput] = useState("");
@@ -416,31 +416,7 @@ export default function Checkout() {
                           )}
                         </div>
 
-                        {/* Notification Options */}
-                        {"Notification" in window && (
-                          <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                            <div className="flex items-center space-x-2 mb-2">
-                              <Bell className="h-4 w-4 text-blue-600" />
-                              <span className="text-sm font-medium text-blue-900">Order Status Notifications</span>
-                            </div>
-                            <p className="text-xs text-blue-700 mb-3">Get notified when your order status changes (confirmed → preparing → ready for pickup)</p>
-                            {Notification.permission === "granted" ? (
-                              <span className="text-xs text-green-600 flex items-center">
-                                <CheckCircle className="h-4 w-4 mr-1" />
-                                Notifications Enabled - You'll receive updates about your order
-                              </span>
-                            ) : (
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={requestPermission}
-                                className="text-blue-600 border-blue-300 hover:bg-blue-100"
-                              >
-                                Enable Order Notifications
-                              </Button>
-                            )}
-                          </div>
-                        )}
+
 
                         <div className="space-y-4">
                           {/* Track Order Button - Navigate to tracking page */}

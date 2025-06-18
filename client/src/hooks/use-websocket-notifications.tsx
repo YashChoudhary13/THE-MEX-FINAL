@@ -76,19 +76,7 @@ export function useWebSocketNotifications({ orderId, enabled = true }: UseWebSoc
                 const message = statusMessages[order.status as keyof typeof statusMessages] || 
                                `Your order status has been updated to: ${order.status}`;
 
-                // Send browser notification if enabled
-                if (isNotificationsEnabled && Notification.permission === 'granted') {
-                  try {
-                    new Notification(`Order #${order.id} Update`, {
-                      body: message,
-                      icon: '/favicon.ico',
-                      tag: `order-${order.id}`,
-                      requireInteraction: true
-                    });
-                  } catch (error) {
-                    console.error('Error sending notification:', error);
-                  }
-                }
+                // Show toast notification for order updates
 
                 // Also show toast notification
                 toast({
@@ -139,7 +127,7 @@ export function useWebSocketNotifications({ orderId, enabled = true }: UseWebSoc
         wsRef.current = null;
       }
     };
-  }, [orderId, enabled, isNotificationsEnabled, toast]);
+  }, [orderId, enabled, toast]);
 
   return {
     isConnected: wsRef.current?.readyState === WebSocket.OPEN

@@ -1067,7 +1067,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Daily reset scheduler for Cork/Dublin timezone
+  let dailyResetTimer: NodeJS.Timeout | null = null;
+  
   const scheduleDailyReset = () => {
+    // Clear any existing timer to prevent loops
+    if (dailyResetTimer) {
+      clearTimeout(dailyResetTimer);
+    }
+    
     const now = new Date();
     const dublinTime = new Intl.DateTimeFormat('en-US', {
       timeZone: 'Europe/Dublin',
@@ -1079,12 +1086,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
     const [hours, minutes, seconds] = dublinTime.split(':').map(Number);
     
-    // Calculate milliseconds until midnight in Dublin timezone
-    const msUntilMidnight = (24 * 60 * 60 * 1000) - (hours * 60 * 60 * 1000 + minutes * 60 * 1000 + seconds * 1000);
+    // Calculate milliseconds until next midnight in Dublin timezone
+    let msUntilMidnight = (24 * 60 * 60 * 1000) - (hours * 60 * 60 * 1000 + minutes * 60 * 1000 + seconds * 1000);
     
-    console.log(`Scheduling daily reset in ${Math.round(msUntilMidnight / 1000 / 60)} minutes (Dublin time)`);
+    // If we're already past midnight, schedule for next day
+    if (msUntilMidnight <= 0) {
+      msUntilMidnight += (24 * 60 * 60 * 1000);
+    }
     
-    setTimeout(async () => {
+    const minutesUntilMidnight = Math.round(msUntilMidnight / 1000 / 60);
+    console.log(`Scheduling daily reset in ${minutesUntilMidnight} minutes (Dublin time)`);
+    
+    dailyResetTimer = setTimeout(async () => {
       try {
         console.log('Performing daily reset at midnight Dublin time...');
         
@@ -1127,12 +1140,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.error('Error during daily reset:', error);
       }
       
-      // Schedule next reset
+      // Schedule next reset (only once per day)
       scheduleDailyReset();
     }, msUntilMidnight);
   };
 
-  // Start the daily reset scheduler
+  // Start the daily reset scheduler only once
   scheduleDailyReset();
 
   // Setup WebSocket server for real-time admin updates

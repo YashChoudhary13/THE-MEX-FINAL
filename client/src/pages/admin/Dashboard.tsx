@@ -25,6 +25,7 @@ import TodayOrderManager from "@/components/admin/TodayOrderManager";
 import LiveStatsDisplay from "@/components/admin/LiveStatsDisplay";
 import ReportsSection from "@/components/admin/ReportsSection";
 import AdminTimeDisplay from "@/components/admin/AdminTimeDisplay";
+import TodaysSpecialManager from "./components/TodaysSpecialManager";
 import { useWebSocket } from "@/hooks/useWebSocket";
 
 // We'll wrap the admin component sections in conditional rendering
@@ -666,25 +667,40 @@ export default function AdminDashboard() {
                   <Card>
                     <CardHeader>
                       <CardTitle>Today's Special</CardTitle>
-                      <CardDescription>Currently promoted special item</CardDescription>
+                      <CardDescription>Managed in the Today's Special tab</CardDescription>
                     </CardHeader>
                     <CardContent>
-                      <div className="aspect-video bg-muted rounded-md overflow-hidden relative mb-4">
-                        <img 
-                          src="https://images.unsplash.com/photo-1594212699903-ec8a3eca50f5?auto=format&fit=crop&w=800" 
-                          alt="Today's Special"
-                          className="w-full h-full object-cover"
-                        />
-                        <div className="absolute top-2 left-2 bg-primary text-white text-xs px-2 py-1 rounded-md">
-                          SPECIAL OFFER
+                      {specialOfferQuery.data?.menuItem ? (
+                        <div className="space-y-3">
+                          <div className="aspect-video bg-muted rounded-md overflow-hidden relative">
+                            <img 
+                              src={specialOfferQuery.data.menuItem.image || "https://images.unsplash.com/photo-1594212699903-ec8a3eca50f5?auto=format&fit=crop&w=800"} 
+                              alt={specialOfferQuery.data.menuItem.name}
+                              className="w-full h-full object-cover"
+                            />
+                            <div className="absolute top-2 left-2 bg-primary text-white text-xs px-2 py-1 rounded-md">
+                              SPECIAL OFFER
+                            </div>
+                          </div>
+                          <h3 className="font-medium">{specialOfferQuery.data.menuItem.name}</h3>
+                          <div className="flex justify-between items-center">
+                            <p className="text-lg font-bold text-primary">
+                              €{(specialOfferQuery.data.menuItem.price - specialOfferQuery.data.discountAmount).toFixed(2)}
+                            </p>
+                            <p className="text-sm line-through text-muted-foreground">
+                              €{specialOfferQuery.data.menuItem.price.toFixed(2)}
+                            </p>
+                          </div>
+                          <p className="text-sm text-muted-foreground">
+                            Active until {new Date(specialOfferQuery.data.endDate).toLocaleDateString('en-IE', { timeZone: 'Europe/Dublin' })}
+                          </p>
                         </div>
-                      </div>
-                      <h3 className="font-medium mb-1">Double Smash Burger</h3>
-                      <div className="flex justify-between items-center mb-2">
-                        <p className="text-lg font-bold text-primary">$14.99</p>
-                        <p className="text-sm line-through text-muted-foreground">$17.99</p>
-                      </div>
-                      <Button variant="outline" className="w-full">Edit Special</Button>
+                      ) : (
+                        <div className="text-center py-8">
+                          <p className="text-muted-foreground">No special offer active</p>
+                          <p className="text-sm text-muted-foreground mt-1">Set one up in the Today's Special tab</p>
+                        </div>
+                      )}
                     </CardContent>
                   </Card>
                 </div>

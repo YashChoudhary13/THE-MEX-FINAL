@@ -1104,6 +1104,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         if (data.type === 'SUBSCRIBE_ADMIN') {
           adminSocketConnections.add(ws);
           console.log('Client subscribed to admin updates');
+        } else if (data.type === 'SUBSCRIBE_ORDER_UPDATES' && data.orderId) {
+          // Customer subscribing to order updates
+          const orderId = data.orderId;
+          
+          if (!customerSocketConnections.has(orderId)) {
+            customerSocketConnections.set(orderId, new Set());
+          }
+          
+          customerSocketConnections.get(orderId)!.add(ws);
+          console.log(`Customer subscribed to order ${orderId} updates`);
         }
       } catch (error) {
         console.error('Error parsing WebSocket message:', error);
@@ -1111,7 +1121,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
     
     ws.on('close', () => {
+      // Remove from admin connections
       adminSocketConnections.delete(ws);
+      
+      // Remove from customer connections
+      customerSocketConnections.forEach((connections, orderId) => {
+        connections.delete(ws);
+        if (connections.size === 0) {
+          customerSocketConnections.delete(orderId);
+        }
+      });
+      
       console.log('WebSocket client disconnected');
     });
   });

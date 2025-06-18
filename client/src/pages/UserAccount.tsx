@@ -1,7 +1,5 @@
 import { useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
-import { Redirect } from "wouter";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,23 +8,22 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Loader2, User, Lock, ShoppingBag, AlertCircle, CheckCircle2 } from "lucide-react";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Loader2, User, Shield, Key } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import Header from "@/components/Header";
-import Footer from "@/components/Footer";
+import { apiRequest } from "../lib/queryClient";
 
-// Profile update form schema
 const profileSchema = z.object({
-  username: z.string().min(3, "Username must be at least 3 characters"),
-  email: z.string().email("Invalid email address").optional().or(z.literal(''))
+  username: z.string().min(3, "Username must be at least 3 characters").max(50),
+  email: z.string().email("Invalid email address").optional().or(z.literal('')),
+  securityQuestion: z.string().min(5, "Security question must be at least 5 characters").optional().or(z.literal('')),
+  securityAnswer: z.string().min(2, "Security answer must be at least 2 characters").optional().or(z.literal('')),
 });
 
-// Password change form schema
 const passwordSchema = z.object({
   currentPassword: z.string().min(1, "Current password is required"),
-  newPassword: z.string().min(6, "New password must be at least 6 characters"),
-  confirmPassword: z.string()
+  newPassword: z.string().min(6, "Password must be at least 6 characters"),
+  confirmPassword: z.string(),
 }).refine(data => data.newPassword === data.confirmPassword, {
   message: "Passwords don't match",
   path: ["confirmPassword"],
@@ -35,29 +32,32 @@ const passwordSchema = z.object({
 type ProfileFormValues = z.infer<typeof profileSchema>;
 type PasswordFormValues = z.infer<typeof passwordSchema>;
 
+const securityQuestions = [
+  "What was the name of your first pet?",
+  "What is your mother's maiden name?",
+  "What was the name of your first school?",
+  "What city were you born in?",
+  "What is your favorite book?",
+  "What was your childhood nickname?",
+  "What is the name of your best friend from childhood?",
+  "What was the first concert you attended?",
+  "What is your favorite movie?",
+  "What was the model of your first car?"
+];
+
 export default function UserAccount() {
-  const [activeTab, setActiveTab] = useState<string>("profile");
-  const [isUpdating, setIsUpdating] = useState(false);
-  const [isChangingPassword, setIsChangingPassword] = useState(false);
-  const [updateSuccess, setUpdateSuccess] = useState(false);
-  const [passwordChangeSuccess, setPasswordChangeSuccess] = useState(false);
-  const [updateError, setUpdateError] = useState<string | null>(null);
-  const [passwordError, setPasswordError] = useState<string | null>(null);
-  
-  const { user, loginMutation } = useAuth();
+  const { user } = useAuth();
   const { toast } = useToast();
+  const [isUpdatingProfile, setIsUpdatingProfile] = useState(false);
+  const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
 
-  // If not logged in, redirect to the auth page
-  if (!user) {
-    return <Redirect to="/auth" />;
-  }
-
-  // Set up forms with default values from the user object
   const profileForm = useForm<ProfileFormValues>({
     resolver: zodResolver(profileSchema),
     defaultValues: {
-      username: user.username || "",
-      email: user.email || "",
+      username: user?.username || "",
+      email: user?.email || "",
+      securityQuestion: user?.securityQuestion || "",
+      securityAnswer: "",
     },
   });
 
@@ -70,313 +70,289 @@ export default function UserAccount() {
     },
   });
 
-  // Handle profile form submission
-  const onProfileSubmit = async (data: ProfileFormValues) => {
-    setIsUpdating(true);
-    setUpdateError(null);
-    setUpdateSuccess(false);
+  const handleProfileUpdate = async (values: ProfileFormValues) => {
+    setIsUpdatingProfile(true);
     
     try {
-      const response = await fetch('/api/user/profile', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(data),
-      });
+      const response = await apiRequest("PUT", "/api/user/profile", values);
       
       if (response.ok) {
-        setUpdateSuccess(true);
         toast({
           title: "Profile Updated",
-          description: "Your profile has been updated successfully.",
-          variant: "default",
+          description: "Your profile has been successfully updated.",
         });
+        // Reset security answer field since it's not returned from server
+        profileForm.setValue('securityAnswer', '');
       } else {
         const errorData = await response.json();
-        setUpdateError(errorData.message || "Failed to update profile");
+        throw new Error(errorData.message || "Failed to update profile");
       }
-    } catch (error) {
-      setUpdateError("An unexpected error occurred");
+    } catch (error: any) {
+      toast({
+        title: "Update Failed",
+        description: error.message || "Failed to update profile",
+        variant: "destructive",
+      });
     } finally {
-      setIsUpdating(false);
+      setIsUpdatingProfile(false);
     }
   };
 
-  // Handle password form submission
-  const onPasswordSubmit = async (data: PasswordFormValues) => {
-    setIsChangingPassword(true);
-    setPasswordError(null);
-    setPasswordChangeSuccess(false);
+  const handlePasswordUpdate = async (values: PasswordFormValues) => {
+    setIsUpdatingPassword(true);
     
     try {
-      const response = await fetch('/api/user/password', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          currentPassword: data.currentPassword,
-          newPassword: data.newPassword,
-        }),
+      const response = await apiRequest("PUT", "/api/user/password", {
+        currentPassword: values.currentPassword,
+        newPassword: values.newPassword,
       });
       
       if (response.ok) {
-        setPasswordChangeSuccess(true);
-        passwordForm.reset();
         toast({
-          title: "Password Changed",
-          description: "Your password has been updated successfully.",
-          variant: "default",
+          title: "Password Updated",
+          description: "Your password has been successfully updated.",
         });
+        passwordForm.reset();
       } else {
         const errorData = await response.json();
-        setPasswordError(errorData.message || "Failed to update password");
+        throw new Error(errorData.message || "Failed to update password");
       }
-    } catch (error) {
-      setPasswordError("An unexpected error occurred");
+    } catch (error: any) {
+      toast({
+        title: "Update Failed",
+        description: error.message || "Failed to update password",
+        variant: "destructive",
+      });
     } finally {
-      setIsChangingPassword(false);
+      setIsUpdatingPassword(false);
     }
   };
 
+  if (!user) {
+    return <div>Please log in to access your account.</div>;
+  }
+
   return (
-    <div className="flex flex-col min-h-screen bg-gray-900">
-      <Header />
-      <main className="flex-grow container mx-auto p-6 pt-24">
-        <div className="max-w-4xl mx-auto">
-          <h1 className="text-3xl font-bold text-white mb-6">My Account</h1>
-          
-          <Tabs defaultValue="profile" value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid grid-cols-3 mb-8">
-              <TabsTrigger value="profile" className="flex items-center gap-2">
-                <User className="h-4 w-4" />
-                <span>Profile</span>
-              </TabsTrigger>
-              <TabsTrigger value="password" className="flex items-center gap-2">
-                <Lock className="h-4 w-4" />
-                <span>Password</span>
-              </TabsTrigger>
-              <TabsTrigger value="orders" className="flex items-center gap-2">
-                <ShoppingBag className="h-4 w-4" />
-                <span>Orders</span>
-              </TabsTrigger>
-            </TabsList>
-
-            {/* Profile Tab */}
-            <TabsContent value="profile">
-              <Card className="border-none bg-gray-800/50 text-white">
-                <CardHeader>
-                  <CardTitle>Profile Information</CardTitle>
-                  <CardDescription className="text-gray-400">
-                    Update your account details
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  {updateSuccess && (
-                    <Alert className="bg-green-900/40 border-green-900 text-white mb-4">
-                      <CheckCircle2 className="h-4 w-4" />
-                      <AlertTitle>Success</AlertTitle>
-                      <AlertDescription>
-                        Your profile has been updated successfully.
-                      </AlertDescription>
-                    </Alert>
-                  )}
-                  
-                  {updateError && (
-                    <Alert variant="destructive" className="bg-red-900/40 border-red-900 text-white mb-4">
-                      <AlertCircle className="h-4 w-4" />
-                      <AlertTitle>Error</AlertTitle>
-                      <AlertDescription>{updateError}</AlertDescription>
-                    </Alert>
-                  )}
-                  
-                  <Form {...profileForm}>
-                    <form onSubmit={profileForm.handleSubmit(onProfileSubmit)} className="space-y-4">
-                      <FormField
-                        control={profileForm.control}
-                        name="username"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Username</FormLabel>
-                            <FormControl>
-                              <Input 
-                                placeholder="Your username" 
-                                {...field} 
-                                className="bg-gray-700 border-gray-600"
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      
-                      <FormField
-                        control={profileForm.control}
-                        name="email"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Email</FormLabel>
-                            <FormControl>
-                              <Input 
-                                type="email" 
-                                placeholder="Your email address" 
-                                {...field} 
-                                className="bg-gray-700 border-gray-600"
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      
-                      <Button 
-                        type="submit" 
-                        className="mt-6" 
-                        disabled={isUpdating}
-                      >
-                        {isUpdating ? (
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        ) : null}
-                        Update Profile
-                      </Button>
-                    </form>
-                  </Form>
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            {/* Password Tab */}
-            <TabsContent value="password">
-              <Card className="border-none bg-gray-800/50 text-white">
-                <CardHeader>
-                  <CardTitle>Change Password</CardTitle>
-                  <CardDescription className="text-gray-400">
-                    Update your password to keep your account secure
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  {passwordChangeSuccess && (
-                    <Alert className="bg-green-900/40 border-green-900 text-white mb-4">
-                      <CheckCircle2 className="h-4 w-4" />
-                      <AlertTitle>Success</AlertTitle>
-                      <AlertDescription>
-                        Your password has been changed successfully.
-                      </AlertDescription>
-                    </Alert>
-                  )}
-                  
-                  {passwordError && (
-                    <Alert variant="destructive" className="bg-red-900/40 border-red-900 text-white mb-4">
-                      <AlertCircle className="h-4 w-4" />
-                      <AlertTitle>Error</AlertTitle>
-                      <AlertDescription>{passwordError}</AlertDescription>
-                    </Alert>
-                  )}
-                  
-                  <Form {...passwordForm}>
-                    <form onSubmit={passwordForm.handleSubmit(onPasswordSubmit)} className="space-y-4">
-                      <FormField
-                        control={passwordForm.control}
-                        name="currentPassword"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Current Password</FormLabel>
-                            <FormControl>
-                              <Input 
-                                type="password" 
-                                placeholder="Your current password" 
-                                {...field} 
-                                className="bg-gray-700 border-gray-600"
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      
-                      <FormField
-                        control={passwordForm.control}
-                        name="newPassword"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>New Password</FormLabel>
-                            <FormControl>
-                              <Input 
-                                type="password" 
-                                placeholder="Your new password" 
-                                {...field} 
-                                className="bg-gray-700 border-gray-600"
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      
-                      <FormField
-                        control={passwordForm.control}
-                        name="confirmPassword"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Confirm New Password</FormLabel>
-                            <FormControl>
-                              <Input 
-                                type="password" 
-                                placeholder="Confirm your new password" 
-                                {...field} 
-                                className="bg-gray-700 border-gray-600"
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      
-                      <Button 
-                        type="submit" 
-                        className="mt-6" 
-                        disabled={isChangingPassword}
-                      >
-                        {isChangingPassword ? (
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        ) : null}
-                        Change Password
-                      </Button>
-                    </form>
-                  </Form>
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            {/* Orders Tab */}
-            <TabsContent value="orders">
-              <Card className="border-none bg-gray-800/50 text-white">
-                <CardHeader>
-                  <CardTitle>Order History</CardTitle>
-                  <CardDescription className="text-gray-400">
-                    View your past orders and track current ones
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-center py-8">
-                    <ShoppingBag className="h-16 w-16 mx-auto mb-4 opacity-50" />
-                    <h3 className="text-xl font-medium mb-2">No orders yet</h3>
-                    <p className="text-gray-400 mb-6">When you place orders, they will appear here.</p>
-                    <Button 
-                      onClick={() => window.location.href = "/"} 
-                      className="inline-flex"
-                    >
-                      Start Ordering
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
-          </Tabs>
+    <div className="min-h-screen bg-gradient-to-br from-orange-50 via-red-50 to-pink-50 py-8">
+      <div className="container mx-auto px-4 max-w-4xl">
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">Account Settings</h1>
+          <p className="text-gray-600">Manage your profile and security settings</p>
         </div>
-      </main>
-      <Footer />
+
+        <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-2">
+          {/* Profile Settings */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <User className="h-5 w-5" />
+                Profile Information
+              </CardTitle>
+              <CardDescription>
+                Update your basic account information
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Form {...profileForm}>
+                <form onSubmit={profileForm.handleSubmit(handleProfileUpdate)} className="space-y-4">
+                  <FormField
+                    control={profileForm.control}
+                    name="username"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Username</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Enter username" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={profileForm.control}
+                    name="email"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Email (Optional)</FormLabel>
+                        <FormControl>
+                          <Input type="email" placeholder="Enter email" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <Button 
+                    type="submit" 
+                    className="w-full" 
+                    disabled={isUpdatingProfile}
+                  >
+                    {isUpdatingProfile ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Updating Profile
+                      </>
+                    ) : (
+                      "Update Profile"
+                    )}
+                  </Button>
+                </form>
+              </Form>
+            </CardContent>
+          </Card>
+
+          {/* Security Settings */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Shield className="h-5 w-5" />
+                Security Settings
+              </CardTitle>
+              <CardDescription>
+                Set up security question for password recovery
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Form {...profileForm}>
+                <form onSubmit={profileForm.handleSubmit(handleProfileUpdate)} className="space-y-4">
+                  <FormField
+                    control={profileForm.control}
+                    name="securityQuestion"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Security Question</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Choose a security question" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {securityQuestions.map((question, index) => (
+                              <SelectItem key={index} value={question}>
+                                {question}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={profileForm.control}
+                    name="securityAnswer"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Security Answer</FormLabel>
+                        <FormControl>
+                          <Input 
+                            placeholder="Enter your answer" 
+                            {...field}
+                            type="password"
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <Button 
+                    type="submit" 
+                    className="w-full" 
+                    disabled={isUpdatingProfile}
+                  >
+                    {isUpdatingProfile ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Updating Security
+                      </>
+                    ) : (
+                      "Update Security Settings"
+                    )}
+                  </Button>
+                </form>
+              </Form>
+            </CardContent>
+          </Card>
+
+          {/* Password Settings */}
+          <Card className="md:col-span-1 lg:col-span-2">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Key className="h-5 w-5" />
+                Change Password
+              </CardTitle>
+              <CardDescription>
+                Update your account password
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Form {...passwordForm}>
+                <form onSubmit={passwordForm.handleSubmit(handlePasswordUpdate)} className="space-y-4 max-w-md">
+                  <FormField
+                    control={passwordForm.control}
+                    name="currentPassword"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Current Password</FormLabel>
+                        <FormControl>
+                          <Input type="password" placeholder="Enter current password" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={passwordForm.control}
+                    name="newPassword"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>New Password</FormLabel>
+                        <FormControl>
+                          <Input type="password" placeholder="Enter new password" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={passwordForm.control}
+                    name="confirmPassword"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Confirm New Password</FormLabel>
+                        <FormControl>
+                          <Input type="password" placeholder="Confirm new password" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <Button 
+                    type="submit" 
+                    disabled={isUpdatingPassword}
+                  >
+                    {isUpdatingPassword ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Updating Password
+                      </>
+                    ) : (
+                      "Change Password"
+                    )}
+                  </Button>
+                </form>
+              </Form>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
     </div>
   );
 }

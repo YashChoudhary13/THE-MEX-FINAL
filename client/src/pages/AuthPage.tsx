@@ -62,6 +62,7 @@ export default function AuthPage() {
   const [, navigate] = useLocation();
   const { user, loginMutation, registerMutation } = useAuth();
   const { toast } = useToast();
+  const [resetStatus, setResetStatus] = useState("");
 
   // Clear errors when switching tabs
   useEffect(() => {
@@ -135,44 +136,46 @@ export default function AuthPage() {
     });
   };
 
-  const handlePasswordReset = async (values: ResetPasswordFormValues) => {
+  const onResetPasswordSubmit = async (data: ResetPasswordFormValues) => {
     setIsResettingPassword(true);
     
-    try {
-      const response = await apiRequest("POST", "/api/password-reset/request", values);
-      
-      if (response.ok) {
-        const data = await response.json();
-        setSecurityQuestion(data.securityQuestion);
-        setCurrentUsername(values.username);
-        setResetStep('security');
-      } else {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "User not found or no security question set");
+    if (resetStep === 'username') {
+      try {
+        const response = await apiRequest("POST", "/api/password-reset/request", data);
+        
+        if (response.ok) {
+          const responseData = await response.json();
+          setSecurityQuestion(responseData.securityQuestion);
+          setCurrentUsername(data.username);
+          setResetStep('security');
+        } else {
+          const errorData = await response.json();
+          throw new Error(errorData.message || "User not found or no security question set");
+        }
+      } catch (error: any) {
+        toast({
+          title: "Reset Failed",
+          description: error.message || "Failed to process password reset request",
+          variant: "destructive",
+        });
       }
-    } catch (error: any) {
-      toast({
-        title: "Reset Failed", 
-        description: error.message || "Failed to process password reset request",
-        variant: "destructive",
-      });
-    } finally {
-      setIsResettingPassword(false);
     }
+    
+    setIsResettingPassword(false);
   };
 
-  const handleSecurityAnswer = async (values: SecurityAnswerFormValues) => {
+  const onSecurityAnswerSubmit = async (data: SecurityAnswerFormValues) => {
     setIsResettingPassword(true);
     
     try {
       const response = await apiRequest("POST", "/api/password-reset/verify", {
         username: currentUsername,
-        securityAnswer: values.securityAnswer
+        securityAnswer: data.securityAnswer
       });
       
       if (response.ok) {
-        const data = await response.json();
-        setResetToken(data.resetToken);
+        const responseData = await response.json();
+        setResetToken(responseData.resetToken);
         setResetStep('password');
       } else {
         const errorData = await response.json();
@@ -180,7 +183,7 @@ export default function AuthPage() {
       }
     } catch (error: any) {
       toast({
-        title: "Verification Failed", 
+        title: "Verification Failed",
         description: error.message || "Invalid security answer",
         variant: "destructive",
       });
@@ -189,22 +192,19 @@ export default function AuthPage() {
     }
   };
 
-  const handleNewPassword = async (values: NewPasswordFormValues) => {
+  const onNewPasswordSubmit = async (data: NewPasswordFormValues) => {
     setIsResettingPassword(true);
     
     try {
       const response = await apiRequest("POST", "/api/password-reset/reset", {
         resetToken,
-        newPassword: values.newPassword
+        newPassword: data.newPassword
       });
       
       if (response.ok) {
         setResetSuccess(true);
-        setShowResetForm(false);
-        setResetStep('username');
-        setActiveTab('login');
         toast({
-          title: "Password Reset Successful",
+          title: "Password reset requested",
           description: "Your password has been successfully updated. Please log in with your new password.",
         });
       } else {
@@ -213,8 +213,8 @@ export default function AuthPage() {
       }
     } catch (error: any) {
       toast({
-        title: "Reset Failed", 
-        description: error.message || "Failed to reset password",
+        title: "Error",
+        description: "An error occurred while processing your request",
         variant: "destructive",
       });
     } finally {
@@ -431,16 +431,16 @@ export default function AuthPage() {
                 <div className="space-y-4 w-full">
                   {resetSuccess ? (
                     <Alert className="bg-green-900/40 border-green-900 text-white">
-                      <AlertTitle>Password Reset Complete</AlertTitle>
+                      <AlertTitle>Check Your Email</AlertTitle>
                       <AlertDescription>
-                        Your password has been successfully updated. You can now sign in with your new password.
+                        If an account with this email exists, you will receive instructions to reset your password.
                       </AlertDescription>
                     </Alert>
                   ) : (
                     <>
                       {resetStep === 'username' && (
                         <Form {...resetForm}>
-                          <form onSubmit={resetForm.handleSubmit(handlePasswordReset)} className="space-y-4">
+                          <form onSubmit={resetForm.handleSubmit(onResetPasswordSubmit)} className="space-y-4">
                             <FormField
                               control={resetForm.control}
                               name="username"
@@ -474,7 +474,7 @@ export default function AuthPage() {
 
                       {resetStep === 'security' && (
                         <Form {...securityForm}>
-                          <form onSubmit={securityForm.handleSubmit(handleSecurityAnswer)} className="space-y-4">
+                          <form onSubmit={securityForm.handleSubmit(onSecurityAnswerSubmit)} className="space-y-4">
                             <div className="space-y-2">
                               <Label className="text-white">Security Question</Label>
                               <div className="p-3 bg-white/20 rounded-md text-sm text-white">
@@ -527,7 +527,7 @@ export default function AuthPage() {
 
                       {resetStep === 'password' && (
                         <Form {...passwordForm}>
-                          <form onSubmit={passwordForm.handleSubmit(handleNewPassword)} className="space-y-4">
+                          <form onSubmit={passwordForm.handleSubmit(onNewPasswordSubmit)} className="space-y-4">
                             <FormField
                               control={passwordForm.control}
                               name="newPassword"

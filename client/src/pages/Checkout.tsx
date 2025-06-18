@@ -410,7 +410,7 @@ export default function Checkout() {
                           <p className="text-muted-foreground mb-2">Thank you for your order. We'll prepare it for pickup.</p>
                           {orderData && (
                             <div className="bg-primary/10 rounded-lg p-3 mt-4">
-                              <p className="text-sm font-medium text-primary">Order Number: #{orderData.id}</p>
+                              <p className="text-sm font-medium text-primary">Order Number: #{orderData.dailyOrderNumber || orderData.id}</p>
                               <p className="text-xs text-muted-foreground">Keep this number for reference</p>
                             </div>
                           )}

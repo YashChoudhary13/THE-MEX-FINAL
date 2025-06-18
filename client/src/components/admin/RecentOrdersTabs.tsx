@@ -214,7 +214,7 @@ export default function RecentOrdersTabs() {
                           <div className="flex items-start justify-between">
                             <div className="space-y-2">
                               <div className="flex items-center gap-3">
-                                <div className="font-medium">Order #{order.id}</div>
+                                <div className="font-medium">Order #{order.dailyOrderNumber || order.id}</div>
                                 <Badge variant={order.status === 'completed' ? 'default' : 'secondary'}>
                                   {order.status}
                                 </Badge>

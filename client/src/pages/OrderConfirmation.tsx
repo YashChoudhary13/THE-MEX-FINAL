@@ -98,7 +98,7 @@ export default function OrderConfirmation() {
             <div className="bg-primary/95 text-white p-5">
               <div className="flex items-center justify-between">
                 <div>
-                  <h1 className="text-xl font-bold">ORDER #{order.id}</h1>
+                  <h1 className="text-xl font-bold">ORDER #{order.dailyOrderNumber || order.id}</h1>
                   <div className="flex items-center gap-1 text-white/80 mt-1">
                     <Clock className="h-4 w-4" />
                     <p className="text-sm">Estimated pickup: 30-45 minutes</p>

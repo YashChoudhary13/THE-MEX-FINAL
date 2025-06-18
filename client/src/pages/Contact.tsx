@@ -187,12 +187,7 @@ export default function Contact() {
             </motion.div>
             
             {/* Contact Form */}
-            <motion.div
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.5, delay: 0.2 }}
-              className="bg-card p-8 rounded-xl border border-border"
-            >
+            <div className="bg-card p-8 rounded-xl border border-border">
               <h2 className="text-3xl font-heading mb-6 text-primary">SEND US A MESSAGE</h2>
               <p className="text-muted-foreground mb-6">
                 Fill out the form below with your inquiry and we'll get back to you as soon as possible.
@@ -277,7 +272,7 @@ export default function Contact() {
                   </Button>
                 </form>
               </Form>
-            </motion.div>
+            </div>
           </div>
         </section>
         

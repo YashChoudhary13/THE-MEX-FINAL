@@ -12,8 +12,8 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Loader2, AlertCircle } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
-import { apiRequest } from "../lib/queryClient";
 import { useAuth } from "@/hooks/use-auth";
+import { apiRequest } from "../lib/queryClient";
 
 const loginSchema = z.object({
   username: z.string().min(1, "Username is required"),
@@ -47,8 +47,6 @@ type RegisterFormValues = z.infer<typeof registerSchema>;
 type ResetPasswordFormValues = z.infer<typeof resetPasswordSchema>;
 type SecurityAnswerFormValues = z.infer<typeof securityAnswerSchema>;
 type NewPasswordFormValues = z.infer<typeof newPasswordSchema>;
-
-
 
 export default function AuthPage() {
   const [activeTab, setActiveTab] = useState<string>("login");
@@ -150,7 +148,7 @@ export default function AuthPage() {
         setResetStep('security');
       } else {
         const errorData = await response.json();
-        throw new Error(errorData.message || "Failed to find security question");
+        throw new Error(errorData.message || "User not found or no security question set");
       }
     } catch (error: any) {
       toast({
@@ -201,14 +199,14 @@ export default function AuthPage() {
       });
       
       if (response.ok) {
-        toast({
-          title: "Password Reset Successful",
-          description: "Your password has been successfully updated. Please log in with your new password.",
-        });
         setResetSuccess(true);
         setShowResetForm(false);
         setResetStep('username');
         setActiveTab('login');
+        toast({
+          title: "Password Reset Successful",
+          description: "Your password has been successfully updated. Please log in with your new password.",
+        });
       } else {
         const errorData = await response.json();
         throw new Error(errorData.message || "Failed to reset password");
@@ -268,7 +266,7 @@ export default function AuthPage() {
               </CardTitle>
               <CardDescription className="text-gray-200">
                 {showResetForm 
-                  ? "Enter your username to find your security question" 
+                  ? "Follow the steps to reset your password" 
                   : "Sign in to your account or create a new one"
                 }
               </CardDescription>
@@ -589,20 +587,6 @@ export default function AuthPage() {
                       Back to Login
                     </Button>
                   </div>
-                </div>
-
-                <div className="flex justify-center">
-                  <Button
-                    variant="link"
-                    onClick={() => {
-                      setShowResetForm(false);
-                      setResetStep('username');
-                      setResetSuccess(false);
-                    }}
-                    className="text-white hover:text-gray-200"
-                  >
-                    Back to Login
-                  </Button>
                 </div>
               </CardContent>
             )}

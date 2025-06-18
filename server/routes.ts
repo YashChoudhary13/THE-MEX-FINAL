@@ -754,15 +754,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Broadcast the update to all subscribed clients
       broadcastOrderUpdate(id, updatedOrder);
       
-      // Send SMS notification when order status changes to "ready"
-      if (status === 'ready' || status === 'confirmed' || status === 'preparing') {
-        try {
-          await sendOrderStatusNotification(updatedOrder, status);
-        } catch (error) {
-          console.error('Failed to send SMS notification:', error);
-          // Continue with the response even if SMS fails
-        }
-      }
+      // SMS notifications removed
       
       res.json(updatedOrder);
     } catch (error) {
@@ -820,15 +812,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Broadcast the update to all subscribed clients
       broadcastOrderUpdate(id, updatedOrder);
       
-      // Send SMS notification when order status changes to "ready"
-      if (status === 'ready' || status === 'confirmed' || status === 'preparing') {
-        try {
-          await sendOrderStatusNotification(updatedOrder, status);
-        } catch (error) {
-          console.error('Failed to send SMS notification:', error);
-          // Continue with the response even if SMS fails
-        }
-      }
+      // SMS notifications removed
       
       console.log(`Broadcasting update for order ${id} with status ${status}`);
       

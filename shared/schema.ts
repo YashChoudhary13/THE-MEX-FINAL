@@ -24,7 +24,7 @@ export const menuItems = pgTable("menu_items", {
   description: text("description").notNull(),
   price: doublePrecision("price").notNull(),
   categoryId: integer("category_id").notNull(),
-  image: text("image").notNull(),
+  image: text("image"),
   featured: boolean("featured").default(false),
   label: text("label"), // For tags like "Healthy", "Best Seller", etc.
   rating: doublePrecision("rating").default(5.0),

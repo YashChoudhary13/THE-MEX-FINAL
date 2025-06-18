@@ -50,7 +50,12 @@ export default function MenuItemForm({
   });
 
   function handleSubmit(values: z.infer<typeof menuItemFormSchema>) {
-    onSubmit(values);
+    // Convert empty string to undefined for optional image field
+    const submitData = {
+      ...values,
+      image: values.image || undefined
+    };
+    onSubmit(submitData as InsertMenuItem);
   }
 
   return (

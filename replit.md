@@ -108,6 +108,7 @@ Changelog:
 - June 18, 2025. Fixed order number consistency across all views (success page, admin dashboard, order confirmation)
 - June 18, 2025. Restored original OrderManager functionality limited to today's orders only with real-time updates
 - June 18, 2025. Fixed checkout success page to properly display daily order numbers and maintain flow
+- June 18, 2025. Implemented optional image support for menu items - images now optional in admin forms and properly hidden when missing/broken in customer views
 ```
 
 ## User Preferences

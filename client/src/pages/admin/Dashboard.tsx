@@ -571,11 +571,7 @@ export default function AdminDashboard() {
                   </Button>
                 </div>
               )}
-              {activeTab === "specials" && (
-                <Button className="bg-primary hover:bg-primary/90" onClick={() => setIsUpdateSpecialOpen(true)}>
-                  Update Special
-                </Button>
-              )}
+
               {activeTab === "promo-codes" && (
                 <Button className="bg-primary hover:bg-primary/90" onClick={() => setIsPromoCodeOpen(true)}>
                   <Plus className="h-4 w-4 mr-2" />

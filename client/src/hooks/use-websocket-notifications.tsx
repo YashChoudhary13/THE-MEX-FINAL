@@ -19,7 +19,7 @@ interface UseWebSocketNotificationsProps {
 }
 
 export function useWebSocketNotifications({ orderId, enabled = true }: UseWebSocketNotificationsProps = {}) {
-  const { sendNotification, isNotificationsEnabled } = useNotifications();
+  const { isNotificationsEnabled } = useNotifications();
   const { toast } = useToast();
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -67,17 +67,17 @@ export function useWebSocketNotifications({ orderId, enabled = true }: UseWebSoc
                                `Your order status has been updated to: ${order.status}`;
 
                 // Send browser notification if enabled
-                if (isNotificationsEnabled) {
-                  sendNotification(
-                    `Order #${order.id} Update`,
-                    {
+                if (isNotificationsEnabled && Notification.permission === 'granted') {
+                  try {
+                    new Notification(`Order #${order.id} Update`, {
                       body: message,
                       icon: '/favicon.ico',
-                      badge: '/favicon.ico',
                       tag: `order-${order.id}`,
                       requireInteraction: true
-                    }
-                  );
+                    });
+                  } catch (error) {
+                    console.error('Error sending notification:', error);
+                  }
                 }
 
                 // Also show toast notification

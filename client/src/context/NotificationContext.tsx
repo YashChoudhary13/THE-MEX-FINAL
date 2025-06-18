@@ -9,6 +9,7 @@ type NotificationContextType = {
   checkPermission: () => Promise<NotificationPermission>;
   requestPermission: () => Promise<boolean>;
   sendNotification: (title: string, options?: NotificationOptions) => void;
+  serviceWorkerRegistration: ServiceWorkerRegistration | null;
 };
 
 export const NotificationContext = createContext<NotificationContextType | null>(null);
@@ -17,17 +18,35 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
   const [isNotificationsEnabled, setIsNotificationsEnabled] = useState(false);
   const [notificationStatus, setNotificationStatus] = useState<NotificationStatus>('default');
   const [isBrowserSupported, setIsBrowserSupported] = useState(false);
+  const [serviceWorkerRegistration, setServiceWorkerRegistration] = useState<ServiceWorkerRegistration | null>(null);
   
-  // Initialize notification state on mount
+  // Initialize notification state and service worker on mount
   useEffect(() => {
     // Check if the browser supports notifications
-    const isSupported = "Notification" in window;
+    const isSupported = "Notification" in window && "serviceWorker" in navigator;
     setIsBrowserSupported(isSupported);
     
     if (!isSupported) {
       setNotificationStatus('unsupported');
       return;
     }
+    
+    // Register service worker
+    const registerServiceWorker = async () => {
+      try {
+        const registration = await navigator.serviceWorker.register('/sw.js');
+        console.log('Service worker registered:', registration);
+        setServiceWorkerRegistration(registration);
+        
+        // Wait for service worker to be ready
+        await navigator.serviceWorker.ready;
+        console.log('Service worker is ready');
+      } catch (error) {
+        console.error('Service worker registration failed:', error);
+      }
+    };
+    
+    registerServiceWorker();
     
     // Check current permission status
     const permission = Notification.permission;
@@ -109,6 +128,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
         checkPermission,
         requestPermission,
         sendNotification,
+        serviceWorkerRegistration,
       }}
     >
       {children}

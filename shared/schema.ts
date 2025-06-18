@@ -70,6 +70,9 @@ export const orders = pgTable("orders", {
   status: text("status").notNull().default("pending"), // pending, confirmed, preparing, ready, completed, cancelled
   items: jsonb("items").notNull(), // Serialized cart items
   userId: integer("user_id"), // Optional: links to users table for authenticated orders
+  dailyOrderNumber: integer("daily_order_number"), // Daily reset order number (1, 2, 3...)
+  paymentReference: text("payment_reference"), // Stripe payment intent ID
+  completedAt: timestamp("completed_at"), // When order was marked completed
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

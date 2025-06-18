@@ -37,10 +37,13 @@ export interface IStorage {
 
   // Orders
   getOrders(): Promise<Order[]>;
+  getTodaysOrders(): Promise<Order[]>;
+  getOrdersByDateRange(startDate: string, endDate: string): Promise<Order[]>;
   getOrder(id: number): Promise<Order | undefined>;
   createOrder(order: InsertOrder): Promise<Order>;
   updateOrderStatus(id: number, status: string): Promise<Order | undefined>;
   deleteOrder(id: number): Promise<boolean>;
+  getNextDailyOrderNumber(): Promise<number>;
 
   // Users
   getUser(id: number): Promise<User | undefined>;
@@ -226,7 +229,11 @@ export class MemStorage implements IStorage {
     const order = this.orders.get(id);
     if (!order) return undefined;
     
-    const updatedOrder: Order = { ...order, status };
+    const updatedOrder: Order = { 
+      ...order, 
+      status,
+      completedAt: status === 'completed' ? new Date() : order.completedAt
+    };
     this.orders.set(id, updatedOrder);
     return updatedOrder;
   }

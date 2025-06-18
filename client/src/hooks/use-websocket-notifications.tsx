@@ -29,18 +29,18 @@ export function useWebSocketNotifications({ orderId, enabled = true }: UseWebSoc
 
     const connect = () => {
       try {
-        // Get current location details
         const host = window.location.host;
-        const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
+        const isSecure = window.location.protocol === 'https:';
+        const protocol = isSecure ? 'wss' : 'ws';
         
-        // Build WebSocket URL - no fallbacks to avoid undefined issues
-        if (!host) {
-          console.error('Cannot create WebSocket connection - no host available');
+        // Only connect if we have a valid host - no fallbacks
+        if (!host || host.includes('undefined')) {
+          console.warn('Invalid host, skipping WebSocket connection:', host);
           return;
         }
         
         const wsUrl = `${protocol}://${host}/ws`;
-        console.log('Connecting WebSocket to:', wsUrl);
+        console.log('Connecting to WebSocket:', wsUrl);
         
         const ws = new WebSocket(wsUrl);
         wsRef.current = ws;

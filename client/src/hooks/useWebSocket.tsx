@@ -12,18 +12,18 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
   const { onMessage, onConnect, onDisconnect } = options;
 
   useEffect(() => {
-    // Get current location details
     const host = window.location.host;
-    const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
+    const isSecure = window.location.protocol === 'https:';
+    const protocol = isSecure ? 'wss' : 'ws';
     
-    // Build WebSocket URL - no fallbacks to avoid undefined issues
-    if (!host) {
-      console.error('Cannot create admin WebSocket connection - no host available');
+    // Only connect if we have a valid host - no fallbacks
+    if (!host || host.includes('undefined')) {
+      console.warn('Invalid host, skipping admin WebSocket connection:', host);
       return;
     }
     
     const wsUrl = `${protocol}://${host}/ws`;
-    console.log('Connecting admin WebSocket to:', wsUrl);
+    console.log('Connecting to WebSocket:', wsUrl);
     
     const socket = new WebSocket(wsUrl);
     socketRef.current = socket;

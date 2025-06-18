@@ -1655,8 +1655,8 @@ function UpdateSpecialForm({ menuItems, onSubmit, isSubmitting }: UpdateSpecialF
     originalPrice: z.coerce.number().min(0, "Price cannot be negative"),
     specialPrice: z.coerce.number().min(0, "Price cannot be negative"),
     active: z.boolean().default(true),
-    startDate: z.date().default(new Date()),
-    endDate: z.date().nullable().optional(),
+    startDate: z.coerce.date().default(new Date()),
+    endDate: z.coerce.date().nullable().optional(),
   });
 
   const form = useForm<z.infer<typeof specialFormSchema>>({
@@ -1674,7 +1674,14 @@ function UpdateSpecialForm({ menuItems, onSubmit, isSubmitting }: UpdateSpecialF
   });
 
   function handleSubmit(values: z.infer<typeof specialFormSchema>) {
-    onSubmit(values);
+    const specialOfferData = {
+      ...values,
+      specialPrice: Number(values.specialPrice),
+      originalPrice: Number(values.originalPrice),
+      startDate: values.startDate instanceof Date ? values.startDate : new Date(values.startDate),
+      endDate: values.endDate ? (values.endDate instanceof Date ? values.endDate : new Date(values.endDate)) : null
+    };
+    onSubmit(specialOfferData);
   }
 
   const [selectedMenuItem, setSelectedMenuItem] = useState<MenuItem | null>(null);
@@ -1856,7 +1863,11 @@ function UpdateSpecialForm({ menuItems, onSubmit, isSubmitting }: UpdateSpecialF
               <FormItem>
                 <FormLabel>Start Date</FormLabel>
                 <FormControl>
-                  <Input type="date" {...field} value={field.value ? new Date(field.value).toISOString().split('T')[0] : ''} />
+                  <Input 
+                    type="date" 
+                    value={field.value ? new Date(field.value).toISOString().split('T')[0] : ''} 
+                    onChange={(e) => field.onChange(e.target.value ? new Date(e.target.value) : null)}
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -1872,8 +1883,8 @@ function UpdateSpecialForm({ menuItems, onSubmit, isSubmitting }: UpdateSpecialF
                 <FormControl>
                   <Input 
                     type="date" 
-                    {...field} 
                     value={field.value ? new Date(field.value).toISOString().split('T')[0] : ''} 
+                    onChange={(e) => field.onChange(e.target.value ? new Date(e.target.value) : null)}
                   />
                 </FormControl>
                 <FormMessage />

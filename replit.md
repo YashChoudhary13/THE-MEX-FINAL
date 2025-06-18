@@ -116,6 +116,10 @@ Changelog:
   * Replaced old "Image URL Required" field with optional image system
   * Enhanced visual editing experience with image customization options
   * Fixed backend to accept menu items without images
+- June 18, 2025. Fixed date parsing in special offers form:
+  * Updated form submission to convert date strings to proper Date objects
+  * Enhanced schema validation with z.coerce.date() for proper type conversion
+  * Resolved JavaScript Date object conversion issues in Today's Special form
 ```
 
 ## User Preferences

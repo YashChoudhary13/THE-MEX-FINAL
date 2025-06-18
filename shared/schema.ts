@@ -149,6 +149,9 @@ export const insertSpecialOfferSchema = createInsertSchema(specialOffers).pick({
   active: true,
   startDate: true,
   endDate: true,
+}).extend({
+  startDate: z.coerce.date(),
+  endDate: z.coerce.date().nullable().optional(),
 });
 
 export type InsertSpecialOffer = z.infer<typeof insertSpecialOfferSchema>;

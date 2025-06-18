@@ -49,7 +49,7 @@ export interface IStorage {
   createUser(user: InsertUser): Promise<User>;
   verifyUser(username: string, password: string): Promise<User | undefined>;
   updateUserPassword(id: number, password: string): Promise<boolean>;
-  updateUserProfile(id: number, data: {username?: string, email?: string, securityQuestion?: string, securityAnswer?: string}): Promise<boolean>;
+  updateUserProfile(id: number, data: {username?: string, email?: string}): Promise<boolean>;
   
   // Special Offers
   getSpecialOffers(): Promise<SpecialOffer[]>;
@@ -261,8 +261,6 @@ export class MemStorage implements IStorage {
       id, 
       role: user.role || 'user',
       email: user.email || null,
-      securityQuestion: user.securityQuestion || null,
-      securityAnswer: user.securityAnswer || null,
       createdAt: new Date()
     };
     this.users.set(id, newUser);
@@ -286,16 +284,11 @@ export class MemStorage implements IStorage {
     return true;
   }
   
-  async updateUserProfile(id: number, data: {username?: string, email?: string, securityQuestion?: string, securityAnswer?: string}): Promise<boolean> {
+  async updateUserProfile(id: number, data: {username?: string, email?: string}): Promise<boolean> {
     const user = this.users.get(id);
     if (!user) return false;
     
-    const updatedUser = { 
-      ...user, 
-      ...data,
-      securityQuestion: data.securityQuestion ?? user.securityQuestion ?? null,
-      securityAnswer: data.securityAnswer ?? user.securityAnswer ?? null
-    };
+    const updatedUser = { ...user, ...data };
     this.users.set(id, updatedUser);
     return true;
   }
@@ -729,7 +722,7 @@ export class DatabaseStorage implements IStorage {
     }
   }
   
-  async updateUserProfile(id: number, data: {username?: string, email?: string, securityQuestion?: string, securityAnswer?: string}): Promise<boolean> {
+  async updateUserProfile(id: number, data: {username?: string, email?: string}): Promise<boolean> {
     try {
       await db
         .update(users)

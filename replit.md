@@ -125,6 +125,12 @@ Changelog:
   * Added automatic refetch intervals (10s admin, 30s customer) for fresh data
   * Enhanced admin card with timezone-aware end date display and manual refresh button
   * Ensured no stale data caching in localStorage/sessionStorage
+- June 18, 2025. Removed customer messaging and review systems:
+  * Removed entire "Send us a message" contact form from contact page
+  * Eliminated all rating and review functionality from menu items
+  * Cleaned up database schema by removing rating and reviewCount fields
+  * Updated MenuItemCard component to show preparation time instead of ratings
+  * Simplified contact page to display only restaurant information and FAQs
 ```
 
 ## User Preferences

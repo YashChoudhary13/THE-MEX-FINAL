@@ -162,7 +162,7 @@ export default function OrderTracker({ orderId, onRefresh }: OrderTrackerProps) 
       <CardHeader className="pb-4">
         <div className="flex justify-between items-start">
           <div>
-            <CardTitle className="text-2xl">Order #{order.id}</CardTitle>
+            <CardTitle className="text-2xl">Order #{(order as any)?.dailyOrderNumber || order.id}</CardTitle>
             <CardDescription>
               Placed {formatTimeSince(order.createdAt)}
             </CardDescription>

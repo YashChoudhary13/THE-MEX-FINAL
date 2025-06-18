@@ -5,6 +5,7 @@ import { storage } from "./storage";
 import { z } from "zod";
 import { 
   insertOrderSchema, 
+  createOrderSchema,
   insertMenuItemSchema, 
   insertMenuCategorySchema, 
   insertSpecialOfferSchema,
@@ -209,7 +210,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // API Route for getting an order by ID (supports both authenticated and guest users)
+  // API Route for getting an order by ID or daily order number (supports both authenticated and guest users)
   app.get("/api/orders/:id", async (req, res) => {
     try {
       const id = parseInt(req.params.id);
@@ -218,7 +219,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Invalid order ID" });
       }
       
-      const order = await storage.getOrder(id);
+      // First try to find by database ID
+      let order = await storage.getOrder(id);
+      
+      // If not found and the ID is small (likely a daily order number), search by daily order number
+      if (!order && id < 1000) {
+        console.log(`Searching for order with daily number: ${id}`);
+        const todaysOrders = await storage.getTodaysOrders();
+        console.log(`Today's orders:`, todaysOrders.map(o => ({id: o.id, dailyOrderNumber: o.dailyOrderNumber})));
+        order = todaysOrders.find(o => o.dailyOrderNumber === id);
+        console.log(`Found order by daily number:`, order ? `Order ${order.id}` : 'Not found');
+      }
       
       if (!order) {
         return res.status(404).json({ message: "Order not found" });

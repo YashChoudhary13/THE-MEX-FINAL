@@ -1,7 +1,7 @@
 import { 
   MenuCategory, InsertMenuCategory,
   MenuItem, InsertMenuItem,
-  Order, InsertOrder,
+  Order, InsertOrder, CreateOrder,
   User, InsertUser,
   SpecialOffer, InsertSpecialOffer,
   PromoCode, InsertPromoCode,

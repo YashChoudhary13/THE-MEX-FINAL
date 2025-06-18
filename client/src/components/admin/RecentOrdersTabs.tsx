@@ -4,7 +4,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Calendar, Clock, Phone, User, CreditCard } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Calendar, Clock, Phone, User, CreditCard, ChevronLeft, ChevronRight } from "lucide-react";
 
 interface Order {
   id: number;
@@ -27,6 +28,8 @@ interface DayTab {
 
 export default function RecentOrdersTabs() {
   const [selectedTab, setSelectedTab] = useState(0);
+  const [currentPage, setCurrentPage] = useState(0);
+  const daysPerPage = 10;
   
   // Generate the last 30 days
   const last30Days = useMemo(() => {
@@ -64,6 +67,27 @@ export default function RecentOrdersTabs() {
       };
     });
   }, [allOrders, last30Days]);
+
+  // Paginated days for current view
+  const currentDays = useMemo(() => {
+    const start = currentPage * daysPerPage;
+    const end = start + daysPerPage;
+    return dayTabs.slice(start, end);
+  }, [dayTabs, currentPage, daysPerPage]);
+
+  const totalPages = Math.ceil(dayTabs.length / daysPerPage);
+  const canGoNext = currentPage < totalPages - 1;
+  const canGoPrev = currentPage > 0;
+
+  const handlePageChange = (direction: 'next' | 'prev') => {
+    if (direction === 'next' && canGoNext) {
+      setCurrentPage(prev => prev + 1);
+      setSelectedTab(0); // Reset to first tab of new page
+    } else if (direction === 'prev' && canGoPrev) {
+      setCurrentPage(prev => prev - 1);
+      setSelectedTab(0); // Reset to first tab of new page
+    }
+  };
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-IE', {
@@ -115,14 +139,43 @@ export default function RecentOrdersTabs() {
           Recent Orders (Last 30 Days)
         </CardTitle>
         <CardDescription>
-          View orders by day with complete details including customer info and payment references
+          View orders by day with complete details including customer info and payment references • Page {currentPage + 1} of {totalPages}
         </CardDescription>
       </CardHeader>
       <CardContent>
+        {/* Navigation Controls */}
+        <div className="flex items-center justify-between mb-4">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={() => handlePageChange('prev')}
+            disabled={!canGoPrev}
+            className="flex items-center gap-2"
+          >
+            <ChevronLeft className="h-4 w-4" />
+            Previous 10 Days
+          </Button>
+          
+          <div className="text-sm text-muted-foreground">
+            Showing days {currentPage * daysPerPage + 1}-{Math.min((currentPage + 1) * daysPerPage, dayTabs.length)} of {dayTabs.length}
+          </div>
+          
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={() => handlePageChange('next')}
+            disabled={!canGoNext}
+            className="flex items-center gap-2"
+          >
+            Next 10 Days
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+        </div>
+
         <Tabs value={selectedTab.toString()} onValueChange={(value) => setSelectedTab(parseInt(value))}>
           <ScrollArea className="w-full">
-            <TabsList className="grid grid-cols-7 lg:grid-cols-10 gap-1 h-auto p-1 mb-4">
-              {dayTabs.slice(0, 10).map((day, index) => (
+            <TabsList className="grid grid-cols-5 lg:grid-cols-10 gap-1 h-auto p-1 mb-4">
+              {currentDays.map((day, index) => (
                 <TabsTrigger 
                   key={day.date} 
                   value={index.toString()}
@@ -137,7 +190,7 @@ export default function RecentOrdersTabs() {
             </TabsList>
           </ScrollArea>
 
-          {dayTabs.slice(0, 10).map((day, index) => (
+          {currentDays.map((day, index) => (
             <TabsContent key={day.date} value={index.toString()} className="mt-4">
               <div className="space-y-2">
                 <div className="flex items-center justify-between">

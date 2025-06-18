@@ -24,8 +24,6 @@ const registerSchema = z.object({
   username: z.string().min(3, "Username must be at least 3 characters").max(50),
   password: z.string().min(6, "Password must be at least 6 characters"),
   email: z.string().email("Invalid email address").optional().or(z.literal('')),
-  securityQuestion: z.string().min(5, "Security question must be at least 5 characters").optional().or(z.literal('')),
-  securityAnswer: z.string().min(2, "Security answer must be at least 2 characters").optional().or(z.literal('')),
 });
 
 const resetPasswordSchema = z.object({
@@ -50,18 +48,7 @@ type ResetPasswordFormValues = z.infer<typeof resetPasswordSchema>;
 type SecurityAnswerFormValues = z.infer<typeof securityAnswerSchema>;
 type NewPasswordFormValues = z.infer<typeof newPasswordSchema>;
 
-const securityQuestions = [
-  "What was the name of your first pet?",
-  "What is your mother's maiden name?",
-  "What was the name of your first school?",
-  "What city were you born in?",
-  "What is your favorite book?",
-  "What was your childhood nickname?",
-  "What is the name of your best friend from childhood?",
-  "What was the first concert you attended?",
-  "What is your favorite movie?",
-  "What was the model of your first car?"
-];
+
 
 export default function AuthPage() {
   const [activeTab, setActiveTab] = useState<string>("login");
@@ -107,8 +94,6 @@ export default function AuthPage() {
       username: "",
       password: "",
       email: "",
-      securityQuestion: "",
-      securityAnswer: "",
     },
   });
 
@@ -283,7 +268,7 @@ export default function AuthPage() {
               </CardTitle>
               <CardDescription className="text-gray-200">
                 {showResetForm 
-                  ? "Follow the steps to reset your password" 
+                  ? "Enter your username to find your security question" 
                   : "Sign in to your account or create a new one"
                 }
               </CardDescription>
@@ -402,6 +387,19 @@ export default function AuthPage() {
                             </FormItem>
                           )}
                         />
+                        <FormField
+                          control={registerForm.control}
+                          name="email"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel className="text-white">Email (Optional)</FormLabel>
+                              <FormControl>
+                                <Input type="email" placeholder="Enter your email" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
                         <Button 
                           type="submit" 
                           className="w-full bg-white text-gray-900 hover:bg-gray-100" 
@@ -432,150 +430,166 @@ export default function AuthPage() {
               </Tabs>
             ) : (
               <CardContent className="space-y-4">
-                {resetSuccess ? (
-                  <Alert className="bg-green-900/40 border-green-900 text-white">
-                    <AlertTitle>Password Reset Complete</AlertTitle>
-                    <AlertDescription>
-                      Your password has been successfully updated. You can now sign in with your new password.
-                    </AlertDescription>
-                  </Alert>
-                ) : (
-                  <>
-                    {resetStep === 'username' && (
-                      <Form {...resetForm}>
-                        <form onSubmit={resetForm.handleSubmit(handlePasswordReset)} className="space-y-4">
-                          <FormField
-                            control={resetForm.control}
-                            name="username"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel className="text-white">Username</FormLabel>
-                                <FormControl>
-                                  <Input placeholder="Enter your username" {...field} />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                          <Button 
-                            type="submit" 
-                            className="w-full bg-white text-gray-900 hover:bg-gray-100" 
-                            disabled={isResettingPassword}
-                          >
-                            {isResettingPassword ? (
-                              <>
-                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                Finding Security Question
-                              </>
-                            ) : (
-                              "Continue"
-                            )}
-                          </Button>
-                        </form>
-                      </Form>
-                    )}
-
-                    {resetStep === 'security' && (
-                      <Form {...securityForm}>
-                        <form onSubmit={securityForm.handleSubmit(handleSecurityAnswer)} className="space-y-4">
-                          <div className="space-y-2">
-                            <Label className="text-white">Security Question</Label>
-                            <div className="p-3 bg-white/20 rounded-md text-sm text-white">
-                              {securityQuestion}
-                            </div>
-                          </div>
-                          <FormField
-                            control={securityForm.control}
-                            name="securityAnswer"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel className="text-white">Your Answer</FormLabel>
-                                <FormControl>
-                                  <Input placeholder="Enter your security answer" {...field} />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                          <div className="flex gap-2">
-                            <Button 
-                              type="button" 
-                              variant="outline" 
-                              className="flex-1"
-                              onClick={() => {
-                                setResetStep('username');
-                                securityForm.reset();
-                              }}
-                            >
-                              Back
-                            </Button>
+                <div className="space-y-4 w-full">
+                  {resetSuccess ? (
+                    <Alert className="bg-green-900/40 border-green-900 text-white">
+                      <AlertTitle>Password Reset Complete</AlertTitle>
+                      <AlertDescription>
+                        Your password has been successfully updated. You can now sign in with your new password.
+                      </AlertDescription>
+                    </Alert>
+                  ) : (
+                    <>
+                      {resetStep === 'username' && (
+                        <Form {...resetForm}>
+                          <form onSubmit={resetForm.handleSubmit(handlePasswordReset)} className="space-y-4">
+                            <FormField
+                              control={resetForm.control}
+                              name="username"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel className="text-white">Username</FormLabel>
+                                  <FormControl>
+                                    <Input placeholder="Enter your username" {...field} />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
                             <Button 
                               type="submit" 
-                              className="flex-1 bg-white text-gray-900 hover:bg-gray-100" 
+                              className="w-full bg-white text-gray-900 hover:bg-gray-100" 
                               disabled={isResettingPassword}
                             >
                               {isResettingPassword ? (
                                 <>
                                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                  Verifying
+                                  Finding Security Question
                                 </>
                               ) : (
-                                "Verify Answer"
+                                "Continue"
                               )}
                             </Button>
-                          </div>
-                        </form>
-                      </Form>
-                    )}
+                          </form>
+                        </Form>
+                      )}
 
-                    {resetStep === 'password' && (
-                      <Form {...passwordForm}>
-                        <form onSubmit={passwordForm.handleSubmit(handleNewPassword)} className="space-y-4">
-                          <FormField
-                            control={passwordForm.control}
-                            name="newPassword"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel className="text-white">New Password</FormLabel>
-                                <FormControl>
-                                  <Input type="password" placeholder="Enter new password" {...field} />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                          <FormField
-                            control={passwordForm.control}
-                            name="confirmPassword"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel className="text-white">Confirm Password</FormLabel>
-                                <FormControl>
-                                  <Input type="password" placeholder="Confirm new password" {...field} />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                          <Button 
-                            type="submit" 
-                            className="w-full bg-white text-gray-900 hover:bg-gray-100" 
-                            disabled={isResettingPassword}
-                          >
-                            {isResettingPassword ? (
-                              <>
-                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                Resetting Password
-                              </>
-                            ) : (
-                              "Reset Password"
-                            )}
-                          </Button>
-                        </form>
-                      </Form>
-                    )}
-                  </>
-                )}
+                      {resetStep === 'security' && (
+                        <Form {...securityForm}>
+                          <form onSubmit={securityForm.handleSubmit(handleSecurityAnswer)} className="space-y-4">
+                            <div className="space-y-2">
+                              <Label className="text-white">Security Question</Label>
+                              <div className="p-3 bg-white/20 rounded-md text-sm text-white">
+                                {securityQuestion}
+                              </div>
+                            </div>
+                            <FormField
+                              control={securityForm.control}
+                              name="securityAnswer"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel className="text-white">Your Answer</FormLabel>
+                                  <FormControl>
+                                    <Input placeholder="Enter your security answer" {...field} />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                            <div className="flex gap-2">
+                              <Button 
+                                type="button" 
+                                variant="outline" 
+                                className="flex-1"
+                                onClick={() => {
+                                  setResetStep('username');
+                                  securityForm.reset();
+                                }}
+                              >
+                                Back
+                              </Button>
+                              <Button 
+                                type="submit" 
+                                className="flex-1 bg-white text-gray-900 hover:bg-gray-100" 
+                                disabled={isResettingPassword}
+                              >
+                                {isResettingPassword ? (
+                                  <>
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                    Verifying
+                                  </>
+                                ) : (
+                                  "Verify Answer"
+                                )}
+                              </Button>
+                            </div>
+                          </form>
+                        </Form>
+                      )}
+
+                      {resetStep === 'password' && (
+                        <Form {...passwordForm}>
+                          <form onSubmit={passwordForm.handleSubmit(handleNewPassword)} className="space-y-4">
+                            <FormField
+                              control={passwordForm.control}
+                              name="newPassword"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel className="text-white">New Password</FormLabel>
+                                  <FormControl>
+                                    <Input type="password" placeholder="Enter new password" {...field} />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                            <FormField
+                              control={passwordForm.control}
+                              name="confirmPassword"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel className="text-white">Confirm Password</FormLabel>
+                                  <FormControl>
+                                    <Input type="password" placeholder="Confirm new password" {...field} />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                            <Button 
+                              type="submit" 
+                              className="w-full bg-white text-gray-900 hover:bg-gray-100" 
+                              disabled={isResettingPassword}
+                            >
+                              {isResettingPassword ? (
+                                <>
+                                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                  Resetting Password
+                                </>
+                              ) : (
+                                "Reset Password"
+                              )}
+                            </Button>
+                          </form>
+                        </Form>
+                      )}
+                    </>
+                  )}
+
+                  <div className="flex justify-center">
+                    <Button
+                      variant="link"
+                      onClick={() => {
+                        setShowResetForm(false);
+                        setResetStep('username');
+                        setResetSuccess(false);
+                      }}
+                      className="text-white hover:text-gray-200"
+                    >
+                      Back to Login
+                    </Button>
+                  </div>
+                </div>
 
                 <div className="flex justify-center">
                   <Button

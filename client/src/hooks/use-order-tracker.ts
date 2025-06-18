@@ -47,18 +47,18 @@ export function useOrderTracker(orderId: number) {
     // Only connect if we have an order ID
     if (!orderId) return;
     
-    // Build WebSocket URL dynamically from current location
-    const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
+    // Get current location details
     const host = window.location.host;
+    const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
     
-    // Validate host before proceeding
-    if (!host || host.includes('undefined')) {
-      console.error('Cannot create order tracker WebSocket connection - invalid host:', host);
+    // Build WebSocket URL - no fallbacks to avoid undefined issues
+    if (!host) {
+      console.error('Cannot create order tracker WebSocket connection - no host available');
       return;
     }
     
     const wsUrl = `${protocol}://${host}/ws`;
-    console.log('Attempting order tracker WebSocket connection to:', wsUrl);
+    console.log('Connecting order tracker WebSocket to:', wsUrl);
     
     // Create WebSocket connection
     const newSocket = new WebSocket(wsUrl);

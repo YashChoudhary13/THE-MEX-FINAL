@@ -29,18 +29,18 @@ export function useWebSocketNotifications({ orderId, enabled = true }: UseWebSoc
 
     const connect = () => {
       try {
-        // Build WebSocket URL dynamically from current location
-        const protocol = window.location.protocol === "https:" ? "wss" : "ws";
+        // Get current location details
         const host = window.location.host;
+        const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
         
-        // Validate host before proceeding
-        if (!host || host.includes('undefined')) {
-          console.error('Cannot create WebSocket connection - invalid host:', host);
+        // Build WebSocket URL - no fallbacks to avoid undefined issues
+        if (!host) {
+          console.error('Cannot create WebSocket connection - no host available');
           return;
         }
         
         const wsUrl = `${protocol}://${host}/ws`;
-        console.log('Attempting WebSocket connection to:', wsUrl);
+        console.log('Connecting WebSocket to:', wsUrl);
         
         const ws = new WebSocket(wsUrl);
         wsRef.current = ws;
@@ -120,7 +120,7 @@ export function useWebSocketNotifications({ orderId, enabled = true }: UseWebSoc
         };
 
       } catch (error) {
-        console.error('Failed to connect to WebSocket:', error);
+        console.error('Failed to create WebSocket connection:', error);
         
         // Retry connection after 5 seconds
         if (enabled) {

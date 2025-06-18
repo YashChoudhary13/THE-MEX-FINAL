@@ -182,6 +182,7 @@ export class MemStorage implements IStorage {
       calories: item.calories || null,
       allergens: item.allergens || null,
       dietaryInfo: item.dietaryInfo || null,
+      image: item.image || null,
       prepTime: item.prepTime ?? 15
     };
     this.menuItems.set(id, newItem);

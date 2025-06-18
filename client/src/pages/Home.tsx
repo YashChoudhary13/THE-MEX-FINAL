@@ -221,6 +221,14 @@ export default function Home() {
                       src="https://images.unsplash.com/photo-1629203432180-71e9b18d33f3?auto=format&fit=crop&w=120" 
                       alt="Drinks" 
                       className="w-10 h-10 sm:w-12 sm:h-12 lg:w-16 lg:h-16 rounded-md sm:rounded-lg object-cover"
+                      onError={(e) => {
+                        // Hide the entire image container if image fails to load
+                        const target = e.target as HTMLImageElement;
+                        const container = target.closest('.absolute') as HTMLElement;
+                        if (container) {
+                          container.style.display = 'none';
+                        }
+                      }}
                     />
                     <div>
                       <p className="font-bold text-sm sm:text-base">Fresh Drinks</p>

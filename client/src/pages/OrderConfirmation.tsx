@@ -9,6 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Order } from "@shared/schema";
 import { useNotifications } from "@/context/NotificationContext";
 import { useToast } from "@/hooks/use-toast";
+import { useWebSocketNotifications } from "@/hooks/use-websocket-notifications";
 
 export default function OrderConfirmation() {
   const { id } = useParams();
@@ -23,6 +24,9 @@ export default function OrderConfirmation() {
   } = useNotifications();
   
   const orderId = parseInt(id || "0");
+  
+  // Enable WebSocket notifications for this specific order
+  useWebSocketNotifications({ orderId, enabled: true });
   
   // Scroll to top when component mounts
   useEffect(() => {

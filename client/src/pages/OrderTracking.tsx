@@ -11,6 +11,7 @@ import OrderTracker from '@/components/OrderTracker';
 import Footer from '@/components/Footer';
 import Header from '@/components/Header';
 import { ArrowLeft } from 'lucide-react';
+import { useWebSocketNotifications } from '@/hooks/use-websocket-notifications';
 
 // Form validation schema
 const trackingSchema = z.object({
@@ -26,6 +27,9 @@ export default function OrderTracking() {
   
   // State to track whether we're showing the form or the tracker
   const [trackingOrderId, setTrackingOrderId] = useState<number | null>(orderId);
+  
+  // Enable WebSocket notifications for this specific order
+  useWebSocketNotifications({ orderId: trackingOrderId || undefined, enabled: !!trackingOrderId });
   
   // Make sure we only pass non-null orderId to the OrderTracker component
   

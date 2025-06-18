@@ -27,6 +27,9 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 // Map to keep track of admin WebSocket connections
 const adminSocketConnections = new Set<WebSocket>();
 
+// Map to keep track of customer WebSocket connections by order ID
+const customerSocketConnections = new Map<number, Set<WebSocket>>();
+
 // Function to broadcast updates to all connected admin clients
 function broadcastToAdmins(message: any) {
   const messageStr = JSON.stringify(message);
@@ -37,13 +40,33 @@ function broadcastToAdmins(message: any) {
   });
 }
 
-// Function to broadcast order updates to admin panel
+// Function to broadcast updates to customers tracking specific orders
+function broadcastToCustomers(orderId: number, message: any) {
+  const messageStr = JSON.stringify(message);
+  const customerConnections = customerSocketConnections.get(orderId);
+  
+  if (customerConnections) {
+    customerConnections.forEach(client => {
+      if (client.readyState === WebSocket.OPEN) {
+        client.send(messageStr);
+      }
+    });
+  }
+}
+
+// Function to broadcast order updates to both admin panel and customers
 function broadcastOrderUpdate(orderId: number, orderData: any) {
-  broadcastToAdmins({
+  const updateMessage = {
     type: 'ORDER_UPDATE',
     orderId,
     order: orderData
-  });
+  };
+  
+  // Send to admins
+  broadcastToAdmins(updateMessage);
+  
+  // Send to customers tracking this order
+  broadcastToCustomers(orderId, updateMessage);
 }
 
 // Function to broadcast new orders to admin panel

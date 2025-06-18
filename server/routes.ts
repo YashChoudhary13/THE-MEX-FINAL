@@ -170,6 +170,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Validate request body
       const orderData = insertOrderSchema.parse(req.body);
       
+      console.log("📝 Creating order with data:", orderData);
+      
       // Add user ID to order if authenticated
       if (req.user && req.isAuthenticated()) {
         orderData.userId = req.user.id;
@@ -177,6 +179,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Create the order
       const order = await storage.createOrder(orderData);
+      console.log("✅ Order created:", order);
+      
+      // If a promo code was used, increment its usage count
+      if (orderData.promoCode) {
+        console.log("🎯 Order used promo code:", orderData.promoCode);
+        const promoCodeRecord = await storage.getPromoCodeByCode(orderData.promoCode);
+        
+        if (promoCodeRecord) {
+          await storage.incrementPromoCodeUsage(promoCodeRecord.id);
+          console.log("✅ Incremented usage for promo code:", orderData.promoCode, "ID:", promoCodeRecord.id);
+        } else {
+          console.log("⚠️ Promo code not found during usage increment:", orderData.promoCode);
+        }
+      }
       
       // Broadcast new order to admin panel
       broadcastNewOrder(order);
@@ -854,9 +870,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Process dates if they exist, similar to create endpoint
       const processedData = {
         ...req.body,
-        startDate: req.body.startDate ? new Date(req.body.startDate) : undefined,
-        endDate: req.body.endDate ? new Date(req.body.endDate) : undefined,
-        minOrderValue: req.body.minOrderValue || 0,
+        startDate: req.body.startDate ? (typeof req.body.startDate === 'string' ? new Date(req.body.startDate + 'T00:00:00') : new Date(req.body.startDate)) : undefined,
+        endDate: req.body.endDate ? (typeof req.body.endDate === 'string' ? new Date(req.body.endDate + 'T23:59:59') : new Date(req.body.endDate)) : undefined,
+        minOrderValue: Number(req.body.minOrderValue) || 0,
+        usageLimit: req.body.usageLimit ? Number(req.body.usageLimit) : null,
+        discountValue: Number(req.body.discountValue),
       };
       
       // Remove undefined values to avoid database issues

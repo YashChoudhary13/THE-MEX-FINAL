@@ -84,6 +84,7 @@ export const orders = pgTable("orders", {
   dailyOrderNumber: integer("daily_order_number").notNull(), // Daily reset order number (1, 2, 3...)
   paymentReference: text("payment_reference"), // Stripe payment intent ID
   completedAt: timestamp("completed_at"), // When order was marked completed
+  promoCode: text("promo_code"), // Applied promo code
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -102,6 +103,7 @@ export const insertOrderSchema = createInsertSchema(orders).pick({
   dailyOrderNumber: true,
   paymentReference: true,
   completedAt: true,
+  promoCode: true,
 });
 
 export type InsertOrder = z.infer<typeof insertOrderSchema>;

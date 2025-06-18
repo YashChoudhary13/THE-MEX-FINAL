@@ -88,11 +88,13 @@ export function PromoCodeForm({ promoCode, onSubmit, isSubmitting }: PromoCodeFo
     const endDateTime = new Date(values.endDate + 'T23:59:59');
     
     const formattedValues = {
-      ...values,
-      minOrderValue: Number(values.minOrderValue) || 0,
-      usageLimit: Number(values.usageLimit) || null,
+      code: values.code,
+      discountType: values.discountType,
       discountValue: Number(values.discountValue),
-      endDate: endDateTime,
+      minOrderValue: Number(values.minOrderValue) || 0,
+      usageLimit: Number(values.usageLimit),
+      endDate: values.endDate, // Keep as string for form submission
+      active: values.active,
     };
     
     console.log("📝 Submitting promo code form with data:", formattedValues);

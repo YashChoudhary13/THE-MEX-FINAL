@@ -1027,6 +1027,18 @@ export default function AdminDashboard() {
                             </tbody>
                           </table>
                         </div>
+                        <div className="flex justify-end mt-4 p-4 border-t">
+                          <Button 
+                            className="bg-primary hover:bg-primary/90"
+                            onClick={() => {
+                              setSelectedPromoCode(null); // Clear any selected promo code
+                              setIsPromoCodeOpen(true);
+                            }}
+                          >
+                            <Plus className="h-4 w-4 mr-2" />
+                            Add Promo Code
+                          </Button>
+                        </div>
                       </div>
                     )}
                   </CardContent>
@@ -1184,7 +1196,13 @@ export default function AdminDashboard() {
         </Dialog>
         
         {/* Create/Edit Promo Code Dialog */}
-        <Dialog open={isPromoCodeOpen} onOpenChange={setIsPromoCodeOpen}>
+        <Dialog open={isPromoCodeOpen} onOpenChange={(open) => {
+          setIsPromoCodeOpen(open);
+          if (!open) {
+            // Clear selected promo code when dialog closes
+            setSelectedPromoCode(null);
+          }
+        }}>
           <DialogContent className="sm:max-w-md">
             <DialogHeader>
               <DialogTitle>{selectedPromoCode ? "Edit Promo Code" : "Create Promo Code"}</DialogTitle>

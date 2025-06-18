@@ -15,7 +15,7 @@ const menuItemFormSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
   description: z.string().min(5, "Description must be at least 5 characters"),
   price: z.coerce.number().positive("Price must be a positive number"),
-  image: z.string().default(""),
+  image: z.string().optional(),
   categoryId: z.coerce.number().positive("Please select a category"),
   featured: z.boolean().default(false),
   prepTime: z.coerce.number().int().min(1, "Prep time must be at least 1 minute").max(60, "Prep time should not exceed 60 minutes").default(15),

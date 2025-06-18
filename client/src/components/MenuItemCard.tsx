@@ -152,37 +152,38 @@ export default function MenuItemCard({ item }: MenuItemCardProps) {
           
           {/* Content area */}
           <div className="px-4 pt-4 pb-24 h-[calc(75vh-58px-68px)] overflow-y-auto no-scrollbar">
-            {/* Image section */}
-            <div className="relative w-full h-48 rounded-lg overflow-hidden mb-4">
-              {item.image ? (
+            {/* Image section - only render if image exists and loads successfully */}
+            {item.image && (
+              <div className="relative w-full h-48 rounded-lg overflow-hidden mb-4">
                 <img 
                   src={item.image} 
                   alt={item.name} 
                   className="w-full h-full object-cover"
                   loading="eager"
+                  onError={(e) => {
+                    // Hide the entire image container if image fails to load
+                    const target = e.target as HTMLImageElement;
+                    const container = target.closest('.relative') as HTMLElement;
+                    if (container) {
+                      container.style.display = 'none';
+                    }
+                  }}
                 />
-              ) : (
-                <div className="w-full h-full bg-muted flex items-center justify-center">
-                  <div className="text-center text-muted-foreground">
-                    <div className="text-6xl mb-2">🍽️</div>
-                    <div className="text-sm">No Image Available</div>
+                
+                {/* Labels */}
+                {item.label && (
+                  <div className="absolute top-4 left-4 bg-primary text-white px-3 py-1 rounded-full text-xs font-menu font-medium shadow-md flex items-center">
+                    <Flame className="h-3 w-3 mr-1" />
+                    {item.label.toUpperCase()}
                   </div>
+                )}
+                
+                {/* Price badge */}
+                <div className="absolute bottom-4 right-4 bg-card/80 backdrop-blur-sm text-primary px-3 py-1 rounded-full text-sm font-bold shadow-md">
+                  ${item.price.toFixed(2)}
                 </div>
-              )}
-              
-              {/* Labels */}
-              {item.label && (
-                <div className="absolute top-4 left-4 bg-primary text-white px-3 py-1 rounded-full text-xs font-menu font-medium shadow-md flex items-center">
-                  <Flame className="h-3 w-3 mr-1" />
-                  {item.label.toUpperCase()}
-                </div>
-              )}
-              
-              {/* Price badge */}
-              <div className="absolute bottom-4 right-4 bg-card/80 backdrop-blur-sm text-primary px-3 py-1 rounded-full text-sm font-bold shadow-md">
-                ${item.price.toFixed(2)}
               </div>
-            </div>
+            )}
             
             {/* Description */}
             <div className="mb-6">

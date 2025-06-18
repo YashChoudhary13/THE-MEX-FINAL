@@ -101,6 +101,7 @@ export default function TodaysSpecialManager({ menuItems }: TodaysSpecialManager
       setTimeout(() => {
         queryClient.refetchQueries({ queryKey: ["/api/special-offer"] });
         queryClient.refetchQueries({ queryKey: ["/api/admin/special-offer-stats"] });
+        queryClient.refetchQueries({ queryKey: ["/api/menu-items"] });
       }, 500);
       
       setIsDialogOpen(false);

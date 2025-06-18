@@ -4,8 +4,11 @@ import { motion } from "framer-motion";
 import { MenuCategory, MenuItem } from "@shared/schema";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
-import { Search, Filter, ChevronDown, Bookmark, Flame, AlertCircle } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Search, Filter, ChevronDown, Bookmark, Flame, AlertCircle, ShoppingBag, Info, Clock } from "lucide-react";
 import MenuItemCard from "./MenuItemCard";
+import { useCart } from "@/context/CartContext";
+import { useToast } from "@/hooks/use-toast";
 
 interface MenuContentProps {
   activeCategory: string | null;
@@ -16,6 +19,8 @@ export default function MenuContent({ activeCategory, searchQuery }: MenuContent
   const [filteredItems, setFilteredItems] = useState<MenuItem[]>([]);
   const [sortBy, setSortBy] = useState<'popular' | 'price-low' | 'price-high'>('popular');
   const [showFilters, setShowFilters] = useState(false);
+  const { addToCart } = useCart();
+  const { toast } = useToast();
 
   // Fetch categories and menu items
   const { data: categories } = useQuery<MenuCategory[]>({
@@ -24,6 +29,13 @@ export default function MenuContent({ activeCategory, searchQuery }: MenuContent
 
   const { data: menuItems, isLoading: menuItemsLoading } = useQuery<MenuItem[]>({
     queryKey: ["/api/menu-items"],
+    refetchInterval: 30000, // Regular updates for pricing changes
+  });
+
+  // Fetch current special offer for real-time updates
+  const { data: specialOffer } = useQuery({
+    queryKey: ["/api/special-offer"],
+    refetchInterval: 15000,
   });
 
   // Group items by category and apply filters

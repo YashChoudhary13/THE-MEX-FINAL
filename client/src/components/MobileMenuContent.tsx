@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import { MenuCategory, MenuItem, CartItem } from "@shared/schema";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Badge } from "@/components/ui/badge";
 import { Flame } from "lucide-react";
 import MenuItemCard from "./MenuItemCard";
 import { useCart } from "@/context/CartContext";
@@ -18,20 +19,37 @@ export default function MobileMenuContent({ activeCategory, searchQuery }: Mobil
   const { addToCart } = useCart();
   const { toast } = useToast();
   
-  // Special item for "Today's Special" section
-  const todaysSpecial = {
-    name: "Double Smash Burger",
-    price: 14.99,
-    originalPrice: 17.99,
-    image: "https://images.unsplash.com/photo-1594212699903-ec8a3eca50f5?auto=format&fit=crop&w=800",
-    label: "CHEF'S CHOICE",
-    description: "Two smashed beef patties, melted cheese, caramelized onions, special sauce, crispy pickles",
-    menuItem: {
-      id: 1, // Use a fixed ID for the special
-      name: "Double Smash Burger",
-      image: "https://images.unsplash.com/photo-1594212699903-ec8a3eca50f5?auto=format&fit=crop&w=800"
-    }
+  // Fetch current special offer for real-time display
+  const { data: specialOffer } = useQuery<{
+    menuItem: MenuItem;
+    discountValue?: number;
+    discountAmount?: number;
+    specialPrice?: number;
+    endDate: string;
+  } | null>({
+    queryKey: ["/api/special-offer"],
+    refetchInterval: 15000,
+  });
+
+  // Format currency helper
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('en-IE', {
+      style: 'currency',
+      currency: 'EUR',
+    }).format(amount);
   };
+
+  // Format special offer data for display
+  const todaysSpecial = specialOffer ? {
+    name: (specialOffer as any).menuItem.name,
+    description: (specialOffer as any).menuItem.description,
+    price: (specialOffer as any).specialPrice || ((specialOffer as any).menuItem.price - ((specialOffer as any).discountValue || 0)),
+    originalPrice: (specialOffer as any).menuItem.price,
+    image: (specialOffer as any).menuItem.image || "https://images.unsplash.com/photo-1594212699903-ec8a3eca50f5?auto=format&fit=crop&w=800",
+    label: "SPECIAL OFFER",
+    menuItem: (specialOffer as any).menuItem,
+    savings: (specialOffer as any).discountValue || (specialOffer as any).discountAmount || 0
+  } : null;
 
   // Fetch categories and menu items
   const { data: categories } = useQuery<MenuCategory[]>({
@@ -40,6 +58,7 @@ export default function MobileMenuContent({ activeCategory, searchQuery }: Mobil
 
   const { data: menuItems, isLoading: menuItemsLoading } = useQuery<MenuItem[]>({
     queryKey: ["/api/menu-items"],
+    refetchInterval: 30000,
   });
 
   // Apply filters

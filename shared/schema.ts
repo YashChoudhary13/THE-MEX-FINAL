@@ -52,7 +52,7 @@ export const insertMenuItemSchema = createInsertSchema(menuItems).pick({
   dietaryInfo: true,
   prepTime: true,
 }).extend({
-  image: z.string().optional(),
+  image: z.string().optional().or(z.literal("")),
 });
 
 export type InsertMenuItem = z.infer<typeof insertMenuItemSchema>;

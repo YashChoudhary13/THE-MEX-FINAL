@@ -732,11 +732,21 @@ export default function AdminDashboard() {
                           <tr key={item.id} className="border-t">
                             <td className="py-3 px-4">
                               <div className="w-12 h-12 rounded-md overflow-hidden bg-muted">
-                                <img 
-                                  src={item.image} 
-                                  alt={item.name} 
-                                  className="w-full h-full object-cover"
-                                />
+                                {item.image ? (
+                                  <img 
+                                    src={item.image} 
+                                    alt={item.name} 
+                                    className="w-full h-full object-cover"
+                                    onError={(e) => {
+                                      const target = e.target as HTMLImageElement;
+                                      target.style.display = 'none';
+                                    }}
+                                  />
+                                ) : (
+                                  <div className="w-full h-full flex items-center justify-center text-xs text-muted-foreground">
+                                    No Image
+                                  </div>
+                                )}
                               </div>
                             </td>
                             <td className="py-3 px-4">
@@ -1396,7 +1406,7 @@ function EditMenuItemForm({ categories, menuItem, onSubmit, isSubmitting }: Edit
       name: menuItem.name,
       description: menuItem.description,
       price: menuItem.price,
-      image: menuItem.image,
+      image: menuItem.image || "",
       categoryId: menuItem.categoryId,
       featured: menuItem.featured ?? false,
       prepTime: menuItem.prepTime || 15,
@@ -1712,11 +1722,21 @@ function UpdateSpecialForm({ menuItems, onSubmit, isSubmitting }: UpdateSpecialF
           <div className="border rounded-md p-3 bg-muted/20">
             <div className="flex gap-3 items-center">
               <div className="w-16 h-16 rounded overflow-hidden bg-muted">
-                <img 
-                  src={selectedMenuItem.image} 
-                  alt={selectedMenuItem.name} 
-                  className="w-full h-full object-cover"
-                />
+                {selectedMenuItem.image ? (
+                  <img 
+                    src={selectedMenuItem.image} 
+                    alt={selectedMenuItem.name} 
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      const target = e.target as HTMLImageElement;
+                      target.style.display = 'none';
+                    }}
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-xs text-muted-foreground">
+                    No Image
+                  </div>
+                )}
               </div>
               <div>
                 <h4 className="font-medium">{selectedMenuItem.name}</h4>

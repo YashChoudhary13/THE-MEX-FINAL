@@ -674,9 +674,7 @@ export default function AdminDashboard() {
             )}
             
             {activeTab === "orders" && (
-              <div className="p-6 bg-card rounded-lg">
-                <OrderManager />
-              </div>
+              <TodayOrderManager />
             )}
             
             {activeTab === "menu" && (

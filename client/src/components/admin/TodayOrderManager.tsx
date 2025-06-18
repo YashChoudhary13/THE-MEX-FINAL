@@ -56,15 +56,9 @@ export default function TodayOrderManager() {
   // Fetch today's orders only
   const { data: todaysOrders = [], isLoading, error, refetch } = useQuery<Order[]>({
     queryKey: ['/api/admin/orders/today'],
-    refetchInterval: 5000, // auto refresh every 5 seconds
+    refetchInterval: 5000,
     retry: 3,
     staleTime: 1000,
-    onSuccess: (data) => {
-      console.log('Today orders loaded:', data);
-    },
-    onError: (err) => {
-      console.error('Today orders query error:', err);
-    }
   });
 
   // Update order status mutation
@@ -172,15 +166,13 @@ export default function TodayOrderManager() {
     );
   }
 
-  console.log('TodayOrderManager render:', { todaysOrders, isLoading, error });
-
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold">Today's Orders</h2>
           <p className="text-muted-foreground">
-            Manage orders placed today • {todaysOrders?.length || 0} total orders
+            Manage orders placed today • {todaysOrders.length} total orders
           </p>
         </div>
         <Button onClick={() => refetch()} variant="outline" size="sm" disabled={isLoading}>
@@ -211,7 +203,7 @@ export default function TodayOrderManager() {
           ) : (
             <ScrollArea className="h-[600px]">
               <div className="space-y-4">
-                {todaysOrders.map((order) => (
+                {(todaysOrders as Order[]).map((order: Order) => (
                   <div key={order.id} className="border rounded-lg p-4 space-y-4">
                     <div className="flex items-start justify-between">
                       <div className="space-y-2">

@@ -84,9 +84,10 @@ export default function AdminDashboard() {
     queryKey: ["/api/admin/orders"],
   });
 
-  // Fetch current special offer
+  // Fetch current special offer with real-time updates
   const { data: specialOffer, isLoading: specialOfferLoading } = useQuery<any>({
     queryKey: ["/api/special-offer"],
+    refetchInterval: 10000, // Admin gets faster updates
   });
   
   // Fetch system settings
@@ -681,14 +682,14 @@ export default function AdminDashboard() {
                           <h3 className="font-medium">{specialOffer.menuItem.name}</h3>
                           <div className="flex justify-between items-center">
                             <p className="text-lg font-bold text-primary">
-                              €{(specialOffer.menuItem.price - specialOffer.discountAmount).toFixed(2)}
+                              €{(specialOffer.specialPrice || (specialOffer.menuItem.price - (specialOffer.discountValue || specialOffer.discountAmount || 0))).toFixed(2)}
                             </p>
                             <p className="text-sm line-through text-muted-foreground">
                               €{specialOffer.menuItem.price.toFixed(2)}
                             </p>
                           </div>
                           <p className="text-sm text-muted-foreground">
-                            Active until {new Date(specialOffer.endDate).toLocaleDateString('en-IE', { timeZone: 'Europe/Dublin' })}
+                            Active until {specialOffer.endDate ? new Date(specialOffer.endDate).toLocaleDateString('en-IE', { timeZone: 'Europe/Dublin' }) : 'End of day'}
                           </p>
                         </div>
                       ) : (
@@ -1139,7 +1140,7 @@ export default function AdminDashboard() {
         
         {/* Add Menu Item Dialog */}
         <Dialog open={isAddMenuItemOpen} onOpenChange={setIsAddMenuItemOpen}>
-          <DialogContent className="sm:max-w-md">
+          <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Add New Menu Item</DialogTitle>
               <DialogDescription>
@@ -1156,7 +1157,7 @@ export default function AdminDashboard() {
         
         {/* Edit Menu Item Dialog */}
         <Dialog open={isEditMenuItemOpen} onOpenChange={setIsEditMenuItemOpen}>
-          <DialogContent className="sm:max-w-md">
+          <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Edit Menu Item</DialogTitle>
               <DialogDescription>
@@ -1176,7 +1177,7 @@ export default function AdminDashboard() {
         
         {/* Add Category Dialog */}
         <Dialog open={isAddCategoryOpen} onOpenChange={setIsAddCategoryOpen}>
-          <DialogContent className="sm:max-w-md">
+          <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Add New Category</DialogTitle>
               <DialogDescription>
@@ -1192,7 +1193,7 @@ export default function AdminDashboard() {
         
         {/* Update Special Offer Dialog */}
         <Dialog open={isUpdateSpecialOpen} onOpenChange={setIsUpdateSpecialOpen}>
-          <DialogContent className="sm:max-w-md">
+          <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Update Today's Special</DialogTitle>
               <DialogDescription>
@@ -1215,7 +1216,7 @@ export default function AdminDashboard() {
             setSelectedPromoCode(null);
           }
         }}>
-          <DialogContent className="sm:max-w-md">
+          <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>{selectedPromoCode ? "Edit Promo Code" : "Create Promo Code"}</DialogTitle>
               <DialogDescription>
@@ -1241,7 +1242,7 @@ export default function AdminDashboard() {
         
         {/* System Settings Dialog */}
         <Dialog open={isSettingsOpen} onOpenChange={setIsSettingsOpen}>
-          <DialogContent className="sm:max-w-md">
+          <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Update System Settings</DialogTitle>
               <DialogDescription>

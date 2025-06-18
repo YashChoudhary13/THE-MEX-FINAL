@@ -54,15 +54,15 @@ export default function TodaysSpecialManager({ menuItems }: TodaysSpecialManager
     refetchInterval: 10000, // Refetch every 10 seconds for admin
   });
 
-  // Fetch special offer statistics
+  // Fetch special offer statistics - only when there's an active special
   const { data: specialStats } = useQuery<{
     ordersToday: number;
     revenueToday: number;
     totalSavings: number;
   }>({
     queryKey: ["/api/admin/special-offer-stats"],
-    enabled: !!specialOffer,
-    refetchInterval: 30000, // Refetch stats every 30 seconds
+    enabled: !!specialOffer && !!(specialOffer as any)?.menuItem,
+    refetchInterval: 15000, // Refetch stats every 15 seconds for real-time updates
   });
 
   // Set default end date to tomorrow
@@ -82,19 +82,21 @@ export default function TodaysSpecialManager({ menuItems }: TodaysSpecialManager
       return response.json();
     },
     onSuccess: () => {
-      // Invalidate all related queries for immediate update
+      // Invalidate all related queries for immediate update across all views
       queryClient.invalidateQueries({ queryKey: ["/api/special-offer"] });
       queryClient.invalidateQueries({ queryKey: ["/api/admin/special-offers"] });
       queryClient.invalidateQueries({ queryKey: ["/api/menu-items"] });
       queryClient.invalidateQueries({ queryKey: ["/api/admin/special-offer-stats"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/orders"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/orders/today"] });
       
-      // Force immediate refetch
+      // Force immediate refetch of special offer
       refetchSpecial();
       
       setIsDialogOpen(false);
       toast({
         title: "Special offer updated",
-        description: "Today's special has been updated successfully",
+        description: "Today's special has been updated across all views",
       });
     },
     onError: (error: any) => {
@@ -298,7 +300,7 @@ export default function TodaysSpecialManager({ menuItems }: TodaysSpecialManager
 
       {/* Update Special Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Update Today's Special</DialogTitle>
             <DialogDescription>

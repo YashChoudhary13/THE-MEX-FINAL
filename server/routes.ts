@@ -1166,21 +1166,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.json({ ordersToday: 0, revenueToday: 0, totalSavings: 0 });
       }
 
+      // Get today's orders and filter for orders containing the special item
       const todaysOrders = await storage.getTodaysOrders();
-      const specialOrders = todaysOrders.filter(order =>
-        order.items.some(item => item.menuItemId === specialOffer.menuItemId)
-      );
+      
+      // Filter orders that were placed AFTER the special offer started
+      const specialStartTime = new Date(specialOffer.startDate || new Date()).getTime();
+      const relevantOrders = todaysOrders.filter(order => {
+        const orderTime = new Date(order.createdAt).getTime();
+        return orderTime >= specialStartTime && 
+               (order.items as any[])?.some((item: any) => item.menuItemId === specialOffer.menuItemId);
+      });
 
       let ordersToday = 0;
       let revenueToday = 0;
       let totalSavings = 0;
 
-      specialOrders.forEach(order => {
-        const specialItems = order.items.filter(item => item.menuItemId === specialOffer.menuItemId);
-        specialItems.forEach(item => {
-          ordersToday += item.quantity;
-          revenueToday += item.price * item.quantity;
-          totalSavings += ((specialOffer as any).discountValue || (specialOffer as any).discountAmount || 0) * item.quantity;
+      relevantOrders.forEach(order => {
+        const specialItems = (order.items as any[])?.filter((item: any) => item.menuItemId === specialOffer.menuItemId) || [];
+        specialItems.forEach((item: any) => {
+          ordersToday += item.quantity || 0;
+          revenueToday += (item.price || 0) * (item.quantity || 0);
+          totalSavings += ((specialOffer as any).discountValue || (specialOffer as any).discountAmount || 0) * (item.quantity || 0);
         });
       });
 
@@ -1194,6 +1200,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/admin/special-offers', isAdmin, async (req, res) => {
     try {
       const specialOffer = await storage.createSpecialOffer(req.body);
+      
+      // Broadcast special offer update to all connected clients
+      broadcastToAdmins({
+        type: 'SPECIAL_OFFER_UPDATE',
+        specialOffer: await storage.getActiveSpecialOffer(),
+        timestamp: new Date().toISOString()
+      });
+      
       res.status(201).json(specialOffer);
     } catch (error) {
       console.error('Error creating special offer:', error);
@@ -1204,6 +1218,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/admin/special-offers/deactivate-all', isAdmin, async (req, res) => {
     try {
       await storage.deactivateAllSpecialOffers();
+      
+      // Broadcast deactivation to all connected clients
+      broadcastToAdmins({
+        type: 'SPECIAL_OFFER_DEACTIVATED',
+        timestamp: new Date().toISOString()
+      });
+      
       res.json({ message: 'All special offers deactivated successfully' });
     } catch (error) {
       console.error('Error deactivating special offers:', error);

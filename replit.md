@@ -131,6 +131,13 @@ Changelog:
   * Cleaned up database schema by removing rating and reviewCount fields
   * Updated MenuItemCard component to show preparation time instead of ratings
   * Simplified contact page to display only restaurant information and FAQs
+- June 18, 2025. Comprehensive Today's Special system fixes:
+  * Fixed all modal dialogs with proper viewport sizing and scroll behavior
+  * Implemented real-time special offer updates across all customer and admin views
+  * Enhanced MenuItemCard to display current special pricing with savings badges
+  * Added dynamic statistics calculation based on actual order data since special activation
+  * Improved WebSocket broadcasting for immediate updates when specials change
+  * Fixed cache invalidation to ensure consistent data across all components
 ```
 
 ## User Preferences

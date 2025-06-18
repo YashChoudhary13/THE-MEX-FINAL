@@ -2,9 +2,7 @@ import { useState, useEffect } from "react";
 import { loadStripe } from "@stripe/stripe-js";
 import {
   Elements,
-  CardNumberElement,
-  CardExpiryElement,
-  CardCvcElement,
+  PaymentElement,
   useStripe,
   useElements,
 } from "@stripe/react-stripe-js";
@@ -28,38 +26,7 @@ function PaymentForm({ orderData, onSuccess }: PaymentFormProps) {
   const elements = useElements();
   const { toast } = useToast();
   const [isProcessing, setIsProcessing] = useState(false);
-  const [clientSecret, setClientSecret] = useState("");
 
-  useEffect(() => {
-    // Create payment intent when component mounts
-    const createPaymentIntent = async () => {
-      if (!orderData?.total) {
-        toast({
-          title: "Order Error",
-          description: "No order data found. Please go back and complete your order.",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      try {
-        const response = await apiRequest("POST", "/api/create-payment-intent", {
-          amount: orderData.total,
-          currency: "usd",
-        });
-        const data = await response.json();
-        setClientSecret(data.clientSecret);
-      } catch (error) {
-        toast({
-          title: "Payment Setup Error",
-          description: "Failed to initialize payment. Please try again.",
-          variant: "destructive",
-        });
-      }
-    };
-
-    createPaymentIntent();
-  }, [orderData?.total, toast]);
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -70,21 +37,12 @@ function PaymentForm({ orderData, onSuccess }: PaymentFormProps) {
 
     setIsProcessing(true);
 
-    const cardNumberElement = elements.getElement(CardNumberElement);
-
-    if (!cardNumberElement) {
-      setIsProcessing(false);
-      return;
-    }
-
-    const { error, paymentIntent } = await stripe.confirmCardPayment(clientSecret, {
-      payment_method: {
-        card: cardNumberElement,
-        billing_details: {
-          name: orderData.customerName,
-          email: orderData.customerEmail,
-        },
+    const { error } = await stripe.confirmPayment({
+      elements,
+      confirmParams: {
+        return_url: window.location.origin + "/checkout",
       },
+      redirect: "if_required",
     });
 
     if (error) {
@@ -143,81 +101,16 @@ function PaymentForm({ orderData, onSuccess }: PaymentFormProps) {
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-4">
-            {/* Card Number - Full width on all devices */}
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-foreground">Card Number</label>
-              <div className="p-4 border rounded-lg bg-white min-h-[50px] flex items-center">
-                <CardNumberElement
-                  options={{
-                    style: {
-                      base: {
-                        fontSize: "16px",
-                        color: "#424770",
-                        fontFamily: '"Helvetica Neue", Helvetica, sans-serif',
-                        fontSmoothing: "antialiased",
-                        "::placeholder": {
-                          color: "#aab7c4",
-                        },
-                      },
-                      invalid: {
-                        color: "#9e2146",
-                      },
-                    },
-                  }}
-                />
-              </div>
-            </div>
-
-            {/* Expiry and CVC - Stack on mobile, side by side on larger screens */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-foreground">Expiry Date</label>
-                <div className="p-4 border rounded-lg bg-white min-h-[50px] flex items-center">
-                  <CardExpiryElement
-                    options={{
-                      style: {
-                        base: {
-                          fontSize: "16px",
-                          color: "#424770",
-                          fontFamily: '"Helvetica Neue", Helvetica, sans-serif',
-                          fontSmoothing: "antialiased",
-                          "::placeholder": {
-                            color: "#aab7c4",
-                          },
-                        },
-                        invalid: {
-                          color: "#9e2146",
-                        },
-                      },
-                    }}
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-foreground">CVC</label>
-                <div className="p-4 border rounded-lg bg-white min-h-[50px] flex items-center">
-                  <CardCvcElement
-                    options={{
-                      style: {
-                        base: {
-                          fontSize: "16px",
-                          color: "#424770",
-                          fontFamily: '"Helvetica Neue", Helvetica, sans-serif',
-                          fontSmoothing: "antialiased",
-                          "::placeholder": {
-                            color: "#aab7c4",
-                          },
-                        },
-                        invalid: {
-                          color: "#9e2146",
-                        },
-                      },
-                    }}
-                  />
-                </div>
-              </div>
-            </div>
+            <PaymentElement
+              options={{
+                layout: {
+                  type: 'tabs',
+                  defaultCollapsed: false,
+                  radios: false,
+                  spacedAccordionItems: false
+                }
+              }}
+            />
           </div>
           
           <div className="flex items-center justify-between text-sm text-muted-foreground">
@@ -254,6 +147,27 @@ interface PaymentPageProps {
 }
 
 export default function PaymentPage({ orderData, onSuccess }: PaymentPageProps) {
+  const [clientSecret, setClientSecret] = useState("");
+
+  useEffect(() => {
+    const createPaymentIntent = async () => {
+      if (!orderData?.total) return;
+
+      try {
+        const response = await apiRequest("POST", "/api/create-payment-intent", {
+          amount: orderData.total,
+          currency: "usd",
+        });
+        const data = await response.json();
+        setClientSecret(data.clientSecret);
+      } catch (error) {
+        console.error("Failed to create payment intent:", error);
+      }
+    };
+
+    createPaymentIntent();
+  }, [orderData?.total]);
+
   if (!import.meta.env.VITE_STRIPE_PUBLIC_KEY) {
     return (
       <Card className="w-full max-w-md mx-auto">
@@ -266,8 +180,37 @@ export default function PaymentPage({ orderData, onSuccess }: PaymentPageProps) 
     );
   }
 
+  if (!clientSecret) {
+    return (
+      <Card className="w-full max-w-md mx-auto">
+        <CardContent className="pt-6">
+          <div className="flex items-center justify-center py-8">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <span className="ml-2">Setting up payment...</span>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  const options = {
+    clientSecret,
+    appearance: {
+      theme: 'stripe' as const,
+      variables: {
+        colorPrimary: '#0570de',
+        colorBackground: '#ffffff',
+        colorText: '#30313d',
+        colorDanger: '#df1b41',
+        fontFamily: 'Ideal Sans, system-ui, sans-serif',
+        spacingUnit: '2px',
+        borderRadius: '4px',
+      },
+    },
+  };
+
   return (
-    <Elements stripe={stripePromise}>
+    <Elements stripe={stripePromise} options={options}>
       <PaymentForm orderData={orderData} onSuccess={onSuccess} />
     </Elements>
   );

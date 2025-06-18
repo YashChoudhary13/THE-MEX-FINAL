@@ -21,6 +21,17 @@ export default function LiveStatsDisplay() {
     queryKey: ['/api/admin/current-stats'],
   });
 
+  // Format time for Dublin timezone
+  const formatDublinTime = (date: Date) => {
+    return new Intl.DateTimeFormat('en-IE', {
+      timeZone: 'Europe/Dublin',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: false
+    }).format(date);
+  };
+
   // WebSocket connection for real-time updates
   useEffect(() => {
     const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";

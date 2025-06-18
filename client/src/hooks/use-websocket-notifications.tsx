@@ -128,7 +128,7 @@ export function useWebSocketNotifications({ orderId, enabled = true }: UseWebSoc
         wsRef.current = null;
       }
     };
-  }, [orderId, enabled, sendNotification, isNotificationsEnabled, toast]);
+  }, [orderId, enabled, isNotificationsEnabled, toast]);
 
   return {
     isConnected: wsRef.current?.readyState === WebSocket.OPEN

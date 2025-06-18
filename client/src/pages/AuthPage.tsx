@@ -2,7 +2,6 @@ import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useForm } from "react-hook-form";
@@ -27,34 +26,16 @@ const registerSchema = z.object({
 });
 
 const resetPasswordSchema = z.object({
-  username: z.string().min(1, "Username is required"),
-});
-
-const securityAnswerSchema = z.object({
-  securityAnswer: z.string().min(1, "Security answer is required"),
-});
-
-const newPasswordSchema = z.object({
-  newPassword: z.string().min(6, "Password must be at least 6 characters"),
-  confirmPassword: z.string(),
-}).refine(data => data.newPassword === data.confirmPassword, {
-  message: "Passwords don't match",
-  path: ["confirmPassword"],
+  email: z.string().email("Invalid email address"),
 });
 
 type LoginFormValues = z.infer<typeof loginSchema>;
 type RegisterFormValues = z.infer<typeof registerSchema>;
 type ResetPasswordFormValues = z.infer<typeof resetPasswordSchema>;
-type SecurityAnswerFormValues = z.infer<typeof securityAnswerSchema>;
-type NewPasswordFormValues = z.infer<typeof newPasswordSchema>;
 
 export default function AuthPage() {
   const [activeTab, setActiveTab] = useState<string>("login");
   const [showResetForm, setShowResetForm] = useState(false);
-  const [resetStep, setResetStep] = useState<'username' | 'security' | 'password'>('username');
-  const [securityQuestion, setSecurityQuestion] = useState<string>('');
-  const [resetToken, setResetToken] = useState<string>('');
-  const [currentUsername, setCurrentUsername] = useState<string>('');
   const [resetSuccess, setResetSuccess] = useState(false);
   const [isResettingPassword, setIsResettingPassword] = useState(false);
   const [loginError, setLoginError] = useState<string | null>(null);
@@ -99,22 +80,7 @@ export default function AuthPage() {
   const resetForm = useForm<ResetPasswordFormValues>({
     resolver: zodResolver(resetPasswordSchema),
     defaultValues: {
-      username: "",
-    },
-  });
-
-  const securityForm = useForm<SecurityAnswerFormValues>({
-    resolver: zodResolver(securityAnswerSchema),
-    defaultValues: {
-      securityAnswer: "",
-    },
-  });
-
-  const passwordForm = useForm<NewPasswordFormValues>({
-    resolver: zodResolver(newPasswordSchema),
-    defaultValues: {
-      newPassword: "",
-      confirmPassword: "",
+      email: "",
     },
   });
 
@@ -138,80 +104,28 @@ export default function AuthPage() {
 
   const onResetPasswordSubmit = async (data: ResetPasswordFormValues) => {
     setIsResettingPassword(true);
-    
-    if (resetStep === 'username') {
-      try {
-        const response = await apiRequest("POST", "/api/password-reset/request", data);
-        
-        if (response.ok) {
-          const responseData = await response.json();
-          setSecurityQuestion(responseData.securityQuestion);
-          setCurrentUsername(data.username);
-          setResetStep('security');
-        } else {
-          const errorData = await response.json();
-          throw new Error(errorData.message || "User not found or no security question set");
-        }
-      } catch (error: any) {
-        toast({
-          title: "Reset Failed",
-          description: error.message || "Failed to process password reset request",
-          variant: "destructive",
-        });
-      }
-    }
-    
-    setIsResettingPassword(false);
-  };
-
-  const onSecurityAnswerSubmit = async (data: SecurityAnswerFormValues) => {
-    setIsResettingPassword(true);
-    
     try {
-      const response = await apiRequest("POST", "/api/password-reset/verify", {
-        username: currentUsername,
-        securityAnswer: data.securityAnswer
-      });
+      const response = await apiRequest("POST", "/api/password-reset/request", { username: data.email });
       
       if (response.ok) {
         const responseData = await response.json();
-        setResetToken(responseData.resetToken);
-        setResetStep('password');
+        if (responseData.securityQuestion) {
+          // Show security question step
+          setResetSuccess(true);
+          setResetStatus(`Security question: ${responseData.securityQuestion}`);
+        } else {
+          setResetSuccess(true);
+          setResetStatus(resetForm.getValues().email ? `Reset link will be sent to ${resetForm.getValues().email}` : "");
+        }
       } else {
         const errorData = await response.json();
-        throw new Error(errorData.message || "Invalid security answer");
-      }
-    } catch (error: any) {
-      toast({
-        title: "Verification Failed",
-        description: error.message || "Invalid security answer",
-        variant: "destructive",
-      });
-    } finally {
-      setIsResettingPassword(false);
-    }
-  };
-
-  const onNewPasswordSubmit = async (data: NewPasswordFormValues) => {
-    setIsResettingPassword(true);
-    
-    try {
-      const response = await apiRequest("POST", "/api/password-reset/reset", {
-        resetToken,
-        newPassword: data.newPassword
-      });
-      
-      if (response.ok) {
-        setResetSuccess(true);
         toast({
-          title: "Password reset requested",
-          description: "Your password has been successfully updated. Please log in with your new password.",
+          title: "Reset Failed",
+          description: errorData.message || "Failed to send reset email",
+          variant: "destructive",
         });
-      } else {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "Failed to reset password");
       }
-    } catch (error: any) {
+    } catch (error) {
       toast({
         title: "Error",
         description: "An error occurred while processing your request",
@@ -266,7 +180,7 @@ export default function AuthPage() {
               </CardTitle>
               <CardDescription className="text-gray-200">
                 {showResetForm 
-                  ? "Follow the steps to reset your password" 
+                  ? "Enter your email to reset your password" 
                   : "Sign in to your account or create a new one"
                 }
               </CardDescription>
@@ -437,141 +351,37 @@ export default function AuthPage() {
                       </AlertDescription>
                     </Alert>
                   ) : (
-                    <>
-                      {resetStep === 'username' && (
-                        <Form {...resetForm}>
-                          <form onSubmit={resetForm.handleSubmit(onResetPasswordSubmit)} className="space-y-4">
-                            <FormField
-                              control={resetForm.control}
-                              name="username"
-                              render={({ field }) => (
-                                <FormItem>
-                                  <FormLabel className="text-white">Username</FormLabel>
-                                  <FormControl>
-                                    <Input placeholder="Enter your username" {...field} />
-                                  </FormControl>
-                                  <FormMessage />
-                                </FormItem>
-                              )}
-                            />
-                            <Button 
-                              type="submit" 
-                              className="w-full bg-white text-gray-900 hover:bg-gray-100" 
-                              disabled={isResettingPassword}
-                            >
-                              {isResettingPassword ? (
-                                <>
-                                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                  Finding Security Question
-                                </>
-                              ) : (
-                                "Continue"
-                              )}
-                            </Button>
-                          </form>
-                        </Form>
-                      )}
-
-                      {resetStep === 'security' && (
-                        <Form {...securityForm}>
-                          <form onSubmit={securityForm.handleSubmit(onSecurityAnswerSubmit)} className="space-y-4">
-                            <div className="space-y-2">
-                              <Label className="text-white">Security Question</Label>
-                              <div className="p-3 bg-white/20 rounded-md text-sm text-white">
-                                {securityQuestion}
-                              </div>
-                            </div>
-                            <FormField
-                              control={securityForm.control}
-                              name="securityAnswer"
-                              render={({ field }) => (
-                                <FormItem>
-                                  <FormLabel className="text-white">Your Answer</FormLabel>
-                                  <FormControl>
-                                    <Input placeholder="Enter your security answer" {...field} />
-                                  </FormControl>
-                                  <FormMessage />
-                                </FormItem>
-                              )}
-                            />
-                            <div className="flex gap-2">
-                              <Button 
-                                type="button" 
-                                variant="outline" 
-                                className="flex-1"
-                                onClick={() => {
-                                  setResetStep('username');
-                                  securityForm.reset();
-                                }}
-                              >
-                                Back
-                              </Button>
-                              <Button 
-                                type="submit" 
-                                className="flex-1 bg-white text-gray-900 hover:bg-gray-100" 
-                                disabled={isResettingPassword}
-                              >
-                                {isResettingPassword ? (
-                                  <>
-                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                    Verifying
-                                  </>
-                                ) : (
-                                  "Verify Answer"
-                                )}
-                              </Button>
-                            </div>
-                          </form>
-                        </Form>
-                      )}
-
-                      {resetStep === 'password' && (
-                        <Form {...passwordForm}>
-                          <form onSubmit={passwordForm.handleSubmit(onNewPasswordSubmit)} className="space-y-4">
-                            <FormField
-                              control={passwordForm.control}
-                              name="newPassword"
-                              render={({ field }) => (
-                                <FormItem>
-                                  <FormLabel className="text-white">New Password</FormLabel>
-                                  <FormControl>
-                                    <Input type="password" placeholder="Enter new password" {...field} />
-                                  </FormControl>
-                                  <FormMessage />
-                                </FormItem>
-                              )}
-                            />
-                            <FormField
-                              control={passwordForm.control}
-                              name="confirmPassword"
-                              render={({ field }) => (
-                                <FormItem>
-                                  <FormLabel className="text-white">Confirm Password</FormLabel>
-                                  <FormControl>
-                                    <Input type="password" placeholder="Confirm new password" {...field} />
-                                  </FormControl>
-                                  <FormMessage />
-                                </FormItem>
-                              )}
-                            />
-                            <Button 
-                              type="submit" 
-                              className="w-full bg-white text-gray-900 hover:bg-gray-100" 
-                              disabled={isResettingPassword}
-                            >
-                              {isResettingPassword ? (
-                                <>
-                                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                  Resetting Password
-                                </>
-                              ) : (
-                                "Reset Password"
-                              )}
-                            </Button>
-                          </form>
-                        </Form>
-                      )}
-                    </>
+                    <Form {...resetForm}>
+                      <form onSubmit={resetForm.handleSubmit(onResetPasswordSubmit)} className="space-y-4">
+                        <FormField
+                          control={resetForm.control}
+                          name="email"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel className="text-white">Email</FormLabel>
+                              <FormControl>
+                                <Input type="email" placeholder="Enter your email" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <Button 
+                          type="submit" 
+                          className="w-full bg-white text-gray-900 hover:bg-gray-100" 
+                          disabled={isResettingPassword}
+                        >
+                          {isResettingPassword ? (
+                            <>
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              Sending Reset Link
+                            </>
+                          ) : (
+                            "Send Reset Link"
+                          )}
+                        </Button>
+                      </form>
+                    </Form>
                   )}
 
                   <div className="flex justify-center">
@@ -579,7 +389,6 @@ export default function AuthPage() {
                       variant="link"
                       onClick={() => {
                         setShowResetForm(false);
-                        setResetStep('username');
                         setResetSuccess(false);
                       }}
                       className="text-white hover:text-gray-200"

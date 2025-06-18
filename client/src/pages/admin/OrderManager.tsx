@@ -72,9 +72,9 @@ export default function OrderManager() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [orderToDelete, setOrderToDelete] = useState<number | null>(null);
   
-  // Fetch all orders from admin endpoint
+  // Fetch today's orders from admin endpoint
   const { data: orders, isLoading, error, refetch } = useQuery<Order[]>({
-    queryKey: ['/api/admin/orders'],
+    queryKey: ['/api/admin/orders/today'],
     refetchInterval: 5000, // auto refresh every 5 seconds
   });
   
@@ -86,7 +86,7 @@ export default function OrderManager() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/orders'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/admin/orders'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/orders/today'] });
       toast({
         title: 'Order updated',
         description: 'The order status has been updated successfully.',
@@ -109,7 +109,7 @@ export default function OrderManager() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/orders'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/admin/orders'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/orders/today'] });
       toast({
         title: 'Order deleted',
         description: 'The order has been deleted successfully.',
@@ -231,7 +231,7 @@ export default function OrderManager() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold">Order Management</h2>
+        <h2 className="text-2xl font-bold">Today's Order Management</h2>
         <Button onClick={() => refetch()} variant="outline" size="sm">
           <RefreshCcw className="h-4 w-4 mr-2" />
           Refresh
@@ -389,7 +389,7 @@ export default function OrderManager() {
             <CardHeader className="pb-2">
               <div className="flex justify-between items-center">
                 <div>
-                  <CardTitle>Order #{order.id}</CardTitle>
+                  <CardTitle>Order #{order.dailyOrderNumber || order.id}</CardTitle>
                   <CardDescription>
                     {formatOrderDate(order)}
                   </CardDescription>

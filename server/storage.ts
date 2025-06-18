@@ -176,8 +176,6 @@ export class MemStorage implements IStorage {
       id,
       featured: item.featured || null,
       label: item.label || null,
-      rating: item.rating || null,
-      reviewCount: item.reviewCount || null,
       ingredients: item.ingredients || null,
       calories: item.calories || null,
       allergens: item.allergens || null,
@@ -471,9 +469,7 @@ export class MemStorage implements IStorage {
       categoryId: starters.id,
       image: "https://images.unsplash.com/photo-1559847844-5315695dadae",
       featured: true,
-      label: "Popular",
-      rating: 5.0,
-      reviewCount: 126
+      label: "Popular"
     });
 
     await this.createMenuItem({
@@ -482,9 +478,7 @@ export class MemStorage implements IStorage {
       price: 10.99,
       categoryId: starters.id,
       image: "https://images.unsplash.com/photo-1625944525533-473f1b3d9684",
-      featured: false,
-      rating: 4.5,
-      reviewCount: 84
+      featured: false
     });
 
     await this.createMenuItem({
@@ -493,9 +487,7 @@ export class MemStorage implements IStorage {
       price: 9.99,
       categoryId: starters.id,
       image: "https://images.unsplash.com/photo-1576506295286-5cda18df43e7",
-      featured: false,
-      rating: 4.8,
-      reviewCount: 92
+      featured: false
     });
 
     // Main Courses
@@ -506,9 +498,7 @@ export class MemStorage implements IStorage {
       categoryId: mainCourses.id,
       image: "https://images.unsplash.com/photo-1565299507177-b0ac66763828",
       featured: false,
-      label: "Healthy",
-      rating: 5.0,
-      reviewCount: 156
+      label: "Healthy"
     });
 
     await this.createMenuItem({
@@ -518,9 +508,7 @@ export class MemStorage implements IStorage {
       categoryId: mainCourses.id,
       image: "https://images.unsplash.com/photo-1513104890138-7c749659a591",
       featured: true,
-      label: "Best Seller",
-      rating: 4.8,
-      reviewCount: 209
+      label: "Best Seller"
     });
 
     await this.createMenuItem({
@@ -530,8 +518,6 @@ export class MemStorage implements IStorage {
       categoryId: mainCourses.id,
       image: "https://images.unsplash.com/photo-1574071318508-1cdbab80d002",
       featured: true,
-      rating: 4.7,
-      reviewCount: 178
     });
 
     // Sides
@@ -542,8 +528,6 @@ export class MemStorage implements IStorage {
       categoryId: sides.id,
       image: "https://images.unsplash.com/photo-1639744093327-1aecff9c17b8",
       featured: false,
-      rating: 4.9,
-      reviewCount: 112
     });
 
     await this.createMenuItem({
@@ -553,8 +537,6 @@ export class MemStorage implements IStorage {
       categoryId: sides.id,
       image: "https://images.unsplash.com/photo-1619535860434-cf54aab1a60c",
       featured: false,
-      rating: 4.6,
-      reviewCount: 87
     });
 
     // Desserts
@@ -566,8 +548,6 @@ export class MemStorage implements IStorage {
       image: "https://images.unsplash.com/photo-1624353365286-3f8d62daad51",
       featured: true,
       label: "Popular",
-      rating: 4.9,
-      reviewCount: 143
     });
 
     await this.createMenuItem({
@@ -577,8 +557,6 @@ export class MemStorage implements IStorage {
       categoryId: desserts.id,
       image: "https://images.unsplash.com/photo-1567171466295-4afa63d45416",
       featured: false,
-      rating: 4.8,
-      reviewCount: 124
     });
 
     // Drinks
@@ -590,8 +568,6 @@ export class MemStorage implements IStorage {
       image: "https://images.unsplash.com/photo-1514362545857-3bc16c4c7d1b",
       featured: true,
       label: "Signature",
-      rating: 4.9,
-      reviewCount: 98
     });
 
     await this.createMenuItem({
@@ -602,8 +578,6 @@ export class MemStorage implements IStorage {
       image: "https://images.unsplash.com/photo-1553530666-ba11a90a0868",
       featured: false,
       label: "Healthy",
-      rating: 4.7,
-      reviewCount: 76
     });
   }
 }

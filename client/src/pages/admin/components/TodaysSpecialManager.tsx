@@ -43,13 +43,23 @@ export default function TodaysSpecialManager({ menuItems }: TodaysSpecialManager
   const [endDate, setEndDate] = useState<string>("");
 
   // Fetch current special offer
-  const { data: specialOffer, refetch: refetchSpecial } = useQuery({
+  const { data: specialOffer, refetch: refetchSpecial } = useQuery<{
+    menuItem: MenuItem;
+    discountValue?: number;
+    discountAmount?: number;
+    specialPrice?: number;
+    endDate: string;
+  } | null>({
     queryKey: ["/api/special-offer"],
     refetchInterval: 10000, // Refetch every 10 seconds for admin
   });
 
   // Fetch special offer statistics
-  const { data: specialStats } = useQuery({
+  const { data: specialStats } = useQuery<{
+    ordersToday: number;
+    revenueToday: number;
+    totalSavings: number;
+  }>({
     queryKey: ["/api/admin/special-offer-stats"],
     enabled: !!specialOffer,
     refetchInterval: 30000, // Refetch stats every 30 seconds
@@ -132,10 +142,12 @@ export default function TodaysSpecialManager({ menuItems }: TodaysSpecialManager
 
     updateSpecialMutation.mutate({
       menuItemId: parseInt(selectedItemId),
-      discountAmount: discount,
+      discountValue: discount,
+      originalPrice: selectedItem.price,
+      specialPrice: selectedItem.price - discount,
       startDate: new Date(),
       endDate: endDateTime,
-      isActive: true
+      active: true
     });
   };
 
@@ -197,14 +209,14 @@ export default function TodaysSpecialManager({ menuItems }: TodaysSpecialManager
                   <div className="flex items-center gap-4 mb-4">
                     <div className="flex items-center gap-2">
                       <span className="text-2xl font-bold text-primary">
-                        {formatCurrency(specialOffer.menuItem.price - specialOffer.discountAmount)}
+                        {formatCurrency((specialOffer as any).specialPrice || (specialOffer.menuItem.price - (specialOffer as any).discountValue))}
                       </span>
                       <span className="text-lg line-through text-muted-foreground">
                         {formatCurrency(specialOffer.menuItem.price)}
                       </span>
                     </div>
                     <Badge variant="secondary">
-                      Save {formatCurrency(specialOffer.discountAmount)}
+                      Save {formatCurrency((specialOffer as any).discountValue || (specialOffer as any).discountAmount || 0)}
                     </Badge>
                   </div>
                   

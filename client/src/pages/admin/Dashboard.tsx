@@ -670,29 +670,29 @@ export default function AdminDashboard() {
                       <CardDescription>Managed in the Today's Special tab</CardDescription>
                     </CardHeader>
                     <CardContent>
-                      {specialOfferQuery.data?.menuItem ? (
+                      {specialOffer?.menuItem ? (
                         <div className="space-y-3">
                           <div className="aspect-video bg-muted rounded-md overflow-hidden relative">
                             <img 
-                              src={specialOfferQuery.data.menuItem.image || "https://images.unsplash.com/photo-1594212699903-ec8a3eca50f5?auto=format&fit=crop&w=800"} 
-                              alt={specialOfferQuery.data.menuItem.name}
+                              src={specialOffer.menuItem.image || "https://images.unsplash.com/photo-1594212699903-ec8a3eca50f5?auto=format&fit=crop&w=800"} 
+                              alt={specialOffer.menuItem.name}
                               className="w-full h-full object-cover"
                             />
                             <div className="absolute top-2 left-2 bg-primary text-white text-xs px-2 py-1 rounded-md">
                               SPECIAL OFFER
                             </div>
                           </div>
-                          <h3 className="font-medium">{specialOfferQuery.data.menuItem.name}</h3>
+                          <h3 className="font-medium">{specialOffer.menuItem.name}</h3>
                           <div className="flex justify-between items-center">
                             <p className="text-lg font-bold text-primary">
-                              €{(specialOfferQuery.data.menuItem.price - specialOfferQuery.data.discountAmount).toFixed(2)}
+                              €{(specialOffer.menuItem.price - specialOffer.discountAmount).toFixed(2)}
                             </p>
                             <p className="text-sm line-through text-muted-foreground">
-                              €{specialOfferQuery.data.menuItem.price.toFixed(2)}
+                              €{specialOffer.menuItem.price.toFixed(2)}
                             </p>
                           </div>
                           <p className="text-sm text-muted-foreground">
-                            Active until {new Date(specialOfferQuery.data.endDate).toLocaleDateString('en-IE', { timeZone: 'Europe/Dublin' })}
+                            Active until {new Date(specialOffer.endDate).toLocaleDateString('en-IE', { timeZone: 'Europe/Dublin' })}
                           </p>
                         </div>
                       ) : (

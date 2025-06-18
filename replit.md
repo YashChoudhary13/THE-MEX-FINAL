@@ -102,6 +102,9 @@ Changelog:
 - June 18, 2025. Removed entire notification system including NotificationContext and service worker
 - June 18, 2025. Completely removed Twilio SMS and SendGrid email notification systems
 - June 18, 2025. Fixed admin dashboard crashes by restoring missing formatDublinTime and formatCurrency functions
+- June 18, 2025. Implemented tabbed Recent Orders showing last 30 days with comprehensive order details
+- June 18, 2025. Added daily reset order numbering system with separate today's order management
+- June 18, 2025. Enhanced database schema with dailyOrderNumber, paymentReference, and completedAt fields
 ```
 
 ## User Preferences

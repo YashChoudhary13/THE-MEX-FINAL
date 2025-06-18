@@ -249,6 +249,7 @@ export class MemStorage implements IStorage {
       dailyOrderNumber,
       paymentReference: null,
       completedAt: null,
+      promoCode: order.promoCode ?? null,
       createdAt: new Date()
     };
     this.orders.set(id, newOrder);

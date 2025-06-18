@@ -564,20 +564,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // For security reasons, always return the same response regardless of whether the email exists
       // This prevents user enumeration attacks
       
-      if (user) {
-        // Generate token
-        const token = generatePasswordResetToken(email);
-        
-        // Create reset URL
-        const resetUrl = `${req.protocol}://${req.get('host')}/reset-password/${token}`;
-        
-        // Send email
-        await sendPasswordResetEmail(email, resetUrl);
-      }
-      
-      // Always return success to prevent user enumeration
+      // Email functionality has been removed - password reset requires manual admin intervention
       res.json({ 
-        message: "If an account with this email exists, a password reset link has been sent."
+        message: "Password reset functionality is temporarily unavailable. Please contact support for assistance."
       });
       
     } catch (error) {
@@ -595,18 +584,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Token is required" });
       }
       
-      // Validate token
-      const email = validatePasswordResetToken(token);
-      
-      if (!email) {
-        return res.status(400).json({ message: "Invalid or expired token" });
-      }
-      
-      // Token is valid
-      res.json({ 
-        message: "Token is valid",
-        email
-      });
+      // Password reset functionality has been removed
+      res.status(400).json({ message: "Password reset functionality is temporarily unavailable. Please contact support for assistance." });
       
     } catch (error) {
       console.error("Error validating reset token:", error);
@@ -623,29 +602,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Token and password are required" });
       }
       
-      // Validate token and get email
-      const email = validatePasswordResetToken(token);
-      
-      if (!email) {
-        return res.status(400).json({ message: "Invalid or expired token" });
-      }
-      
-      // Find user by email
-      const user = await storage.getUserByEmail(email);
-      
-      if (!user) {
-        return res.status(404).json({ message: "User not found" });
-      }
-      
-      // Update password
-      const updated = await storage.updateUserPassword(user.id, password);
-      
-      if (!updated) {
-        return res.status(500).json({ message: "Failed to update password" });
-      }
-      
-      // Clear token so it can't be used again
-      clearPasswordResetToken(token);
+      // Password reset functionality has been removed
+      return res.status(400).json({ message: "Password reset functionality is temporarily unavailable. Please contact support for assistance." });
       
       res.json({ 
         message: "Password has been successfully reset"

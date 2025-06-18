@@ -64,13 +64,9 @@ This is a full-stack restaurant ordering system built for "The Mex" - a Mexican-
 - **Stripe**: Secure payment processing with client-side Elements integration
 - **Configuration**: Requires STRIPE_SECRET_KEY and VITE_STRIPE_PUBLIC_KEY environment variables
 
-### Email Services
-- **SendGrid**: Email delivery for password resets and order confirmations
-- **Configuration**: Requires SENDGRID_API_KEY environment variable
-
-### SMS Notifications
-- **Twilio**: SMS notifications for order status updates
-- **Configuration**: Requires TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, and TWILIO_PHONE_NUMBER
+### Notifications
+- **Real-time Updates**: WebSocket connections for live order status updates
+- **Toast Messages**: In-app notifications for user interactions and order confirmations
 
 ### Database Hosting
 - **Neon Database**: Serverless PostgreSQL hosting
@@ -104,6 +100,7 @@ Changelog:
 - June 18, 2025. Eliminated localhost:undefined WebSocket fallback issues completely
 - June 18, 2025. Fixed duplicate WebSocket connections in LiveStatsDisplay component
 - June 18, 2025. Removed entire notification system including NotificationContext and service worker
+- June 18, 2025. Completely removed Twilio SMS and SendGrid email notification systems
 ```
 
 ## User Preferences

@@ -108,13 +108,14 @@ Changelog:
 - June 18, 2025. Fixed order number consistency across all views (success page, admin dashboard, order confirmation)
 - June 18, 2025. Restored original OrderManager functionality limited to today's orders only with real-time updates
 - June 18, 2025. Fixed checkout success page to properly display daily order numbers and maintain flow
-- June 18, 2025. Implemented comprehensive image management system for menu items:
-  * Made image field completely optional with no required validation
-  * Added file upload capability with drag & drop interface
-  * Implemented real-time image preview with customization controls
-  * Added size options (small/medium/large), aspect ratio settings (1:1, 4:3, 16:9), and fit modes (cover/contain/stretch)
-  * Enhanced admin forms with visual editing experience and clear "no image" states
-  * Fixed all TypeScript compatibility issues and proper error handling throughout
+- June 18, 2025. Deployed comprehensive image management system for menu items:
+  * Fixed database schema to make image field nullable (removed NOT NULL constraint)
+  * Integrated advanced image management UI in both Add and Edit menu item forms
+  * Implemented file upload with drag & drop interface (PNG, JPG, GIF up to 5MB)
+  * Added real-time image preview with size, aspect ratio, and fit mode controls
+  * Replaced old "Image URL Required" field with optional image system
+  * Enhanced visual editing experience with image customization options
+  * Fixed backend to accept menu items without images
 ```
 
 ## User Preferences

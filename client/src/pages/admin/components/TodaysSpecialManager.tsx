@@ -186,13 +186,13 @@ export default function TodaysSpecialManager({ menuItems }: TodaysSpecialManager
           </Button>
         </CardHeader>
         <CardContent>
-          {specialOffer?.menuItem ? (
+          {specialOffer && (specialOffer as any)?.menuItem ? (
             <div className="grid md:grid-cols-3 gap-6">
               <div className="col-span-1">
                 <div className="aspect-square rounded-xl border overflow-hidden bg-muted relative">
                   <img
-                    src={specialOffer.menuItem.image || "https://images.unsplash.com/photo-1594212699903-ec8a3eca50f5?auto=format&fit=crop&w=800"}
-                    alt={specialOffer.menuItem.name}
+                    src={(specialOffer as any).menuItem.image || "https://images.unsplash.com/photo-1594212699903-ec8a3eca50f5?auto=format&fit=crop&w=800"}
+                    alt={(specialOffer as any).menuItem.name}
                     className="w-full h-full object-cover"
                   />
                   <div className="absolute top-3 left-3 bg-primary text-white text-xs font-bold px-2 py-1 rounded-md">
@@ -203,16 +203,16 @@ export default function TodaysSpecialManager({ menuItems }: TodaysSpecialManager
               
               <div className="col-span-2 space-y-4">
                 <div>
-                  <h3 className="text-2xl font-bold mb-2">{specialOffer.menuItem.name}</h3>
-                  <p className="text-muted-foreground mb-4">{specialOffer.menuItem.description}</p>
+                  <h3 className="text-2xl font-bold mb-2">{(specialOffer as any).menuItem.name}</h3>
+                  <p className="text-muted-foreground mb-4">{(specialOffer as any).menuItem.description}</p>
                   
                   <div className="flex items-center gap-4 mb-4">
                     <div className="flex items-center gap-2">
                       <span className="text-2xl font-bold text-primary">
-                        {formatCurrency((specialOffer as any).specialPrice || (specialOffer.menuItem.price - (specialOffer as any).discountValue))}
+                        {formatCurrency((specialOffer as any).specialPrice || ((specialOffer as any).menuItem.price - (specialOffer as any).discountValue))}
                       </span>
                       <span className="text-lg line-through text-muted-foreground">
-                        {formatCurrency(specialOffer.menuItem.price)}
+                        {formatCurrency((specialOffer as any).menuItem.price)}
                       </span>
                     </div>
                     <Badge variant="secondary">
@@ -223,7 +223,7 @@ export default function TodaysSpecialManager({ menuItems }: TodaysSpecialManager
                   <div className="flex items-center gap-4 text-sm text-muted-foreground">
                     <div className="flex items-center gap-1">
                       <Calendar className="h-4 w-4" />
-                      <span>Until {formatDate(specialOffer.endDate)}</span>
+                      <span>Until {formatDate((specialOffer as any).endDate)}</span>
                     </div>
                     <div className="flex items-center gap-1">
                       <Clock className="h-4 w-4" />

@@ -1148,6 +1148,69 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Start the daily reset scheduler only once
   scheduleDailyReset();
 
+  // Special offers routes
+  app.get('/api/special-offer', async (req, res) => {
+    try {
+      const specialOffer = await storage.getActiveSpecialOffer();
+      res.json(specialOffer);
+    } catch (error) {
+      console.error('Error fetching special offer:', error);
+      res.status(500).json({ message: 'Failed to fetch special offer' });
+    }
+  });
+
+  app.get('/api/admin/special-offer-stats', isAdmin, async (req, res) => {
+    try {
+      const specialOffer = await storage.getActiveSpecialOffer();
+      if (!specialOffer) {
+        return res.json({ ordersToday: 0, revenueToday: 0, totalSavings: 0 });
+      }
+
+      const todaysOrders = await storage.getTodaysOrders();
+      const specialOrders = todaysOrders.filter(order =>
+        order.items.some(item => item.menuItemId === specialOffer.menuItemId)
+      );
+
+      let ordersToday = 0;
+      let revenueToday = 0;
+      let totalSavings = 0;
+
+      specialOrders.forEach(order => {
+        const specialItems = order.items.filter(item => item.menuItemId === specialOffer.menuItemId);
+        specialItems.forEach(item => {
+          ordersToday += item.quantity;
+          revenueToday += item.price * item.quantity;
+          totalSavings += ((specialOffer as any).discountValue || (specialOffer as any).discountAmount || 0) * item.quantity;
+        });
+      });
+
+      res.json({ ordersToday, revenueToday, totalSavings });
+    } catch (error) {
+      console.error('Error fetching special offer stats:', error);
+      res.status(500).json({ message: 'Failed to fetch special offer statistics' });
+    }
+  });
+
+  app.post('/api/admin/special-offers', isAdmin, async (req, res) => {
+    try {
+      const specialOffer = await storage.createSpecialOffer(req.body);
+      res.status(201).json(specialOffer);
+    } catch (error) {
+      console.error('Error creating special offer:', error);
+      res.status(500).json({ message: 'Failed to create special offer' });
+    }
+  });
+
+  app.post('/api/admin/special-offers/deactivate-all', isAdmin, async (req, res) => {
+    try {
+      await storage.deactivateAllSpecialOffers();
+      res.json({ message: 'All special offers deactivated successfully' });
+    } catch (error) {
+      console.error('Error deactivating special offers:', error);
+      res.status(500).json({ message: 'Failed to deactivate special offers' });
+    }
+  });
+
   // Setup WebSocket server for real-time admin updates
   const wss = new WebSocketServer({ 
     server: httpServer, 

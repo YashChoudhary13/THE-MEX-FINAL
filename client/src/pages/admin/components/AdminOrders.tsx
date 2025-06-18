@@ -122,7 +122,7 @@ export default function AdminOrders({ orders, isLoading }: AdminOrdersProps) {
               <TableBody>
                 {filteredOrders.map((order) => (
                   <TableRow key={order.id}>
-                    <TableCell className="font-medium">#{order.id}</TableCell>
+                    <TableCell className="font-medium">#{order.dailyOrderNumber || order.id}</TableCell>
                     <TableCell>{order.customerName}</TableCell>
                     <TableCell>
                       {/* Since we don't have a createdAt field, we'll use a placeholder */}

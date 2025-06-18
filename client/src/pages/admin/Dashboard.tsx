@@ -51,7 +51,7 @@ export default function AdminDashboard() {
       if (data.type === 'NEW_ORDER') {
         toast({
           title: "New Order Received",
-          description: `Order #${data.order.id} from ${data.order.customerName}`,
+          description: `Order #${data.order.dailyOrderNumber || data.order.id} from ${data.order.customerName}`,
         });
       } else if (data.type === 'ORDER_UPDATE') {
         toast({
@@ -614,7 +614,7 @@ export default function AdminDashboard() {
                               {todaysOrders.slice(0, 5).map((order) => (
                                 <div key={order.id} className="flex items-center justify-between border-b pb-3">
                                   <div>
-                                    <p className="font-medium">Order #{order.id}</p>
+                                    <p className="font-medium">Order #{order.dailyOrderNumber || order.id}</p>
                                     <p className="text-sm text-muted-foreground">{order.customerName}</p>
                                     <p className="text-xs text-muted-foreground">
                                       {new Date(order.createdAt).toLocaleTimeString('en-IE', { 

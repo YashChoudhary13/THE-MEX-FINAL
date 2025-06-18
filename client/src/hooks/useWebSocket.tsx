@@ -13,15 +13,25 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
 
   useEffect(() => {
     const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-    const wsUrl = `${protocol}//${window.location.host}/ws`;
+    const host = window.location.host;
+    
+    // Ensure we have a valid host
+    if (!host || host === 'undefined') {
+      console.error('Invalid host for WebSocket connection:', host);
+      return;
+    }
+    
+    const wsUrl = `${protocol}//${host}/ws`;
+    console.log('Admin WebSocket connecting to:', wsUrl);
     
     const socket = new WebSocket(wsUrl);
     socketRef.current = socket;
 
     socket.onopen = () => {
-      console.log('WebSocket connected');
+      console.log('Admin WebSocket connected');
       // Subscribe to admin updates
       socket.send(JSON.stringify({ type: 'SUBSCRIBE_ADMIN' }));
+      console.log('Subscribed to admin updates');
       onConnect?.();
     };
 

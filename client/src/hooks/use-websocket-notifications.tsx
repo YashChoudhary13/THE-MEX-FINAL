@@ -29,8 +29,18 @@ export function useWebSocketNotifications({ orderId, enabled = true }: UseWebSoc
 
     const connect = () => {
       try {
+        // Get WebSocket URL from current page URL
         const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-        const wsUrl = `${protocol}//${window.location.host}/ws`;
+        const host = window.location.host;
+        
+        // Ensure we have a valid host
+        if (!host || host === 'undefined') {
+          console.error('Invalid host for WebSocket connection:', host);
+          return;
+        }
+        
+        const wsUrl = `${protocol}//${host}/ws`;
+        console.log('Connecting to WebSocket:', wsUrl);
         
         const ws = new WebSocket(wsUrl);
         wsRef.current = ws;
@@ -43,6 +53,7 @@ export function useWebSocketNotifications({ orderId, enabled = true }: UseWebSoc
               type: 'SUBSCRIBE_ORDER_UPDATES', 
               orderId 
             }));
+            console.log(`Subscribed to order ${orderId} notifications`);
           }
         };
 

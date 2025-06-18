@@ -620,10 +620,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const resetToken = crypto.randomBytes(32).toString('hex');
       
       // Store token temporarily (in a real app, use Redis or database)
-      if (!global.passwordResetTokens) {
-        global.passwordResetTokens = new Map();
+      if (!(global as any).passwordResetTokens) {
+        (global as any).passwordResetTokens = new Map();
       }
-      global.passwordResetTokens.set(resetToken, {
+      (global as any).passwordResetTokens.set(resetToken, {
         userId: user.id,
         expires: Date.now() + 15 * 60 * 1000 // 15 minutes
       });
@@ -649,13 +649,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Validate reset token
-      if (!global.passwordResetTokens) {
+      if (!(global as any).passwordResetTokens) {
         return res.status(400).json({ message: "Invalid or expired reset token" });
       }
       
-      const tokenData = global.passwordResetTokens.get(resetToken);
+      const tokenData = (global as any).passwordResetTokens.get(resetToken);
       if (!tokenData || Date.now() > tokenData.expires) {
-        global.passwordResetTokens?.delete(resetToken);
+        (global as any).passwordResetTokens?.delete(resetToken);
         return res.status(400).json({ message: "Invalid or expired reset token" });
       }
       
@@ -671,7 +671,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Clear the token
-      global.passwordResetTokens.delete(resetToken);
+      (global as any).passwordResetTokens.delete(resetToken);
       
       res.json({ 
         message: "Password has been successfully reset"

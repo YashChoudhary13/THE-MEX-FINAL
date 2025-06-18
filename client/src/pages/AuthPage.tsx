@@ -26,12 +26,26 @@ const registerSchema = z.object({
 });
 
 const resetPasswordSchema = z.object({
-  email: z.string().email("Invalid email address"),
+  username: z.string().min(1, "Username is required"),
+});
+
+const securityAnswerSchema = z.object({
+  securityAnswer: z.string().min(1, "Security answer is required"),
+});
+
+const newPasswordSchema = z.object({
+  newPassword: z.string().min(6, "Password must be at least 6 characters"),
+  confirmPassword: z.string(),
+}).refine(data => data.newPassword === data.confirmPassword, {
+  message: "Passwords don't match",
+  path: ["confirmPassword"],
 });
 
 type LoginFormValues = z.infer<typeof loginSchema>;
 type RegisterFormValues = z.infer<typeof registerSchema>;
 type ResetPasswordFormValues = z.infer<typeof resetPasswordSchema>;
+type SecurityAnswerFormValues = z.infer<typeof securityAnswerSchema>;
+type NewPasswordFormValues = z.infer<typeof newPasswordSchema>;
 
 export default function AuthPage() {
   const [activeTab, setActiveTab] = useState<string>("login");
@@ -81,7 +95,22 @@ export default function AuthPage() {
   const resetForm = useForm<ResetPasswordFormValues>({
     resolver: zodResolver(resetPasswordSchema),
     defaultValues: {
-      email: "",
+      username: "",
+    },
+  });
+
+  const securityForm = useForm<SecurityAnswerFormValues>({
+    resolver: zodResolver(securityAnswerSchema),
+    defaultValues: {
+      securityAnswer: "",
+    },
+  });
+
+  const passwordForm = useForm<NewPasswordFormValues>({
+    resolver: zodResolver(newPasswordSchema),
+    defaultValues: {
+      newPassword: "",
+      confirmPassword: "",
     },
   });
 

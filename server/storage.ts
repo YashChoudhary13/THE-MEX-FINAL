@@ -727,7 +727,7 @@ export class DatabaseStorage implements IStorage {
     }
   }
   
-  async updateUserProfile(id: number, data: {username?: string, email?: string}): Promise<boolean> {
+  async updateUserProfile(id: number, data: {username?: string, email?: string, securityQuestion?: string, securityAnswer?: string}): Promise<boolean> {
     try {
       await db
         .update(users)

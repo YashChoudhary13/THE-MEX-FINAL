@@ -31,7 +31,7 @@ function PaymentForm({ orderData, onSuccess }: PaymentFormProps) {
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
 
-    if (!stripe || !elements || !clientSecret) {
+    if (!stripe || !elements) {
       return;
     }
 
@@ -52,7 +52,7 @@ function PaymentForm({ orderData, onSuccess }: PaymentFormProps) {
         variant: "destructive",
       });
       setIsProcessing(false);
-    } else if (paymentIntent.status === "succeeded") {
+    } else {
       // Payment successful - now create the order
       try {
         const pendingOrderData = sessionStorage.getItem('pendingOrder');
@@ -63,7 +63,6 @@ function PaymentForm({ orderData, onSuccess }: PaymentFormProps) {
           const response = await apiRequest("POST", "/api/orders", {
             ...orderData,
             status: "confirmed",
-            paymentIntentId: paymentIntent.id,
           });
           
           const order = await response.json();
@@ -73,6 +72,11 @@ function PaymentForm({ orderData, onSuccess }: PaymentFormProps) {
           
           // Store order data for success page
           sessionStorage.setItem('completedOrder', JSON.stringify(order));
+          
+          toast({
+            title: "Payment Successful!",
+            description: `Your order #${order.id} has been placed successfully.`,
+          });
           
           onSuccess();
         }
@@ -84,6 +88,7 @@ function PaymentForm({ orderData, onSuccess }: PaymentFormProps) {
           variant: "destructive",
         });
       }
+      setIsProcessing(false);
     }
   };
 
@@ -123,7 +128,7 @@ function PaymentForm({ orderData, onSuccess }: PaymentFormProps) {
 
           <Button
             type="submit"
-            disabled={!stripe || isProcessing || !clientSecret}
+            disabled={!stripe || !elements || isProcessing}
             className="w-full"
           >
             {isProcessing ? (

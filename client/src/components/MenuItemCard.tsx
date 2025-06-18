@@ -96,23 +96,7 @@ export default function MenuItemCard({ item }: MenuItemCardProps) {
     setIsModalOpen(true);
   };
 
-  // Create an array of stars based on the rating
-  const stars = [];
-  const rating = item.rating || 0;
-  const fullStars = Math.floor(rating);
-  const hasHalfStar = rating % 1 >= 0.5;
-  
-  for (let i = 0; i < fullStars; i++) {
-    stars.push("full");
-  }
-  
-  if (hasHalfStar) {
-    stars.push("half");
-  }
-  
-  while (stars.length < 5) {
-    stars.push("empty");
-  }
+
 
   // Use the item's prep time or calculate a fixed one based on item ID to avoid fluctuation
   const prepTime = item.prepTime || (10 + (item.id % 16)); // Fixed time based on item ID
@@ -145,8 +129,8 @@ export default function MenuItemCard({ item }: MenuItemCardProps) {
             </Button>
             <h3 className="font-heading text-lg flex-1 truncate">{item.name}</h3>
             <div className="flex items-center text-sm text-muted-foreground">
-              <Star className="h-4 w-4 text-primary fill-primary mr-1" />
-              <span>{rating.toFixed(1)}</span>
+              <Clock className="h-4 w-4 text-primary mr-1" />
+              <span>{prepTime} min</span>
             </div>
           </div>
           
@@ -323,17 +307,10 @@ export default function MenuItemCard({ item }: MenuItemCardProps) {
               
               {/* Bottom section */}
               <div className="flex justify-between items-center">
-                {/* Star Rating */}
-                <div className="flex items-center text-xs">
-                  <div className="flex mr-1">
-                    {stars.slice(0, 3).map((type, index) => (
-                      <span key={index} className="mr-0.5">
-                        {type === "full" && (
-                          <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 text-primary" fill="currentColor" viewBox="0 0 24 24">
-                            <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/>
-                          </svg>
-                        )}
-                        {type === "half" && (
+                {/* Prep Time */}
+                <div className="flex items-center text-xs text-muted-foreground">
+                  <Clock className="h-3 w-3 mr-1" />
+                  <span>{prepTime} min</span>
                           <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 text-primary" fill="currentColor" viewBox="0 0 24 24">
                             <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/>
                           </svg>
@@ -466,30 +443,10 @@ export default function MenuItemCard({ item }: MenuItemCardProps) {
               </div>
             )}
 
-            {/* Rating badge */}
+            {/* Prep Time badge */}
             <div className="absolute bottom-3 left-3 bg-card/80 backdrop-blur-sm text-foreground px-3 py-1 rounded-full text-xs font-medium shadow-md flex items-center">
-              <div className="flex text-warning mr-1">
-                {stars.map((type, index) => (
-                  <span key={index}>
-                    {type === "full" && (
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 text-primary" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/>
-                      </svg>
-                    )}
-                    {type === "half" && (
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 text-primary" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/>
-                      </svg>
-                    )}
-                    {type === "empty" && (
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 text-muted-foreground/30" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/>
-                      </svg>
-                    )}
-                  </span>
-                ))}
-              </div>
-              <span className="text-muted-foreground">({item.reviewCount || '42'})</span>
+              <Clock className="h-3 w-3 text-primary mr-1" />
+              <span>{prepTime} min</span>
             </div>
           </div>
         )}

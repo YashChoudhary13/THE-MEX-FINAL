@@ -27,8 +27,6 @@ export const menuItems = pgTable("menu_items", {
   image: text("image"),
   featured: boolean("featured").default(false),
   label: text("label"), // For tags like "Healthy", "Best Seller", etc.
-  rating: doublePrecision("rating").default(5.0),
-  reviewCount: integer("review_count").default(0),
   ingredients: text("ingredients"),
   calories: text("calories"),
   allergens: text("allergens"),
@@ -44,8 +42,6 @@ export const insertMenuItemSchema = createInsertSchema(menuItems).pick({
   image: true,
   featured: true,
   label: true,
-  rating: true,
-  reviewCount: true,
   ingredients: true,
   calories: true,
   allergens: true,

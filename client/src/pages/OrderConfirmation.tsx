@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { useLocation, useParams } from "wouter";
-import { ChevronLeft, Truck, Bell, Clock } from "lucide-react";
+import { ChevronLeft, Truck, Clock } from "lucide-react";
 import { useEffect } from "react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
@@ -15,14 +15,6 @@ export default function OrderConfirmation() {
   const { id } = useParams();
   const [, navigate] = useLocation();
   const { toast } = useToast();
-  const { 
-    isNotificationsEnabled, 
-    notificationStatus, 
-    isBrowserSupported, 
-    requestPermission, 
-    sendNotification 
-
-  
   const orderId = parseInt(id || "0");
   
   // Enable WebSocket notifications for this specific order
@@ -215,76 +207,7 @@ export default function OrderConfirmation() {
                     Track Your Order
                   </Button>
                 </div>
-                
-                {!isNotificationsEnabled && "Notification" in window && (
-                  <div className="mt-4 border p-4 rounded-lg bg-card">
-                    <div className="flex items-center gap-2 mb-3">
-                      <Bell className="h-5 w-5 text-primary" />
-                      <h3 className="font-medium text-primary">Order Notifications</h3>
-                    </div>
-                    <p className="text-sm text-muted-foreground mb-3">
-                      Enable notifications to get updates on your order status
-                    </p>
-                    <Button 
-                      onClick={async () => {
-                        // If browser doesn't support notifications
-                        if (!isBrowserSupported) {
-                          toast({
-                            title: "Notifications Not Supported",
-                            description: "Your browser doesn't support notifications. Try using a modern browser like Chrome or Firefox.",
-                            variant: "destructive",
-                          });
-                          return;
-                        }
-                        
-                        // If notifications are already denied and can't be requested again
-                        if (notificationStatus === 'unavailable') {
-                          toast({
-                            title: "Notification Permission Blocked",
-                            description: "Notifications are blocked in your browser settings. Please enable them to receive order updates.",
-                            variant: "destructive",
-                          });
-                          return;
-                        }
-                        
-                        // Request permission
-                        const granted = await requestPermission();
-                        
-                        if (granted) {
-                          toast({
-                            title: "Notifications Enabled",
-                            description: "You'll receive updates when your order status changes.",
-                          });
-                          sendNotification(
-                            "Order Confirmed!", 
-                            { 
-                              body: `Your order #${orderId} has been confirmed and is being prepared.`,
-                              icon: "/favicon.ico"
-                            }
-                          );
-                        } else {
-                          if (notificationStatus === 'denied') {
-                            toast({
-                              title: "Notifications Blocked",
-                              description: "You blocked notifications. To enable them, update your browser settings.",
-                              variant: "destructive",
-                            });
-                          } else {
-                            toast({
-                              title: "Notifications Not Enabled",
-                              description: "You'll need to enable notifications to receive order status updates.",
-                              variant: "destructive",
-                            });
-                          }
-                        }
-                      }}
-                      className="w-full"
-                      variant="outline"
-                    >
-                      Enable Notifications
-                    </Button>
-                  </div>
-                )}
+
                 
                 <div>
                   <p className="text-gray-600 mb-2">Questions about your order? Contact us at</p>

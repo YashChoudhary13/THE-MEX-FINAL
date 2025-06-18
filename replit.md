@@ -101,6 +101,7 @@ Changelog:
 - June 18, 2025. Fixed duplicate WebSocket connections in LiveStatsDisplay component
 - June 18, 2025. Removed entire notification system including NotificationContext and service worker
 - June 18, 2025. Completely removed Twilio SMS and SendGrid email notification systems
+- June 18, 2025. Implemented security question-based password reset system to replace email functionality
 ```
 
 ## User Preferences

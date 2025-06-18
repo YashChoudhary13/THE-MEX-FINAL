@@ -938,16 +938,39 @@ export class DatabaseStorage implements IStorage {
       return { valid: false, message: "This promo code is not active" };
     }
     
+    // Use Dublin/Cork timezone for consistent date comparisons
     const now = new Date();
-    if (promoCode.startDate && promoCode.startDate > now) {
-      return { valid: false, message: "This promo code is not active yet" };
+    const dublinTime = new Date(now.toLocaleString("en-US", { timeZone: "Europe/Dublin" }));
+    
+    console.log("🕒 Promo validation times:", {
+      promoCode: code,
+      dublinTime: dublinTime.toISOString(),
+      startDate: promoCode.startDate?.toISOString(),
+      endDate: promoCode.endDate?.toISOString(),
+      currentUsage: promoCode.currentUsage,
+      usageLimit: promoCode.usageLimit
+    });
+    
+    if (promoCode.startDate) {
+      const startDate = new Date(promoCode.startDate);
+      if (startDate > dublinTime) {
+        console.log("❌ Promo code not active yet:", { startDate: startDate.toISOString(), now: dublinTime.toISOString() });
+        return { valid: false, message: "This promo code is not active yet" };
+      }
     }
     
-    if (promoCode.endDate && promoCode.endDate < now) {
-      return { valid: false, message: "This promo code has expired" };
+    if (promoCode.endDate) {
+      const endDate = new Date(promoCode.endDate);
+      // Set end date to end of day (23:59:59) to allow use throughout the end date
+      endDate.setHours(23, 59, 59, 999);
+      if (endDate < dublinTime) {
+        console.log("❌ Promo code expired:", { endDate: endDate.toISOString(), now: dublinTime.toISOString() });
+        return { valid: false, message: "This promo code has expired" };
+      }
     }
     
     if (promoCode.usageLimit && promoCode.currentUsage >= promoCode.usageLimit) {
+      console.log("❌ Promo code usage limit reached:", { currentUsage: promoCode.currentUsage, limit: promoCode.usageLimit });
       return { valid: false, message: "This promo code has reached its usage limit" };
     }
     
@@ -972,6 +995,7 @@ export class DatabaseStorage implements IStorage {
       discount = Math.min(promoCode.discountValue, orderTotal);
     }
     
+    console.log("✅ Promo code valid:", { code, discount, orderTotal });
     return { valid: true, discount };
   }
   

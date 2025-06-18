@@ -11,14 +11,7 @@ import {
   insertPromoCodeSchema
 } from "@shared/schema";
 import { setupAuth } from "./auth";
-import { 
-  generatePasswordResetToken, 
-  validatePasswordResetToken, 
-  clearPasswordResetToken,
-  sendPasswordResetEmail 
-} from "./email";
 import { comparePasswords } from './auth';
-import { sendOrderStatusNotification } from './notification';
 import Stripe from 'stripe';
 
 // Initialize Stripe with secret key

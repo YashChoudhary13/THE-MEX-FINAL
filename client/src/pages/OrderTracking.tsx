@@ -61,6 +61,8 @@ export default function OrderTracking() {
   const handleBack = () => {
     setTrackingOrderId(null);
     form.reset({ orderId: '' });
+    // Also update the URL to remove the order ID
+    window.history.pushState({}, '', '/tracking');
   };
 
   // If we have no match and no tracking order ID, render the form
@@ -137,7 +139,7 @@ export default function OrderTracking() {
                 <div className="mt-6 pt-6 border-t border-border">
                   <h3 className="text-sm font-medium mb-2">Where's my order number?</h3>
                   <p className="text-sm text-muted-foreground">
-                    You can find your order number in the confirmation email or text message you received after placing your order.
+                    You can find your order number on your order confirmation page or receipt. It's the daily order number (like 1, 2, 3...).
                   </p>
                 </div>
               </CardContent>

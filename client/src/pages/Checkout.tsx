@@ -410,7 +410,7 @@ export default function Checkout() {
                           <p className="text-muted-foreground mb-2">Thank you for your order. We'll prepare it for pickup.</p>
                           {orderData && (
                             <div className="bg-primary/10 rounded-lg p-3 mt-4">
-                              <p className="text-sm font-medium text-primary">Order Number: #{orderData.dailyOrderNumber || orderData.id}</p>
+                              <p className="text-sm font-medium text-primary">Order Number: #{orderData.dailyOrderNumber}</p>
                               <p className="text-xs text-muted-foreground">Keep this number for reference</p>
                             </div>
                           )}
@@ -422,7 +422,7 @@ export default function Checkout() {
                           {/* Track Order Button - Navigate to tracking page */}
                           {orderData && (
                             <Button 
-                              onClick={() => setLocation(`/tracking/${orderData.id}`)}
+                              onClick={() => setLocation(`/tracking/${orderData.dailyOrderNumber}`)}
                               className="w-full bg-primary hover:bg-primary/90"
                             >
                               Track Your Order

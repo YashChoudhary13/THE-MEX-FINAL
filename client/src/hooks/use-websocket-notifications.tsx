@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { useNotifications } from '@/context/NotificationContext';
+
 import { useToast } from '@/hooks/use-toast';
 
 interface OrderUpdateMessage {
@@ -19,7 +19,6 @@ interface UseWebSocketNotificationsProps {
 }
 
 export function useWebSocketNotifications({ orderId, enabled = true }: UseWebSocketNotificationsProps = {}) {
-  const { isNotificationsEnabled } = useNotifications();
   const { toast } = useToast();
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);

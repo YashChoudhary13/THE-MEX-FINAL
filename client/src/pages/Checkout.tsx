@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/form";
 import { useCart } from "@/context/CartContext";
 import { useToast } from "@/hooks/use-toast";
-import { useNotifications } from "@/context/NotificationContext";
+
 import { apiRequest } from "@/lib/queryClient";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";

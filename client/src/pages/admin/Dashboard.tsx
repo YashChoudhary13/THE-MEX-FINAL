@@ -199,12 +199,19 @@ export default function AdminDashboard() {
       const response = await apiRequest("POST", "/api/admin/special-offers", data);
       return response.json();
     },
-    onSuccess: () => {
-      // Invalidate all special offer related queries to force refresh
+    onSuccess: (newOffer) => {
+      console.log("🎉 Frontend: Special offer update successful:", newOffer);
+      
+      // Force immediate refetch of special offer data
       queryClient.invalidateQueries({ queryKey: ["/api/special-offer"] });
+      queryClient.refetchQueries({ queryKey: ["/api/special-offer"] });
+      
+      // Also invalidate related queries
       queryClient.invalidateQueries({ queryKey: ["/api/admin/special-offers"] });
-      // Refetch menu items to ensure pricing updates
       queryClient.invalidateQueries({ queryKey: ["/api/menu-items"] });
+      
+      console.log("🔄 Frontend: Forced cache invalidation and refetch");
+      
       setIsUpdateSpecialOpen(false);
       toast({
         title: "Special offer updated",

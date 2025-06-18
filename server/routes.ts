@@ -435,6 +435,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Admin routes for special offers management
   app.post("/api/admin/special-offers", isAdmin, async (req, res) => {
     try {
+      console.log("📝 Creating special offer - incoming payload:", req.body);
+      
       // Convert date strings to Date objects before validation
       const processedData = {
         ...req.body,
@@ -442,14 +444,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
         endDate: req.body.endDate ? new Date(req.body.endDate) : null
       };
       
+      console.log("📝 Processed data for validation:", processedData);
+      
       const offerData = insertSpecialOfferSchema.parse(processedData);
+      console.log("📝 Validated offer data:", offerData);
+      
       const offer = await storage.createSpecialOffer(offerData);
+      console.log("✅ Special offer created in database:", offer);
+      
+      // Verify the update by fetching the active special
+      const activeSpecial = await storage.getActiveSpecialOffer();
+      console.log("🔍 Active special after creation:", activeSpecial);
+      
       res.status(201).json(offer);
     } catch (error) {
       if (error instanceof z.ZodError) {
+        console.error("❌ Validation error:", error.errors);
         res.status(400).json({ message: "Invalid special offer data", errors: error.errors });
       } else {
-        console.error("Error creating special offer:", error);
+        console.error("❌ Error creating special offer:", error);
         res.status(500).json({ message: "Failed to create special offer" });
       }
     }

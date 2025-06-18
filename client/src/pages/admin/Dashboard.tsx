@@ -1227,16 +1227,7 @@ function AddMenuItemForm({ categories, onSubmit, isSubmitting }: AddMenuItemForm
     name: z.string().min(2, "Name must be at least 2 characters"),
     description: z.string().min(5, "Description must be at least 5 characters"),
     price: z.coerce.number().positive("Price must be a positive number"),
-    image: z.string().optional().refine((val) => {
-      if (!val || val === "") return true; // Allow empty
-      if (val.startsWith("data:")) return true; // Allow data URLs from file uploads
-      try {
-        new URL(val);
-        return true;
-      } catch {
-        return false;
-      }
-    }, "Please enter a valid URL or upload an image file"),
+    image: z.string().url("Image must be a valid URL"),
     categoryId: z.coerce.number().positive("Please select a category"),
     featured: z.boolean().default(false),
     prepTime: z.coerce.number().int().min(1, "Prep time must be at least 1 minute").max(60, "Prep time should not exceed 60 minutes").default(15),
@@ -1403,16 +1394,7 @@ function EditMenuItemForm({ categories, menuItem, onSubmit, isSubmitting }: Edit
     name: z.string().min(2, "Name must be at least 2 characters"),
     description: z.string().min(5, "Description must be at least 5 characters"),
     price: z.coerce.number().positive("Price must be a positive number"),
-    image: z.string().optional().refine((val) => {
-      if (!val || val === "") return true; // Allow empty
-      if (val.startsWith("data:")) return true; // Allow data URLs from file uploads
-      try {
-        new URL(val);
-        return true;
-      } catch {
-        return false;
-      }
-    }, "Please enter a valid URL or upload an image file"),
+    image: z.string().url("Image must be a valid URL"),
     categoryId: z.coerce.number().positive("Please select a category"),
     featured: z.boolean().default(false),
     prepTime: z.coerce.number().int().min(1, "Prep time must be at least 1 minute").max(60, "Prep time should not exceed 60 minutes").default(15),

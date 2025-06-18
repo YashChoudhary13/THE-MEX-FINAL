@@ -145,6 +145,13 @@ Changelog:
   * Added manual refresh functionality with complete data reset for admin
   * Fixed statistics calculation to use all orders since special activation (not just today)
   * Improved error handling and fallback mechanisms for WebSocket reliability issues
+- June 18, 2025. Comprehensive timezone fixes for Dublin/Cork time consistency:
+  * Fixed getTodaysOrders to use Dublin timezone for proper daily order separation
+  * Updated daily order numbering to reset correctly at Dublin midnight
+  * Enhanced getCurrentDayStats to calculate metrics based on Dublin timezone days
+  * Fixed daily report generation to use consistent Dublin timezone dates
+  * Updated all admin time displays to show Dublin/Cork local time consistently
+  * Enhanced daily reset scheduler with proper Dublin timezone calculations and automated report generation
 ```
 
 ## User Preferences

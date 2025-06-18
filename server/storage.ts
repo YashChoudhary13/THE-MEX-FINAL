@@ -284,11 +284,16 @@ export class MemStorage implements IStorage {
     return true;
   }
   
-  async updateUserProfile(id: number, data: {username?: string, email?: string}): Promise<boolean> {
+  async updateUserProfile(id: number, data: {username?: string, email?: string, securityQuestion?: string, securityAnswer?: string}): Promise<boolean> {
     const user = this.users.get(id);
     if (!user) return false;
     
-    const updatedUser = { ...user, ...data };
+    const updatedUser = { 
+      ...user, 
+      ...data,
+      securityQuestion: data.securityQuestion ?? user.securityQuestion ?? null,
+      securityAnswer: data.securityAnswer ?? user.securityAnswer ?? null
+    };
     this.users.set(id, updatedUser);
     return true;
   }

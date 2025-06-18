@@ -475,7 +475,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ message: "User not authenticated" });
       }
 
-      const { username, email } = req.body;
+      const { username, email, securityQuestion, securityAnswer } = req.body;
       
       if (!username) {
         return res.status(400).json({ message: "Username is required" });
@@ -498,7 +498,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Update user profile
-      const updated = await storage.updateUserProfile(req.user.id, { username, email });
+      // Hash security answer if provided
+      let hashedSecurityAnswer = securityAnswer;
+      if (securityAnswer) {
+        const bcrypt = require('bcryptjs');
+        hashedSecurityAnswer = await bcrypt.hash(securityAnswer, 10);
+      }
+
+      const updated = await storage.updateUserProfile(req.user.id, { 
+        username, 
+        email, 
+        securityQuestion, 
+        securityAnswer: hashedSecurityAnswer 
+      });
       
       if (updated) {
         // Get updated user to return
@@ -549,24 +561,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Password reset request route
+  // Password reset request route - step 1: get username and return security question
   app.post("/api/password-reset/request", async (req, res) => {
     try {
-      const { email } = req.body;
+      const { username } = req.body;
       
-      if (!email || typeof email !== "string") {
-        return res.status(400).json({ message: "Valid email is required" });
+      if (!username || typeof username !== "string") {
+        return res.status(400).json({ message: "Username is required" });
       }
       
-      // Find user by email
-      const user = await storage.getUserByEmail(email);
+      // Find user by username
+      const user = await storage.getUserByUsername(username);
       
-      // For security reasons, always return the same response regardless of whether the email exists
-      // This prevents user enumeration attacks
+      if (!user || !user.securityQuestion) {
+        // For security reasons, don't reveal if user exists
+        return res.status(400).json({ 
+          message: "No security question found for this username. Please contact support for assistance." 
+        });
+      }
       
-      // Email functionality has been removed - password reset requires manual admin intervention
       res.json({ 
-        message: "Password reset functionality is temporarily unavailable. Please contact support for assistance."
+        securityQuestion: user.securityQuestion,
+        message: "Please answer your security question to reset your password."
       });
       
     } catch (error) {
@@ -575,35 +591,87 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  // Password reset validation route
-  app.get("/api/password-reset/validate/:token", (req, res) => {
+  // Password reset validation route - step 2: verify security answer
+  app.post("/api/password-reset/verify", async (req, res) => {
     try {
-      const { token } = req.params;
+      const { username, securityAnswer } = req.body;
       
-      if (!token) {
-        return res.status(400).json({ message: "Token is required" });
+      if (!username || !securityAnswer) {
+        return res.status(400).json({ message: "Username and security answer are required" });
       }
       
-      // Password reset functionality has been removed
-      res.status(400).json({ message: "Password reset functionality is temporarily unavailable. Please contact support for assistance." });
+      // Find user by username
+      const user = await storage.getUserByUsername(username);
+      
+      if (!user || !user.securityAnswer) {
+        return res.status(400).json({ message: "Invalid username or security answer" });
+      }
+      
+      // Verify security answer using bcrypt
+      const bcrypt = require('bcryptjs');
+      const isValid = await bcrypt.compare(securityAnswer, user.securityAnswer);
+      
+      if (!isValid) {
+        return res.status(400).json({ message: "Invalid security answer" });
+      }
+      
+      // Generate a temporary token for password reset
+      const crypto = require('crypto');
+      const resetToken = crypto.randomBytes(32).toString('hex');
+      
+      // Store token temporarily (in a real app, use Redis or database)
+      if (!global.passwordResetTokens) {
+        global.passwordResetTokens = new Map();
+      }
+      global.passwordResetTokens.set(resetToken, {
+        userId: user.id,
+        expires: Date.now() + 15 * 60 * 1000 // 15 minutes
+      });
+      
+      res.json({ 
+        resetToken,
+        message: "Security answer verified. You can now reset your password."
+      });
       
     } catch (error) {
-      console.error("Error validating reset token:", error);
-      res.status(500).json({ message: "Failed to validate reset token" });
+      console.error("Error verifying security answer:", error);
+      res.status(500).json({ message: "Failed to verify security answer" });
     }
   });
   
-  // Password reset completion route
+  // Password reset completion route - step 3: reset password with valid token
   app.post("/api/password-reset/reset", async (req, res) => {
     try {
-      const { token, password } = req.body;
+      const { resetToken, newPassword } = req.body;
       
-      if (!token || !password) {
-        return res.status(400).json({ message: "Token and password are required" });
+      if (!resetToken || !newPassword) {
+        return res.status(400).json({ message: "Reset token and new password are required" });
       }
       
-      // Password reset functionality has been removed
-      return res.status(400).json({ message: "Password reset functionality is temporarily unavailable. Please contact support for assistance." });
+      // Validate reset token
+      if (!global.passwordResetTokens) {
+        return res.status(400).json({ message: "Invalid or expired reset token" });
+      }
+      
+      const tokenData = global.passwordResetTokens.get(resetToken);
+      if (!tokenData || Date.now() > tokenData.expires) {
+        global.passwordResetTokens?.delete(resetToken);
+        return res.status(400).json({ message: "Invalid or expired reset token" });
+      }
+      
+      // Hash new password
+      const bcrypt = require('bcryptjs');
+      const hashedPassword = await bcrypt.hash(newPassword, 10);
+      
+      // Update password
+      const success = await storage.updateUserPassword(tokenData.userId, hashedPassword);
+      
+      if (!success) {
+        return res.status(500).json({ message: "Failed to update password" });
+      }
+      
+      // Clear the token
+      global.passwordResetTokens.delete(resetToken);
       
       res.json({ 
         message: "Password has been successfully reset"

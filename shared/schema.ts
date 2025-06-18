@@ -97,16 +97,14 @@ export const users = pgTable("users", {
   password: text("password").notNull(),
   email: text("email"),
   role: text("role").notNull().default("user"), // user, admin
+  securityQuestion: text("security_question"),
+  securityAnswer: text("security_answer"),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
-export const insertUserSchema = createInsertSchema(users).pick({
-  username: true,
-  password: true,
-  email: true,
-  role: true,
-  securityQuestion: true,
-  securityAnswer: true,
+export const insertUserSchema = createInsertSchema(users).omit({
+  id: true,
+  createdAt: true,
 });
 
 export type InsertUser = z.infer<typeof insertUserSchema>;

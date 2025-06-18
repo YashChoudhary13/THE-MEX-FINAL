@@ -184,6 +184,12 @@ export const insertPromoCodeSchema = createInsertSchema(promoCodes).pick({
   currentUsage: true,
   startDate: true,
   endDate: true,
+}).extend({
+  startDate: z.coerce.date().optional(),
+  endDate: z.coerce.date().optional(),
+  minOrderValue: z.coerce.number().min(0).default(0),
+  usageLimit: z.coerce.number().positive().optional(),
+  maxDiscountAmount: z.coerce.number().positive().optional(),
 });
 
 export type InsertPromoCode = z.infer<typeof insertPromoCodeSchema>;

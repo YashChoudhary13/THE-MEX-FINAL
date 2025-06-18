@@ -297,18 +297,22 @@ export default function AdminDashboard() {
   // Promo code mutations
   const createPromoCodeMutation = useMutation({
     mutationFn: async (data: any) => {
+      console.log("🎯 Frontend: Creating promo code with data:", data);
       const response = await apiRequest("POST", "/api/admin/promo-codes", data);
       return response.json();
     },
-    onSuccess: () => {
+    onSuccess: (newPromoCode) => {
+      console.log("✅ Frontend: Promo code created successfully:", newPromoCode);
       queryClient.invalidateQueries({ queryKey: ["/api/admin/promo-codes"] });
       setIsPromoCodeOpen(false);
+      setSelectedPromoCode(null);
       toast({
         title: "Promo code created",
         description: "The promo code has been added successfully",
       });
     },
     onError: (error) => {
+      console.error("❌ Frontend: Promo code creation failed:", error);
       toast({
         title: "Failed to create promo code",
         description: error.message,
@@ -319,10 +323,12 @@ export default function AdminDashboard() {
   
   const updatePromoCodeMutation = useMutation({
     mutationFn: async ({ id, data }: { id: number, data: any }) => {
+      console.log("🎯 Frontend: Updating promo code ID:", id, "with data:", data);
       const response = await apiRequest("PATCH", `/api/admin/promo-codes/${id}`, data);
       return response.json();
     },
-    onSuccess: () => {
+    onSuccess: (updatedPromoCode) => {
+      console.log("✅ Frontend: Promo code updated successfully:", updatedPromoCode);
       queryClient.invalidateQueries({ queryKey: ["/api/admin/promo-codes"] });
       setIsPromoCodeOpen(false);
       setSelectedPromoCode(null);
@@ -332,6 +338,7 @@ export default function AdminDashboard() {
       });
     },
     onError: (error) => {
+      console.error("❌ Frontend: Promo code update failed:", error);
       toast({
         title: "Failed to update promo code",
         description: error.message,

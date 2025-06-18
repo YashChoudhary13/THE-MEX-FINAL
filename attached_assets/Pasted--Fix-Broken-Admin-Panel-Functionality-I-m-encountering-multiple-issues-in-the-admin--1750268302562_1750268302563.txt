@@ -1,0 +1,55 @@
+
+> 🛠️ **Fix Broken Admin Panel Functionality**
+>
+> I'm encountering multiple issues in the **admin panel**, and since you’ve built this project, you should already know the structure and logic. Please fix the following problems thoroughly:
+>
+> ---
+>
+> ### 🔶 Promo Code Management (inside the "Promo Code" tab of the admin panel)
+>
+> * Creating a new promo code throws an error and doesn’t save.
+> * Updating existing promo codes also fails.
+> * Nothing is reflected in the database or UI.
+>
+> You should:
+>
+> * Check the form submission logic and API handler.
+> * Make sure the backend route for promo code creation and update is working.
+> * Ensure validation isn’t blocking valid inputs.
+> * Verify the response is handled correctly in the frontend.
+>
+> ---
+>
+> ### 🔶 System Settings — Tax Rate & Service Fee (inside the "System Settings" tab)
+>
+> * Trying to update tax rate or service fee fails with visible error messages.
+> * Changes are not applied or reflected in the database.
+>
+> You should:
+>
+> * Debug the update logic for these settings.
+> * Check the API route and handler for saving settings.
+> * Ensure correct value types are sent and expected (number/string).
+> * Confirm there are no schema or database constraint issues.
+>
+> ---
+>
+> ### 🔁 General Reminders
+>
+> * You're the original creator, so please **trace the full flow** from UI → API → DB and back.
+> * Log responses and check for silent errors.
+> * Don’t forget to **invalidate or refetch relevant queries** after successful updates.
+> * Make sure settings and promo code values are loaded dynamically after any change.
+> * If authentication is required for these requests, make sure admin tokens/cookies are present.
+>
+> ---
+>
+> ✅ **Expected Outcome**
+>
+> * Promo code creation and update should work smoothly.
+> * Tax rate and service fee should update and persist correctly.
+> * All changes should reflect live in the UI and database without needing manual refresh.
+>
+> Fix everything so that it works as intended for production deployment. Let me know once it’s complete.
+
+---

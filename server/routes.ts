@@ -815,14 +815,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post('/api/admin/promo-codes', isAdmin, async (req, res) => {
     try {
-      const promoCodeData = insertPromoCodeSchema.parse(req.body);
+      console.log("📝 Creating promo code - incoming payload:", req.body);
+      
+      // Process dates if they exist
+      const processedData = {
+        ...req.body,
+        startDate: req.body.startDate ? new Date(req.body.startDate) : null,
+        endDate: req.body.endDate ? new Date(req.body.endDate) : null,
+        minOrderValue: req.body.minOrderValue || 0,
+        currentUsage: 0 // Always start with 0 usage
+      };
+      
+      console.log("📝 Processed promo code data:", processedData);
+      
+      const promoCodeData = insertPromoCodeSchema.parse(processedData);
+      console.log("📝 Validated promo code data:", promoCodeData);
+      
       const newPromoCode = await storage.createPromoCode(promoCodeData);
+      console.log("✅ Promo code created in database:", newPromoCode);
+      
       res.status(201).json(newPromoCode);
     } catch (error) {
       if (error instanceof z.ZodError) {
+        console.error("❌ Promo code validation error:", error.errors);
         res.status(400).json({ message: "Invalid promo code data", errors: error.errors });
       } else {
-        console.error('Error creating promo code:', error);
+        console.error('❌ Error creating promo code:', error);
         res.status(500).json({ message: 'Failed to create promo code' });
       }
     }

@@ -55,14 +55,15 @@ export default function TodaysSpecialManager({ menuItems }: TodaysSpecialManager
   });
 
   // Fetch special offer statistics - only when there's an active special
-  const { data: specialStats } = useQuery<{
+  const { data: specialStats, refetch: refetchStats } = useQuery<{
     ordersToday: number;
     revenueToday: number;
     totalSavings: number;
   }>({
     queryKey: ["/api/admin/special-offer-stats"],
     enabled: !!specialOffer && !!(specialOffer as any)?.menuItem,
-    refetchInterval: 15000, // Refetch stats every 15 seconds for real-time updates
+    refetchInterval: 10000, // More frequent stats updates
+    staleTime: 0, // Always consider data stale for fresh stats
   });
 
   // Set default end date to tomorrow
@@ -81,17 +82,26 @@ export default function TodaysSpecialManager({ menuItems }: TodaysSpecialManager
       const response = await apiRequest("POST", "/api/admin/special-offers", data);
       return response.json();
     },
-    onSuccess: () => {
-      // Invalidate all related queries for immediate update across all views
-      queryClient.invalidateQueries({ queryKey: ["/api/special-offer"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/special-offers"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/menu-items"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/special-offer-stats"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/orders"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/orders/today"] });
+    onSuccess: async () => {
+      // Comprehensive cache invalidation for all views
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["/api/special-offer"] }),
+        queryClient.invalidateQueries({ queryKey: ["/api/admin/special-offers"] }),
+        queryClient.invalidateQueries({ queryKey: ["/api/menu-items"] }),
+        queryClient.invalidateQueries({ queryKey: ["/api/admin/special-offer-stats"] }),
+        queryClient.invalidateQueries({ queryKey: ["/api/admin/orders"] }),
+        queryClient.invalidateQueries({ queryKey: ["/api/admin/orders/today"] })
+      ]);
       
-      // Force immediate refetch of special offer
-      refetchSpecial();
+      // Force immediate refetch with stale data removal
+      queryClient.removeQueries({ queryKey: ["/api/special-offer"] });
+      await refetchSpecial();
+      
+      // Additional forced refetch after small delay to ensure all components update
+      setTimeout(() => {
+        queryClient.refetchQueries({ queryKey: ["/api/special-offer"] });
+        queryClient.refetchQueries({ queryKey: ["/api/admin/special-offer-stats"] });
+      }, 500);
       
       setIsDialogOpen(false);
       toast({
@@ -179,7 +189,23 @@ export default function TodaysSpecialManager({ menuItems }: TodaysSpecialManager
             <CardDescription>The currently active special on your menu</CardDescription>
           </div>
           <Button 
-            onClick={() => refetchSpecial()}
+            onClick={async () => {
+              // Force comprehensive refresh of all special offer related data
+              queryClient.removeQueries({ queryKey: ["/api/special-offer"] });
+              queryClient.removeQueries({ queryKey: ["/api/admin/special-offer-stats"] });
+              queryClient.removeQueries({ queryKey: ["/api/menu-items"] });
+              
+              await Promise.all([
+                refetchSpecial(),
+                refetchStats(),
+                queryClient.refetchQueries({ queryKey: ["/api/menu-items"] })
+              ]);
+              
+              toast({
+                title: "Data refreshed",
+                description: "All special offer data has been updated across the system",
+              });
+            }}
             variant="outline"
             size="sm"
           >

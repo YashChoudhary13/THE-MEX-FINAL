@@ -138,6 +138,13 @@ Changelog:
   * Added dynamic statistics calculation based on actual order data since special activation
   * Improved WebSocket broadcasting for immediate updates when specials change
   * Fixed cache invalidation to ensure consistent data across all components
+- June 18, 2025. Enhanced real-time updates and fallback mechanisms:
+  * Added comprehensive cache invalidation across all menu and special offer components
+  * Implemented aggressive refetch intervals for customer-facing pages (15s special offers, 30s menu)
+  * Enhanced MobileMenuContent and MenuContent with dynamic special offer display
+  * Added manual refresh functionality with complete data reset for admin
+  * Fixed statistics calculation to use all orders since special activation (not just today)
+  * Improved error handling and fallback mechanisms for WebSocket reliability issues
 ```
 
 ## User Preferences

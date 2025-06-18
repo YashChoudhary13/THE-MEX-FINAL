@@ -1166,15 +1166,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.json({ ordersToday: 0, revenueToday: 0, totalSavings: 0 });
       }
 
-      // Get today's orders and filter for orders containing the special item
-      const todaysOrders = await storage.getTodaysOrders();
+      // Get ALL orders (not just today's) to calculate statistics since special activation
+      const allOrders = await storage.getOrders();
       
-      // Filter orders that were placed AFTER the special offer started
+      // Filter orders placed AFTER the special offer started
       const specialStartTime = new Date(specialOffer.startDate || new Date()).getTime();
-      const relevantOrders = todaysOrders.filter(order => {
+      const relevantOrders = allOrders.filter(order => {
         const orderTime = new Date(order.createdAt).getTime();
-        return orderTime >= specialStartTime && 
-               (order.items as any[])?.some((item: any) => item.menuItemId === specialOffer.menuItemId);
+        const hasSpecialItem = order.items && Array.isArray(order.items) && 
+                              (order.items as any[]).some((item: any) => item.menuItemId === specialOffer.menuItemId);
+        return orderTime >= specialStartTime && hasSpecialItem;
       });
 
       let ordersToday = 0;
@@ -1182,12 +1183,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let totalSavings = 0;
 
       relevantOrders.forEach(order => {
-        const specialItems = (order.items as any[])?.filter((item: any) => item.menuItemId === specialOffer.menuItemId) || [];
-        specialItems.forEach((item: any) => {
-          ordersToday += item.quantity || 0;
-          revenueToday += (item.price || 0) * (item.quantity || 0);
-          totalSavings += ((specialOffer as any).discountValue || (specialOffer as any).discountAmount || 0) * (item.quantity || 0);
-        });
+        if (order.items && Array.isArray(order.items)) {
+          const specialItems = (order.items as any[]).filter((item: any) => item.menuItemId === specialOffer.menuItemId);
+          specialItems.forEach((item: any) => {
+            const quantity = item.quantity || 0;
+            const price = item.price || 0;
+            const discountAmount = (specialOffer as any).discountValue || (specialOffer as any).discountAmount || 0;
+            
+            ordersToday += quantity;
+            revenueToday += price * quantity;
+            totalSavings += discountAmount * quantity;
+          });
+        }
       });
 
       res.json({ ordersToday, revenueToday, totalSavings });

@@ -143,59 +143,67 @@ export default function MobileMenuContent({ activeCategory, searchQuery }: Mobil
   return (
     <div className="px-4 pb-24" id="full-menu"> {/* Extra padding at bottom for floating menu button */}
       {/* Today's Special Section */}
-      <section className="mb-10">
-        <div className="flex items-center mb-4">
-          <Flame className="h-5 w-5 text-primary mr-2" />
-          <h2 className="text-2xl font-heading text-primary">TODAY'S SPECIAL</h2>
-        </div>
-        
-        <div className="bg-gradient-to-br from-primary/20 to-accent/20 p-5 rounded-xl border border-border">
-          <div className="relative">
-            <div className="absolute top-2 left-2 bg-primary text-white text-xs px-3 py-1 rounded-full font-menu z-10">
-              {todaysSpecial.label}
-            </div>
-            <div className="w-full h-48 overflow-hidden rounded-lg mb-4">
-              <img 
-                src={todaysSpecial.image} 
-                alt={todaysSpecial.name} 
-                className="w-full h-full object-cover"
-              />
-            </div>
+      {todaysSpecial && (
+        <section className="mb-10">
+          <div className="flex items-center mb-4">
+            <Flame className="h-5 w-5 text-primary mr-2" />
+            <h2 className="text-2xl font-heading text-primary">TODAY'S SPECIAL</h2>
           </div>
           
-          <h3 className="font-heading text-xl text-foreground mb-2">{todaysSpecial.name}</h3>
-          <p className="text-sm text-muted-foreground mb-3">{todaysSpecial.description}</p>
-          
-          <div className="flex justify-between items-center mb-4">
-            <span className="text-xl font-bold text-primary">${todaysSpecial.price.toFixed(2)}</span>
-            <span className="text-sm line-through text-muted-foreground">${todaysSpecial.originalPrice.toFixed(2)}</span>
+          <div className="bg-gradient-to-br from-primary/20 to-accent/20 p-5 rounded-xl border border-border">
+            <div className="relative">
+              <div className="absolute top-2 left-2 bg-primary text-white text-xs px-3 py-1 rounded-full font-menu z-10">
+                {todaysSpecial.label}
+              </div>
+              <div className="w-full h-48 overflow-hidden rounded-lg mb-4">
+                <img 
+                  src={todaysSpecial.image} 
+                  alt={todaysSpecial.name} 
+                  className="w-full h-full object-cover"
+                />
+              </div>
+            </div>
+            
+            <h3 className="font-heading text-xl text-foreground mb-2">{todaysSpecial.name}</h3>
+            <p className="text-sm text-muted-foreground mb-3">{todaysSpecial.description}</p>
+            
+            <div className="flex justify-between items-center mb-2">
+              <span className="text-xl font-bold text-primary">{formatCurrency(todaysSpecial.price)}</span>
+              <span className="text-sm line-through text-muted-foreground">{formatCurrency(todaysSpecial.originalPrice)}</span>
+            </div>
+            
+            <div className="flex justify-center mb-4">
+              <Badge variant="outline" className="text-xs">
+                Save {formatCurrency(todaysSpecial.savings)}
+              </Badge>
+            </div>
+            
+            <button 
+              className="w-full py-3 bg-primary text-white font-menu rounded-lg hover:bg-primary/90 transition-colors"
+              onClick={() => {
+                if (todaysSpecial.menuItem) {
+                  // Add special offer item to cart with special price
+                  const cartItem: CartItem = {
+                    id: Date.now(),
+                    menuItemId: todaysSpecial.menuItem.id,
+                    name: todaysSpecial.menuItem.name,
+                    price: todaysSpecial.price, // Use the special offer price
+                    quantity: 1,
+                    image: todaysSpecial.menuItem.image
+                  };
+                  addToCart(cartItem);
+                  toast({
+                    title: "Added to cart",
+                    description: `${todaysSpecial.menuItem.name} has been added to your cart at special price!`
+                  });
+                }
+              }}
+            >
+              ADD TO CART
+            </button>
           </div>
-          
-          <button 
-            className="w-full py-3 bg-primary text-white font-menu rounded-lg hover:bg-primary/90 transition-colors"
-            onClick={() => {
-              if (todaysSpecial.menuItem) {
-                // Add special offer item to cart
-                const cartItem: CartItem = {
-                  id: Date.now(), // Generate a unique ID for the cart item
-                  menuItemId: todaysSpecial.menuItem.id,
-                  name: todaysSpecial.menuItem.name,
-                  price: todaysSpecial.price, // Use the special offer price
-                  quantity: 1,
-                  image: todaysSpecial.menuItem.image
-                };
-                addToCart(cartItem);
-                toast({
-                  title: "Added to cart",
-                  description: `${todaysSpecial.menuItem.name} has been added to your cart`
-                });
-              }
-            }}
-          >
-            ADD TO CART
-          </button>
-        </div>
-      </section>
+        </section>
+      )}
       
       {/* Show all categories for mobile devices */}
       {categories && categories.length > 0 && menuItems && !searchQuery ? (

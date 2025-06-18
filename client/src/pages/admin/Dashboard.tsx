@@ -200,7 +200,11 @@ export default function AdminDashboard() {
       return response.json();
     },
     onSuccess: () => {
+      // Invalidate all special offer related queries to force refresh
       queryClient.invalidateQueries({ queryKey: ["/api/special-offer"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/special-offers"] });
+      // Refetch menu items to ensure pricing updates
+      queryClient.invalidateQueries({ queryKey: ["/api/menu-items"] });
       setIsUpdateSpecialOpen(false);
       toast({
         title: "Special offer updated",

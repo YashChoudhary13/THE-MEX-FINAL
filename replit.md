@@ -120,6 +120,11 @@ Changelog:
   * Updated form submission to convert date strings to proper Date objects
   * Enhanced schema validation with z.coerce.date() for proper type conversion
   * Resolved JavaScript Date object conversion issues in Today's Special form
+- June 18, 2025. Enhanced real-time updates for Today's Special:
+  * Improved cache invalidation to refresh both admin and customer views instantly
+  * Added automatic refetch intervals (10s admin, 30s customer) for fresh data
+  * Enhanced admin card with timezone-aware end date display and manual refresh button
+  * Ensured no stale data caching in localStorage/sessionStorage
 ```
 
 ## User Preferences

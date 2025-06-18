@@ -56,7 +56,7 @@ export default function UserAccount() {
     defaultValues: {
       username: user?.username || "",
       email: user?.email || "",
-      securityQuestion: user?.securityQuestion || "",
+      securityQuestion: "",
       securityAnswer: "",
     },
   });

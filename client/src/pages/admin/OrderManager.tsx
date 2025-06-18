@@ -433,7 +433,7 @@ export default function OrderManager() {
                 <div>
                   <h4 className="text-sm font-medium text-muted-foreground">Items</h4>
                   <ul className="text-sm border rounded-md divide-y">
-                    {order.items && Array.isArray(order.items) && order.items.map((item: any, index: number) => (
+                    {order.items && Array.isArray(order.items) && (order.items as any[]).map((item: any, index: number) => (
                       <li key={index} className="flex justify-between p-2">
                         <span>{item.quantity || 0}x {item.name || 'Unknown item'}</span>
                         <span>${((item.price || 0) * (item.quantity || 0)).toFixed(2)}</span>

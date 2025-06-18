@@ -52,7 +52,16 @@ export const insertMenuItemSchema = createInsertSchema(menuItems).pick({
   dietaryInfo: true,
   prepTime: true,
 }).extend({
-  image: z.string().optional().or(z.literal("")),
+  image: z.string().optional().refine((val) => {
+    if (!val || val === "") return true; // Allow empty
+    if (val.startsWith("data:")) return true; // Allow data URLs from file uploads
+    try {
+      new URL(val);
+      return true;
+    } catch {
+      return false;
+    }
+  }, "Please enter a valid URL or upload an image file"),
 });
 
 export type InsertMenuItem = z.infer<typeof insertMenuItemSchema>;

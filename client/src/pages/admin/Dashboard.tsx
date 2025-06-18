@@ -1239,7 +1239,7 @@ function AddMenuItemForm({ categories, onSubmit, isSubmitting }: AddMenuItemForm
       name: "",
       description: "",
       price: 0,
-      image: "",
+      image: undefined,
       categoryId: 0,
       featured: false,
       prepTime: 15,

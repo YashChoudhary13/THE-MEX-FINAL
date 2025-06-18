@@ -9,7 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Order } from "@shared/schema";
 
 import { useToast } from "@/hooks/use-toast";
-import { useWebSocketNotifications } from "@/hooks/use-websocket-notifications";
+
 
 export default function OrderConfirmation() {
   const { id } = useParams();
@@ -17,24 +17,13 @@ export default function OrderConfirmation() {
   const { toast } = useToast();
   const orderId = parseInt(id || "0");
   
-  // Enable WebSocket notifications for this specific order
-  useWebSocketNotifications({ orderId, enabled: true });
+
   
   // Scroll to top when component mounts
   useEffect(() => {
     window.scrollTo(0, 0);
     
-    // Send confirmation notification if enabled
-    if (isNotificationsEnabled) {
-      sendNotification(
-        "Order Confirmed!", 
-        { 
-          body: `Your order #${orderId} has been confirmed and is being prepared.`,
-          icon: "/favicon.ico"
-        }
-      );
-    }
-  }, [isNotificationsEnabled, orderId, sendNotification]);
+  }, []);
   
   const { data: order, isLoading, isError } = useQuery<Order>({
     queryKey: [`/api/orders/${orderId}`],
@@ -145,7 +134,7 @@ export default function OrderConfirmation() {
                     </div>
                     <div className="flex justify-between text-sm mb-2">
                       <span className="text-muted-foreground">Service Fee</span>
-                      <span className="font-medium">${order.deliveryFee.toFixed(2)}</span>
+                      <span className="font-medium">${order.serviceFee.toFixed(2)}</span>
                     </div>
                     <div className="flex justify-between text-sm mb-3">
                       <span className="text-muted-foreground">Tax</span>
@@ -180,15 +169,10 @@ export default function OrderConfirmation() {
                         <p className="font-medium">{order.customerEmail}</p>
                       </div>
                     )}
-                    <div className="col-span-1 md:col-span-2">
-                      <p className="text-sm text-muted-foreground">Pickup Address</p>
-                      <p className="font-medium">{order.deliveryAddress}</p>
-                      <p className="font-medium">{order.city}, {order.zipCode}</p>
-                    </div>
-                    {order.deliveryInstructions && (
+                    {order.preparationInstructions && (
                       <div className="col-span-1 md:col-span-2">
-                        <p className="text-sm text-muted-foreground">Special Instructions</p>
-                        <p className="font-medium">{order.deliveryInstructions}</p>
+                        <p className="text-sm text-muted-foreground">Preparation Instructions</p>
+                        <p className="font-medium">{order.preparationInstructions}</p>
                       </div>
                     )}
                   </div>

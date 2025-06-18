@@ -103,6 +103,7 @@ Changelog:
 - June 18, 2025. Resolved Stripe console errors (ad blocker blocking analytics is safe to ignore)
 - June 18, 2025. Eliminated localhost:undefined WebSocket fallback issues completely
 - June 18, 2025. Fixed duplicate WebSocket connections in LiveStatsDisplay component
+- June 18, 2025. Removed entire notification system including NotificationContext and service worker
 ```
 
 ## User Preferences

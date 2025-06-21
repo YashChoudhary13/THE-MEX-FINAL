@@ -5,6 +5,8 @@ import session from "express-session";
 import bcrypt from "bcryptjs";
 import { storage } from "./storage";
 import { User as UserType } from "@shared/schema";
+import dotenv from 'dotenv';
+dotenv.config();
 
 declare global {
   namespace Express {
@@ -47,7 +49,7 @@ export function setupAuth(app: Express) {
     store: storage.sessionStore,
     cookie: {
       maxAge: 1000 * 60 * 60 * 24 * 7, // 1 week
-      secure: process.env.NODE_ENV === "production",
+      secure: process.env.NODE_ENV === "production", // true in prod, false in dev
     }
   };
 

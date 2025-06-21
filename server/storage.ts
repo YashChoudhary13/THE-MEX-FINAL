@@ -15,8 +15,9 @@ import session from "express-session";
 import { eq, and, isNull, lte, gt, desc, or, lt, sql, gte } from "drizzle-orm";
 import { db } from "./db";
 import bcrypt from "bcryptjs";
-import connectPg from "connect-pg-simple";
-import { pool } from "./db";
+
+import { redis } from "./db"; // <- assuming redis.ts
+import { RedisStore } from "connect-redis";
 import createMemoryStore from "memorystore";
 
 export interface IStorage {
@@ -584,14 +585,13 @@ export class MemStorage implements IStorage {
 
 // Database storage implementation
 export class DatabaseStorage implements IStorage {
+
   sessionStore: session.Store;
 
   constructor() {
-    const PostgresStore = connectPg(session);
-    this.sessionStore = new PostgresStore({
-      pool,
-      tableName: 'session',
-      createTableIfMissing: true
+    this.sessionStore = new RedisStore({
+      client: redis,
+      prefix: "sess:", // Optional but good for production
     });
   }
   

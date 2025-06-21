@@ -12,7 +12,7 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
   const { onMessage, onConnect, onDisconnect } = options;
 
   useEffect(() => {
-    const host = window.location.host;
+    const host = import.meta.env.VITE_BACKEND_HOST || window.location.host || 'localhost:5000';
     const isSecure = window.location.protocol === 'https:';
     const protocol = isSecure ? 'wss' : 'ws';
     

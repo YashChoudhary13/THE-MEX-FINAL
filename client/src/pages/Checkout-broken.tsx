@@ -6,11 +6,11 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useCart } from "@/context/CartContext";
-import { useNotifications } from "@/context/NotificationContext";
 import { apiRequest } from "@/lib/queryClient";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import PaymentPage from "@/pages/Payment";
+import { CartItem } from "@shared/schema";
 
 import {
   Form,
@@ -46,7 +46,6 @@ export default function Checkout() {
   const [, navigate] = useLocation();
   const { toast } = useToast();
   const { cart, clearCart, promoCode, promoDiscount, applyPromoCode, clearPromoCode, calculateTotals } = useCart();
-  const { requestPermission } = useNotifications();
   const [currentStep, setCurrentStep] = useState(CheckoutStep.CustomerInfo);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [promoCodeInput, setPromoCodeInput] = useState("");
@@ -387,30 +386,6 @@ export default function Checkout() {
                     );
                   })()}
                   
-                  {"Notification" in window && (
-                    <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                      <div className="flex items-center space-x-2 mb-2">
-                        <Bell className="h-4 w-4 text-blue-600" />
-                        <span className="text-sm font-medium text-blue-900">Enable Order Notifications</span>
-                      </div>
-                      <p className="text-xs text-blue-700 mb-3">Get notified when your order status changes</p>
-                      {Notification.permission === "granted" ? (
-                        <span className="text-xs text-green-600 flex items-center">
-                          <CheckCircle className="h-4 w-4" />
-                          Notifications Enabled
-                        </span>
-                      ) : (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={requestPermission}
-                          className="text-blue-600 border-blue-300 hover:bg-blue-100"
-                        >
-                          Enable Notifications
-                        </Button>
-                      )}
-                    </div>
-                  )}
                 </div>
               )}
 
@@ -436,40 +411,13 @@ export default function Checkout() {
                           )}
                         </div>
 
-                        {/* Notification Options */}
-                        {"Notification" in window && (
-                          <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                            <div className="flex items-center space-x-2 mb-2">
-                              <Bell className="h-4 w-4 text-blue-600" />
-                              <span className="text-sm font-medium text-blue-900">Order Status Notifications</span>
-                            </div>
-                            <p className="text-xs text-blue-700 mb-3">Get notified when your order status changes (confirmed → preparing → ready for pickup)</p>
-                            {Notification.permission === "granted" ? (
-                              <span className="text-xs text-green-600 flex items-center">
-                                <CheckCircle className="h-4 w-4 mr-1" />
-                                Notifications Enabled - You'll receive updates about your order
-                              </span>
-                            ) : (
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={requestPermission}
-                                className="text-blue-600 border-blue-300 hover:bg-blue-100"
-                              >
-                                Enable Order Notifications
-                              </Button>
-                            )}
-                          </div>
-                        )}
-
                         <div className="space-y-4">
                           <div className="border rounded-lg overflow-hidden bg-card">
                             <div className="bg-primary/10 p-3 border-b">
                               <h3 className="font-medium text-primary">Items Ordered</h3>
                             </div>
                             <div className="p-3 divide-y divide-border">
-                              {(orderData?.items || cart).map((item, index) => (
-                                <div key={index} className="py-2 flex justify-between items-center">
+                                {(orderData?.items || cart).map((item: CartItem, index: number) => (                                <div key={index} className="py-2 flex justify-between items-center">
                                   <div className="flex items-center">
                                     <span className="font-medium text-primary">{item.quantity}x</span>
                                     <span className="ml-2 text-foreground">{item.name}</span>

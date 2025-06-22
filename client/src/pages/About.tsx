@@ -41,14 +41,11 @@ export default function About() {
               >
                 <h2 className="text-3xl font-heading mb-4 text-primary">OUR HUMBLE BEGINNINGS</h2>
                 <p className="text-muted-foreground mb-4">
-                  Founded in 2010 by Chef Miguel Rodriguez, The Mex started as a small food truck serving authentic Mexican street food with a modern twist. What began as a passion project quickly grew into a beloved local destination.
-                </p>
-                <p className="text-muted-foreground mb-4">
-                  With over 14 years of experience, we've perfected our recipes while staying true to our core values: fresh ingredients, bold flavors, and exceptional service.
+                  The MEX began as a cozy food spot with a big mission — to bring bold, handcrafted Mexican flavors to every plate. Over the years, The MEX has grown into a vibrant destination for those who crave something real — food that’s comforting, crave-worthy, and packed with personality. Whether it’s cheesy quesadillas, spicy birria tacos, or refreshing house drinks, the goal has always been the same: serve up unforgettable flavor in every bite.
                 </p>
                 <div className="flex items-center gap-2 text-primary mt-6">
                   <Clock className="h-5 w-5" />
-                  <span className="text-sm font-medium">Established in 2010</span>
+                  <span className="text-sm font-medium">Established in 2022</span>
                 </div>
               </motion.div>
               
@@ -60,7 +57,7 @@ export default function About() {
                 className="rounded-xl overflow-hidden border border-border"
               >
                 <img 
-                  src="https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=800&h=600" 
+                  src="https://res.cloudinary.com/dva2pren5/image/upload/v1750590923/473923969_921955426731378_1623534966545710942_n.jpg_vv3rdl.jpg?auto=format&fit=crop&w=800&h=600" 
                   alt="Restaurant interior" 
                   className="w-full h-full object-cover"
                 />
@@ -136,81 +133,6 @@ export default function About() {
                 <p className="text-muted-foreground text-sm">We partner with local suppliers and work to minimize our environmental footprint.</p>
               </motion.div>
             </div>
-          </div>
-        </section>
-        
-        {/* Team Section */}
-        <section className="container mx-auto px-4 py-16">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl font-heading mb-4 text-primary">MEET OUR TEAM</h2>
-            <p className="text-muted-foreground max-w-2xl mx-auto">
-              The talented people behind The Mex who make everything possible.
-            </p>
-          </div>
-          
-          <div className="grid md:grid-cols-3 gap-8 max-w-4xl mx-auto">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
-              whileInView={{ opacity: 1, scale: 1 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.4 }}
-              className="text-center"
-            >
-              <div className="w-36 h-36 mx-auto rounded-full overflow-hidden border-4 border-primary/20 mb-4">
-                <img 
-                  src="https://images.unsplash.com/photo-1583394838336-acd977736f90?auto=format&fit=crop&w=200&h=200" 
-                  alt="Chef Miguel" 
-                  className="w-full h-full object-cover"
-                />
-              </div>
-              <h3 className="text-xl font-heading mb-1">Miguel Rodriguez</h3>
-              <p className="text-primary text-sm font-menu mb-2">FOUNDER & HEAD CHEF</p>
-              <p className="text-muted-foreground text-sm">
-                With 20+ years of culinary experience, Miguel brings authentic flavors to every recipe.
-              </p>
-            </motion.div>
-            
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
-              whileInView={{ opacity: 1, scale: 1 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.4, delay: 0.1 }}
-              className="text-center"
-            >
-              <div className="w-36 h-36 mx-auto rounded-full overflow-hidden border-4 border-primary/20 mb-4">
-                <img 
-                  src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&h=200" 
-                  alt="David Chen" 
-                  className="w-full h-full object-cover"
-                />
-              </div>
-              <h3 className="text-xl font-heading mb-1">David Chen</h3>
-              <p className="text-primary text-sm font-menu mb-2">OPERATIONS MANAGER</p>
-              <p className="text-muted-foreground text-sm">
-                David ensures that every location runs smoothly while maintaining our high standards.
-              </p>
-            </motion.div>
-            
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
-              whileInView={{ opacity: 1, scale: 1 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.4, delay: 0.2 }}
-              className="text-center"
-            >
-              <div className="w-36 h-36 mx-auto rounded-full overflow-hidden border-4 border-primary/20 mb-4">
-                <img 
-                  src="https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?auto=format&fit=crop&w=200&h=200" 
-                  alt="Sofia Martinez" 
-                  className="w-full h-full object-cover"
-                />
-              </div>
-              <h3 className="text-xl font-heading mb-1">Sofia Martinez</h3>
-              <p className="text-primary text-sm font-menu mb-2">CULINARY DIRECTOR</p>
-              <p className="text-muted-foreground text-sm">
-                Sofia develops innovative menu items while preserving our authentic Mexican roots.
-              </p>
-            </motion.div>
           </div>
         </section>
       </main>

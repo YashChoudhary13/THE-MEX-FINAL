@@ -1,17 +1,22 @@
 import { pgTable, text, serial, integer, boolean, jsonb, doublePrecision, timestamp, date, decimal, unique } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
+import { eq } from "drizzle-orm";
 
 // Menu Category
 export const menuCategories = pgTable("menu_categories", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
   slug: text("slug").notNull().unique(),
+  description: text("description"),
+  order: integer("order").notNull().default(0),
 });
 
 export const insertMenuCategorySchema = createInsertSchema(menuCategories).pick({
   name: true,
   slug: true,
+  description: true,
+  order: true,
 });
 
 export type InsertMenuCategory = z.infer<typeof insertMenuCategorySchema>;
@@ -26,12 +31,36 @@ export const menuItems = pgTable("menu_items", {
   categoryId: integer("category_id").notNull(),
   image: text("image"),
   featured: boolean("featured").default(false),
+  soldOut: boolean("sold_out").default(false),
+  isHot: boolean("is_hot").default(false),
+  isBestSeller: boolean("is_best_seller").default(false),
   label: text("label"), // For tags like "Healthy", "Best Seller", etc.
   ingredients: text("ingredients"),
   calories: text("calories"),
   allergens: text("allergens"),
   dietaryInfo: text("dietary_info").array(),
   prepTime: integer("prep_time").default(15), // Preparation time in minutes
+  hasOptions: boolean("has_options").default(false).notNull(),
+});
+
+// Menu Item Option Groups (e.g., "Meat or Veg", "Rice", "Burrito Fillings")
+export const menuItemOptionGroups = pgTable("menu_item_option_groups", {
+  id: serial("id").primaryKey(),
+  menuItemId: integer("menu_item_id").references(() => menuItems.id).notNull(),
+  name: text("name").notNull(), // e.g., "Meat or Veg", "Rice", "Burrito Fillings"
+  required: boolean("required").default(false).notNull(),
+  maxSelections: integer("max_selections").default(1).notNull(), // 1 for single selection, >1 for multiple
+  order: integer("order").default(0).notNull(),
+});
+
+// Individual options within a group (e.g., "Chicken", "Slow Cooked Beef")
+export const menuItemOptions = pgTable("menu_item_options", {
+  id: serial("id").primaryKey(),
+  optionGroupId: integer("option_group_id").references(() => menuItemOptionGroups.id).notNull(),
+  name: text("name").notNull(), // e.g., "Chicken", "Slow Cooked Beef"
+  priceModifier: doublePrecision("price_modifier").default(0).notNull(), // additional cost
+  order: integer("order").default(0).notNull(),
+  available: boolean("available").default(true).notNull(),
 });
 
 export const insertMenuItemSchema = createInsertSchema(menuItems).pick({
@@ -41,12 +70,16 @@ export const insertMenuItemSchema = createInsertSchema(menuItems).pick({
   categoryId: true,
   image: true,
   featured: true,
+  soldOut: true,
+  isHot: true,
+  isBestSeller: true,
   label: true,
   ingredients: true,
   calories: true,
   allergens: true,
   dietaryInfo: true,
   prepTime: true,
+  hasOptions: true,
 }).extend({
   image: z.string().optional().refine((val) => {
     if (!val || val === "") return true; // Allow empty
@@ -63,12 +96,30 @@ export const insertMenuItemSchema = createInsertSchema(menuItems).pick({
 export type InsertMenuItem = z.infer<typeof insertMenuItemSchema>;
 export type MenuItem = typeof menuItems.$inferSelect;
 
+// Menu Item Option Group schemas
+export const insertMenuItemOptionGroupSchema = createInsertSchema(menuItemOptionGroups).omit({
+  id: true,
+});
+
+export type InsertMenuItemOptionGroup = z.infer<typeof insertMenuItemOptionGroupSchema>;
+export type MenuItemOptionGroup = typeof menuItemOptionGroups.$inferSelect;
+
+// Menu Item Option schemas
+export const insertMenuItemOptionSchema = createInsertSchema(menuItemOptions).omit({
+  id: true,
+});
+
+export type InsertMenuItemOption = z.infer<typeof insertMenuItemOptionSchema>;
+export type MenuItemOption = typeof menuItemOptions.$inferSelect;
+
+
 // Order
 export const orders = pgTable("orders", {
   id: serial("id").primaryKey(),
   customerName: text("customer_name").notNull(),
   customerEmail: text("customer_email"),
   customerPhone: text("customer_phone").notNull(),
+  deliveryAddress: text("delivery_address"),
   preparationInstructions: text("preparation_instructions"),
   subtotal: doublePrecision("subtotal").notNull(),
   serviceFee: doublePrecision("service_fee").notNull(),
@@ -88,6 +139,7 @@ export const insertOrderSchema = createInsertSchema(orders).pick({
   customerName: true,
   customerEmail: true,
   customerPhone: true,
+  deliveryAddress: true,
   preparationInstructions: true,
   subtotal: true,
   serviceFee: true,
@@ -112,6 +164,14 @@ export const createOrderSchema = insertOrderSchema.omit({
 export type InsertOrder = z.infer<typeof insertOrderSchema>;
 export type CreateOrder = z.infer<typeof createOrderSchema>;
 export type Order = typeof orders.$inferSelect;
+
+// Order item interface - moved after table definition
+export interface OrderItem {
+  quantity: number;
+  name: string;
+  price: number;
+  menuItemId?: number;
+}
 
 // Users
 export const users = pgTable("users", {
@@ -214,8 +274,6 @@ export const insertSystemSettingSchema = createInsertSchema(systemSettings).pick
   value: true,
 });
 
-export type InsertSystemSetting = z.infer<typeof insertSystemSettingSchema>;
-export type SystemSetting = typeof systemSettings.$inferSelect;
 
 // Daily Reports Table - stores daily aggregated data for the last 30 days
 export const dailyReports = pgTable("daily_reports", {
@@ -267,4 +325,5 @@ export type CartItem = {
   quantity: number;
   image: string;
   prepTime?: number; // Time in minutes to prepare this item
+  customizations?: string; // JSON string for customization details
 };

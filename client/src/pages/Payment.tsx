@@ -126,7 +126,7 @@ function PaymentForm({ orderData, onSuccess }: PaymentFormProps) {
               <Lock className="h-4 w-4" />
               Secure payment
             </span>
-            <span>Total: ${orderData?.total?.toFixed(2) || '0.00'}</span>
+            <span>Total: €{orderData?.total?.toFixed(2) || '0.00'}</span>
           </div>
 
           <Button
@@ -140,7 +140,7 @@ function PaymentForm({ orderData, onSuccess }: PaymentFormProps) {
                 Processing Payment...
               </>
             ) : (
-              `Pay $${orderData.total.toFixed(2)}`
+              `Pay €${orderData.total.toFixed(2)}`
             )}
           </Button>
         </form>

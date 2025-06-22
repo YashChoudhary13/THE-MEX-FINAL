@@ -91,16 +91,16 @@ export default function AdminTodaysSpecial({ menuItems, isLoading }: AdminTodays
               <div className="grid grid-cols-2 gap-4 mb-6">
                 <div className="space-y-1">
                   <h4 className="text-sm font-medium text-muted-foreground">Special Price</h4>
-                  <p className="text-2xl font-bold text-primary">${specialItem.price.toFixed(2)}</p>
+                  <p className="text-2xl font-bold text-primary">€{specialItem.price.toFixed(2)}</p>
                 </div>
                 <div className="space-y-1">
                   <h4 className="text-sm font-medium text-muted-foreground">Original Price</h4>
-                  <p className="text-xl line-through text-muted-foreground">${specialItem.originalPrice.toFixed(2)}</p>
+                  <p className="text-xl line-through text-muted-foreground">€{specialItem.originalPrice.toFixed(2)}</p>
                 </div>
               </div>
               
               <div className="text-sm text-muted-foreground bg-muted p-3 rounded-md mb-4">
-                <p><strong>Discount:</strong> ${(specialItem.originalPrice - specialItem.price).toFixed(2)} off (${(((specialItem.originalPrice - specialItem.price) / specialItem.originalPrice) * 100).toFixed(0)}%)</p>
+                <p><strong>Discount:</strong> €{(specialItem.originalPrice - specialItem.price).toFixed(2)} off ({(((specialItem.originalPrice - specialItem.price) / specialItem.originalPrice) * 100).toFixed(0)}%)</p>
               </div>
               
               <div className="mt-auto">
@@ -132,7 +132,7 @@ export default function AdminTodaysSpecial({ menuItems, isLoading }: AdminTodays
                               <SelectContent>
                                 {menuItems.map((item) => (
                                   <SelectItem key={item.id} value={item.id.toString()}>
-                                    {item.name} - ${item.price.toFixed(2)}
+                                    {item.name} - €{item.price.toFixed(2)}
                                   </SelectItem>
                                 ))}
                               </SelectContent>
@@ -144,18 +144,24 @@ export default function AdminTodaysSpecial({ menuItems, isLoading }: AdminTodays
                             {selectedItemId ? (
                               <div className="flex items-center gap-4">
                                 <div className="w-16 h-16 rounded-md overflow-hidden bg-muted">
-                                  <img 
-                                    src={menuItems.find(i => i.id.toString() === selectedItemId)?.image} 
-                                    alt="Selected item"
-                                    className="w-full h-full object-cover"
-                                  />
+                                  {menuItems.find(i => i.id.toString() === selectedItemId)?.image ? (
+                                    <img 
+                                      src={menuItems.find(i => i.id.toString() === selectedItemId)?.image} 
+                                      alt="Selected item"
+                                      className="w-full h-full object-cover"
+                                    />
+                                  ) : (
+                                    <div className="w-full h-full flex items-center justify-center">
+                                      <span className="text-muted-foreground text-xs">No image</span>
+                                    </div>
+                                  )}
                                 </div>
                                 <div>
                                   <p className="font-medium">
                                     {menuItems.find(i => i.id.toString() === selectedItemId)?.name}
                                   </p>
                                   <p className="text-sm text-muted-foreground">
-                                    ${menuItems.find(i => i.id.toString() === selectedItemId)?.price.toFixed(2)}
+                                    €{menuItems.find(i => i.id.toString() === selectedItemId)?.price.toFixed(2)}
                                   </p>
                                 </div>
                               </div>
@@ -179,7 +185,7 @@ export default function AdminTodaysSpecial({ menuItems, isLoading }: AdminTodays
                               </SelectTrigger>
                               <SelectContent>
                                 <SelectItem value="percentage">Percentage (%)</SelectItem>
-                                <SelectItem value="amount">Fixed Amount ($)</SelectItem>
+                                <SelectItem value="amount">Fixed Amount (€)</SelectItem>
                               </SelectContent>
                             </Select>
                           </div>
@@ -199,7 +205,7 @@ export default function AdminTodaysSpecial({ menuItems, isLoading }: AdminTodays
                             <p className="text-xs text-muted-foreground mt-1">
                               {discountType === "percentage" 
                                 ? "Enter a value between 1 and 100" 
-                                : "Enter the dollar amount to discount"
+                                : "Enter the euro amount to discount"
                               }
                             </p>
                           </div>
@@ -211,13 +217,13 @@ export default function AdminTodaysSpecial({ menuItems, isLoading }: AdminTodays
                                 <div>
                                   <p className="text-sm text-muted-foreground">Original Price</p>
                                   <p className="font-medium line-through">
-                                    ${menuItems.find(i => i.id.toString() === selectedItemId)?.price.toFixed(2)}
+                                    €{menuItems.find(i => i.id.toString() === selectedItemId)?.price.toFixed(2)}
                                   </p>
                                 </div>
                                 <div>
                                   <p className="text-sm text-muted-foreground">Special Price</p>
                                   <p className="font-bold text-primary">
-                                    ${calculateDiscountedPrice(
+                                    €{calculateDiscountedPrice(
                                       Number(menuItems.find(i => i.id.toString() === selectedItemId)?.price || 0),
                                       discountType,
                                       Number(discountValue)
@@ -246,31 +252,7 @@ export default function AdminTodaysSpecial({ menuItems, isLoading }: AdminTodays
         </CardContent>
       </Card>
       
-      <Card>
-        <CardHeader>
-          <CardTitle>Special Offer Performance</CardTitle>
-          <CardDescription>Analytics for your current special offer</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="space-y-2">
-              <h3 className="text-sm font-medium text-muted-foreground">Orders Today</h3>
-              <p className="text-3xl font-bold">24</p>
-              <p className="text-sm text-muted-foreground">+12% from yesterday</p>
-            </div>
-            <div className="space-y-2">
-              <h3 className="text-sm font-medium text-muted-foreground">Revenue</h3>
-              <p className="text-3xl font-bold">$359.76</p>
-              <p className="text-sm text-muted-foreground">+8% from yesterday</p>
-            </div>
-            <div className="space-y-2">
-              <h3 className="text-sm font-medium text-muted-foreground">Promotion Effectiveness</h3>
-              <p className="text-3xl font-bold">85%</p>
-              <p className="text-sm text-muted-foreground">of customers order the special</p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+
     </div>
   );
 }

@@ -70,9 +70,15 @@ export function CartProvider({ children }: CartProviderProps) {
 
   const addToCart = (newItem: CartItem) => {
     setCart((prevCart) => {
-      // Check if the item already exists in the cart
+      // For items with customizations, always add as new item
+      if (newItem.customizations) {
+        return [...prevCart, { ...newItem, id: Date.now() }];
+      }
+      
+      // Check if the item already exists in the cart (for simple items)
+      
       const existingItemIndex = prevCart.findIndex(
-        (item) => item.menuItemId === newItem.menuItemId
+        (item) => item.menuItemId === newItem.menuItemId && !item.customizations
       );
 
       if (existingItemIndex >= 0) {

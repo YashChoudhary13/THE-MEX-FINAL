@@ -170,7 +170,27 @@ export default function CartPanel({ isOpen, onClose }: CartPanelProps) {
                       )}
                       <div className="flex-1 min-w-0">
                         <div className="flex justify-between items-start">
-                          <h3 className="font-heading text-foreground text-sm md:text-base truncate mr-2">{item.name}</h3>
+                          <div className="flex-1">
+                            <h3 className="font-heading text-foreground text-sm md:text-base truncate mr-2">{item.name}</h3>
+                            {item.customizations && (
+                              <div className="text-xs text-muted-foreground mt-1">
+                                {(() => {
+                                  try {
+                                    return JSON.parse(item.customizations).map((custom: any, idx: number) => (
+                                      <div key={idx} className="flex justify-between">
+                                        <span>{custom.optionName}</span>
+                                        {custom.priceModifier !== 0 && (
+                                          <span>{custom.priceModifier > 0 ? '+' : ''}€{custom.priceModifier.toFixed(2)}</span>
+                                        )}
+                                      </div>
+                                    ));
+                                  } catch (e) {
+                                    return <span>Custom options</span>;
+                                  }
+                                })()}
+                              </div>
+                            )}
+                          </div>                          
                           <Button 
                             variant="ghost" 
                             size="icon"

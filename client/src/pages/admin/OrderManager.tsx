@@ -412,33 +412,18 @@ export default function OrderManager() {
                     <a href={`tel:${order.customerPhone}`} className="text-primary hover:underline">
                       {order.customerPhone}
                     </a>
-                    {order.status === OrderStatus.CONFIRMED && (
-                      <Badge className="ml-2 py-0 h-5 bg-blue-100 text-blue-800 hover:bg-blue-200 border-blue-300">
-                        <BellRing className="h-3 w-3 mr-1" /> Confirmed SMS
-                      </Badge>
-                    )}
-                    {order.status === OrderStatus.PREPARING && (
-                      <Badge className="ml-2 py-0 h-5 bg-yellow-100 text-yellow-800 hover:bg-yellow-200 border-yellow-300">
-                        <BellRing className="h-3 w-3 mr-1" /> Preparing SMS
-                      </Badge>
-                    )}
-                    {order.status === OrderStatus.READY && (
-                      <Badge className="ml-2 py-0 h-5 bg-green-100 text-green-800 hover:bg-green-200 border-green-300">
-                        <BellRing className="h-3 w-3 mr-1" /> Ready for pickup SMS
-                      </Badge>
-                    )}
                   </div>
                 </div>
                 
                 <div>
                   <h4 className="text-sm font-medium text-muted-foreground">Items</h4>
                   <ul className="text-sm border rounded-md divide-y">
-                    {order.items && Array.isArray(order.items) && (order.items as any[]).map((item: any, index: number) => (
+                    {order.items && Array.isArray(order.items) ? (order.items as any[]).map((item: any, index: number) => (
                       <li key={index} className="flex justify-between p-2">
                         <span>{item.quantity || 0}x {item.name || 'Unknown item'}</span>
-                        <span>${((item.price || 0) * (item.quantity || 0)).toFixed(2)}</span>
+                        <span>€{((item.price || 0) * (item.quantity || 0)).toFixed(2)}</span>
                       </li>
-                    ))}
+                    )) : null}
                     {(!order.items || !Array.isArray(order.items) || order.items.length === 0) && (
                       <li className="p-2 text-muted-foreground text-sm">No items available</li>
                     )}

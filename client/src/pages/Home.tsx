@@ -57,6 +57,12 @@ export default function Home() {
     queryKey: ["/api/categories"],
   });
 
+  // Fetch special offer for dynamic banner
+  const { data: specialOffer } = useQuery({
+    queryKey: ['/api/special-offer'],
+    refetchInterval: 15000, // Refetch every 15 seconds for real-time updates
+  });
+
   // Set the first category as active when data loads
   useEffect(() => {
     if (categories && Array.isArray(categories) && categories.length > 0 && !activeCategory) {
@@ -125,7 +131,7 @@ export default function Home() {
       {/* Hero Section - Fully Responsive Professional Design */}
       <section className="py-8 sm:py-12 lg:py-16 bg-gradient-to-b from-secondary/50 via-secondary/20 to-background relative overflow-hidden">
         {/* Background texture */}
-        <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1561758033-d89a9ad46330?auto=format&fit=crop&q=80')] opacity-10 bg-cover bg-center"></div>
+        <div className="absolute inset-0 bg-[url('https://scontent.fjai8-1.fna.fbcdn.net/v/t39.30808-6/470137200_18016000643644923_5572987016785909359_n.jpg?_nc_cat=106&ccb=1-7&_nc_sid=127cfc&_nc_ohc=qrQLfWrhTVMQ7kNvwFp7Lo8&_nc_oc=AdmxVxWFCwmqPFm61O3T3dCtZxW61a8WPeIdO_kgGdgCyA0IKWKPaN_RnmIFqGdwDjI&_nc_zt=23&_nc_ht=scontent.fjai8-1.fna&_nc_gid=2GAlB3mf8S9Cb3zTbJOmJw&oh=00_AfNg434ZS8ewit0-m0XyCkJPrp8pWejoQa6_lfpSaa5O2w&oe=685D67A0')] opacity-10 bg-cover bg-center"></div>
         
         <div className="container mx-auto px-4 sm:px-6">
           {/* Featured Banner */}
@@ -137,7 +143,17 @@ export default function Home() {
           >
             <div className="bg-primary/10 text-primary px-3 py-1.5 sm:px-4 sm:py-2 rounded-full inline-flex items-center">
               <Sparkles className="w-3 h-3 sm:w-4 sm:h-4 mr-1.5 sm:mr-2" />
-              <span className="font-menu text-xs sm:text-sm tracking-wider">TODAY'S SPECIAL: DOUBLE SMASH BURGER - 20% OFF</span>
+              <span className="font-menu text-xs sm:text-sm tracking-wider">
+                {specialOffer && (specialOffer as any).menuItem ? (
+                  `TODAY'S SPECIAL: ${(specialOffer as any).menuItem.name.toUpperCase()} - ${
+                    (specialOffer as any).discountType === 'percentage' 
+                      ? `${(specialOffer as any).discountValue || (specialOffer as any).discountAmount}% OFF`
+                      : `€${(specialOffer as any).discountValue || (specialOffer as any).discountAmount} OFF`
+                  }`
+                ) : (
+                  "TODAY'S SPECIAL: CHECK OUR MENU!"
+                )}
+              </span>
             </div>
           </motion.div>
           
@@ -152,11 +168,11 @@ export default function Home() {
             >
               <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-heading text-foreground mb-4 sm:mb-6 leading-tight">
                 <span className="text-primary">FLAME-GRILLED</span> <br />
-                PERFECTION IN <br className="hidden sm:block" />
-                EVERY BITE.
+                MEXICAN HEAT<br className="hidden sm:block" />
+                WITH EVERY CRUNCH.
               </h1>
               <p className="text-base sm:text-lg text-muted-foreground mb-6 sm:mb-8 max-w-md">
-                Discover our handcrafted burgers made with premium ingredients and a side of attitude. Your cravings don't stand a chance.
+                From slow-cooked meats to smoky sauces, this is fast food with a soul. No forks, no fuss — just flavour.
               </p>
               <div className="flex flex-wrap gap-3 sm:gap-4 justify-center lg:justify-start">
                 <Button 
@@ -187,17 +203,17 @@ export default function Home() {
               <div className="relative w-full">
                 {/* Main hero image */}
                 <img 
-                  src="https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=800"
+                  src="https://res.cloudinary.com/dva2pren5/image/upload/b_rgb:F10000/c_fill,w_800,h_600,ar_4:3,e_improve/v1750576587/470203602_18016000436644923_8240666612134347088_n.jpg_v98bvs.jpg?auto=format&fit=crop&w=800"
                   alt="Signature Burger"
-                  className="w-full h-auto rounded-xl sm:rounded-2xl shadow-lg sm:shadow-2xl"
+                  className="w-full h-[500px] object-cover rounded-xl sm:rounded-2xl shadow-lg sm:shadow-2xl"
                 />
                 
                 {/* Floating cards with additional menu categories - responsive positioning */}
                 <div className="absolute -bottom-2 sm:-bottom-4 lg:-bottom-6 -left-2 sm:-left-4 lg:-left-6 bg-card p-2 sm:p-3 lg:p-4 rounded-lg sm:rounded-xl shadow-lg sm:shadow-xl border border-primary/20 hidden sm:block">
                   <div className="flex items-center gap-2 sm:gap-3">
                     <img 
-                      src="https://images.unsplash.com/photo-1619881590738-a111d176d906?auto=format&fit=crop&w=120" 
-                      alt="French Fries" 
+                      src="https://res.cloudinary.com/dva2pren5/image/upload/v1750577580/474576979_923764763217111_5465648993167304065_n.jpg_kjeuoh.jpg?auto=format&fit=crop&w=120" 
+                      alt="Taco" 
                       className="w-10 h-10 sm:w-12 sm:h-12 lg:w-16 lg:h-16 rounded-md sm:rounded-lg object-cover"
                     />
                     <div>
@@ -218,7 +234,7 @@ export default function Home() {
                 <div className="absolute -top-2 sm:-top-3 lg:-top-4 -right-2 sm:-right-3 lg:-right-4 bg-card p-2 sm:p-3 lg:p-4 rounded-lg sm:rounded-xl shadow-lg sm:shadow-xl border border-primary/20 hidden sm:block">
                   <div className="flex items-center gap-2 sm:gap-3">
                     <img 
-                      src="https://images.unsplash.com/photo-1629203432180-71e9b18d33f3?auto=format&fit=crop&w=120" 
+                      src="https://res.cloudinary.com/dva2pren5/image/upload/v1750577751/474794630_924367589823495_9043190201700204349_n.jpg_prmrqz.jpg?auto=format&fit=crop&w=120" 
                       alt="Drinks" 
                       className="w-10 h-10 sm:w-12 sm:h-12 lg:w-16 lg:h-16 rounded-md sm:rounded-lg object-cover"
                       onError={(e) => {
@@ -247,49 +263,11 @@ export default function Home() {
                 
                 {/* Price badge - responsive sizing */}
                 <div className="absolute top-2 sm:top-3 lg:top-4 left-2 sm:left-3 lg:left-4 bg-primary text-white font-bold px-2 sm:px-3 lg:px-4 py-1 sm:py-1.5 lg:py-2 rounded-full text-xs sm:text-sm">
-                  FROM $9.99
+                  FROM €9.99
                 </div>
               </div>
             </motion.div>
           </div>
-          
-          {/* Trust indicators - responsive layout */}
-          <motion.div 
-            className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6 lg:gap-8 mt-8 sm:mt-10 lg:mt-12 mb-6"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.3 }}
-          >
-            <div className="flex items-center justify-center sm:justify-start gap-2 bg-card/50 p-3 rounded-lg">
-              <div className="p-1.5 sm:p-2 bg-primary/10 rounded-full">
-                <Star className="h-4 w-4 sm:h-5 sm:w-5 text-primary fill-primary" />
-              </div>
-              <div>
-                <p className="font-bold text-sm sm:text-base">4.9 Star Rating</p>
-                <p className="text-xs text-muted-foreground">1,200+ reviews</p>
-              </div>
-            </div>
-            
-            <div className="flex items-center justify-center sm:justify-start gap-2 bg-card/50 p-3 rounded-lg">
-              <div className="p-1.5 sm:p-2 bg-primary/10 rounded-full">
-                <Award className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
-              </div>
-              <div>
-                <p className="font-bold text-sm sm:text-base">Award Winner 2024</p>
-                <p className="text-xs text-muted-foreground">Best burger in town</p>
-              </div>
-            </div>
-            
-            <div className="flex items-center justify-center sm:justify-start gap-2 bg-card/50 p-3 rounded-lg">
-              <div className="p-1.5 sm:p-2 bg-primary/10 rounded-full">
-                <ShoppingBag className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
-              </div>
-              <div>
-                <p className="font-bold text-sm sm:text-base">Fast Pickup</p>
-                <p className="text-xs text-muted-foreground">Ready in 15 minutes</p>
-              </div>
-            </div>
-          </motion.div>
           
           {/* Scroll Down Indicator - responsive */}
           <motion.div 

@@ -55,8 +55,8 @@ export default function Contact() {
                   <div>
                     <h3 className="text-xl font-heading mb-2 text-foreground">Our Location</h3>
                     <p className="text-muted-foreground leading-relaxed">
-                      123 Taco Street<br />
-                      Burrito Hills, CA 90210
+                      14 Pearse Square, Cobh, Co.<br />
+                      Cork, P24 TH29
                     </p>
                   </div>
                 </div>
@@ -67,9 +67,9 @@ export default function Contact() {
                   </div>
                   <div>
                     <h3 className="text-xl font-heading mb-2 text-foreground">Phone Number</h3>
-                    <p className="text-muted-foreground text-lg font-medium mb-1">(555) 123-4567</p>
+                    <p className="text-muted-foreground text-lg font-medium mb-1">+353 21 490 8367</p>
                     <p className="text-sm text-muted-foreground">
-                      Mon-Fri 9am-10pm, Sat-Sun 10am-11pm
+                      During Opening Hours
                     </p>
                   </div>
                 </div>
@@ -80,7 +80,7 @@ export default function Contact() {
                   </div>
                   <div>
                     <h3 className="text-xl font-heading mb-2 text-foreground">Email Address</h3>
-                    <p className="text-muted-foreground text-lg font-medium mb-1">info@themex.com</p>
+                    <p className="text-muted-foreground text-lg font-medium mb-1">themexcobh@gmail.com</p>
                     <p className="text-sm text-muted-foreground">
                       We aim to respond within 24 hours
                     </p>
@@ -94,26 +94,25 @@ export default function Contact() {
                   <div>
                     <h3 className="text-xl font-heading mb-2 text-foreground">Business Hours</h3>
                     <p className="text-muted-foreground leading-relaxed">
-                      Monday-Friday: 9am-10pm<br />
-                      Saturday-Sunday: 10am-11pm
+                      Monday, Wednesday - Thursday:	12:00 - 18:50<br />
+                      Friday - Saturday	12:00 - 19:50<br/>
+                      Sunday	12:00 - 18:50
+
                     </p>
                   </div>
                 </div>
               </div>
               
-              {/* Map or Image */}
+              {/* Interactive Map */}
               <div className="rounded-xl overflow-hidden border border-border h-64 relative">
-                <img 
-                  src="https://images.unsplash.com/photo-1577058005446-f10ecfabf245?auto=format&fit=crop&w=800&h=400" 
-                  alt="Restaurant location" 
-                  className="w-full h-full object-cover"
-                />
-                <div className="absolute inset-0 flex items-center justify-center bg-background/50">
-                  <p className="text-foreground px-4 py-2 bg-card rounded-lg border border-border text-sm">
-                    Interactive map will be displayed here
-                  </p>
-                </div>
+                <iframe
+                  src="https://www.google.com/maps/embed?pb=!1m14!1m8!1m3!1d1232.2849559232814!2d-8.294414!3d51.85055!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x484483419563c96f%3A0x5212f00f5a70feab!2sThe%20Mex!5e0!3m2!1sen!2sus!4v1750591704042!5m2!1sen!2sus"
+                  loading="lazy"
+                  referrerPolicy="no-referrer-when-downgrade"
+                  className="w-full h-full"
+                ></iframe>
               </div>
+
             </motion.div>
           </div>
         </section>
@@ -137,10 +136,9 @@ export default function Contact() {
                 transition={{ duration: 0.3 }}
                 className="bg-card p-6 rounded-xl border border-border"
               >
-                <h3 className="text-xl font-heading mb-2">Do you offer catering services?</h3>
+                <h3 className="text-xl font-heading mb-2">Do you offer takeaway or delivery?</h3>
                 <p className="text-muted-foreground">
-                  Yes, we offer catering for events of all sizes. Please contact us at least 48 hours in advance 
-                  to discuss your needs and arrange for catering.
+                  We currently offer takeaway only. You can place your order online and pick it up fresh and ready at our restaurant.
                 </p>
               </motion.div>
               
@@ -153,7 +151,14 @@ export default function Contact() {
               >
                 <h3 className="text-xl font-heading mb-2">What are your business hours?</h3>
                 <p className="text-muted-foreground">
-                  We're open Monday through Friday from 9am to 10pm, and Saturday to Sunday from 10am to 11pm.
+                  We're open:
+                  <ul> 
+                    <li>Monday, Wednesday & Thursday from 12:00 PM to 6:50 PM</li>
+                    <li>Friday & Saturday from 12:00 PM to 7:50 PM</li>
+                    <li>Sunday from 12:00 PM to 6:50 PM</li>
+                  </ul>
+
+                  We’re closed on Tuesdays — rest day for the crew!
                 </p>
               </motion.div>
               

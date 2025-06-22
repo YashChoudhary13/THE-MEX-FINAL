@@ -1,9 +1,45 @@
-import { useMemo } from "react";
-import { MenuCategory, CartItem } from "@shared/schema";
+import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { MenuCategory, CartItem, MenuItemOptionGroup, MenuItemOption } from "@shared/schema";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Flame, ChevronRight } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Flame, ChevronRight, Plus, Minus } from "lucide-react";
 import { useCart } from "@/context/CartContext";
 import { useToast } from "@/hooks/use-toast";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+
+interface SpecialOffer {
+  id: number;
+  menuItemId: number;
+  discountType: 'percentage' | 'fixed';
+  discountValue: number;
+  originalPrice: number;
+  specialPrice: number;
+  active: boolean;
+  startDate: string;
+  endDate: string | null;
+  menuItem: {
+    id: number;
+    name: string;
+    description: string;
+    price: number;
+    categoryId: number;
+    image: string | null;
+    featured: boolean;
+    soldOut: boolean;
+    isHot: boolean;
+    isBestSeller: boolean;
+    label: string | null;
+    prepTime: number | null;
+    hasOptions: boolean;
+  };
+}
 
 interface CategorySidebarProps {
   categories: MenuCategory[];
@@ -20,38 +56,17 @@ export default function CategorySidebar({
 }: CategorySidebarProps) {
   const { addToCart } = useCart();
   const { toast } = useToast();
+  const [showCustomization, setShowCustomization] = useState(false);
+  const [selectedSpecialItem, setSelectedSpecialItem] = useState<any>(null);
+  const [selectedOptions, setSelectedOptions] = useState<{[groupId: number]: number[]}>({});
+  const [customizationQuantity, setCustomizationQuantity] = useState(1);
+  const [isAddingToCart, setIsAddingToCart] = useState(false);
 
-  // Find today's special - using a featured burger for demo
-  const todaysSpecial = useMemo(() => {
-    if (categories.length > 0) {
-      return {
-        name: "Double Smash Burger",
-        price: 14.99,
-        originalPrice: 17.99,
-        image: "https://images.unsplash.com/photo-1594212699903-ec8a3eca50f5?auto=format&fit=crop&w=800",
-        label: "CHEF'S CHOICE",
-        description: "Two smashed beef patties, melted cheese, caramelized onions, special sauce, crispy pickles",
-        menuItem: {
-          id: 5, // Corresponds to Classic Burger in the menu
-          name: "Double Smash Burger",
-          image: "https://images.unsplash.com/photo-1594212699903-ec8a3eca50f5?auto=format&fit=crop&w=800"
-        }
-      } as {
-        name: string;
-        price: number;
-        originalPrice: number;
-        image: string;
-        label: string;
-        description: string;
-        menuItem: {
-          id: number;
-          name: string;
-          image: string;
-        };
-      };
-    }
-    return null;
-  }, [categories]);
+  // Fetch special offer data dynamically
+  const { data: specialOffer } = useQuery<SpecialOffer | null>({
+    queryKey: ['/api/special-offer'],
+    refetchInterval: 15000, // Refetch every 15 seconds for fresh special offers
+  });
 
   return (
     <aside className="w-full">
@@ -94,69 +109,380 @@ export default function CategorySidebar({
           </nav>
         )}
         
-        <div className="mt-4 bg-gradient-to-br from-primary/20 to-accent/20 p-6 rounded-2xl border border-primary/10">
-          <div className="flex items-center mb-3">
-            <Flame className="h-5 w-5 text-primary mr-2" />
-            <h3 className="font-heading text-xl text-primary">TODAY'S SPECIAL</h3>
-          </div>
-          
-          {isLoading || !todaysSpecial ? (
-            <div className="space-y-4">
-              <Skeleton className="w-full h-48 rounded-xl bg-card" />
-              <Skeleton className="h-6 w-3/4 bg-card" />
-              <Skeleton className="h-4 w-full bg-card" />
-              <div className="flex justify-between items-center mt-1">
-                <Skeleton className="h-6 w-20 bg-card" />
-                <Skeleton className="h-4 w-16 bg-card" />
-              </div>
+        {specialOffer && (
+          <div className="mt-4 bg-gradient-to-br from-primary/20 to-accent/20 p-6 rounded-2xl border border-primary/10">
+            <div className="flex items-center mb-3">
+              <Flame className="h-5 w-5 text-primary mr-2" />
+              <h3 className="font-heading text-xl text-primary">TODAY'S SPECIAL</h3>
             </div>
-          ) : (
+            
             <div className="space-y-4">
               <div className="relative">
                 <div className="absolute top-3 left-3 bg-primary text-white text-xs px-3 py-1 rounded-full font-menu">
-                  {todaysSpecial.label}
+                  {specialOffer.discountType === 'percentage' 
+                    ? `${specialOffer.discountValue}% OFF`
+                    : `€${specialOffer.discountValue.toFixed(2)} OFF`
+                  }
                 </div>
                 <div className="w-full h-48 overflow-hidden rounded-xl food-3d-effect">
-                  <img 
-                    src={todaysSpecial.image} 
-                    alt={todaysSpecial.name} 
-                    className="w-full h-full object-cover"
-                  />
+                  {specialOffer.menuItem.image ? (
+                    <img 
+                      src={specialOffer.menuItem.image} 
+                      alt={specialOffer.menuItem.name} 
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-muted-foreground bg-muted">
+                      No Image
+                    </div>
+                  )}
                 </div>
               </div>
-              <h4 className="font-heading text-xl text-foreground">{todaysSpecial.name}</h4>
-              <p className="text-sm text-muted-foreground">{todaysSpecial.description}</p>
+              <h4 className="font-heading text-xl text-foreground">{specialOffer.menuItem.name}</h4>
+              <p className="text-sm text-muted-foreground">{specialOffer.menuItem.description}</p>
               <div className="flex justify-between items-center">
-                <span className="text-xl font-bold text-primary">${todaysSpecial.price.toFixed(2)}</span>
-                <span className="text-sm line-through text-muted-foreground">${todaysSpecial.originalPrice.toFixed(2)}</span>
+                <span className="text-xl font-bold text-primary">€{specialOffer.specialPrice.toFixed(2)}</span>
+                <span className="text-sm line-through text-muted-foreground">€{specialOffer.originalPrice.toFixed(2)}</span>
               </div>
               <button 
-                className="w-full py-3 bg-primary text-white font-menu rounded-lg hover:bg-primary/90 transition-colors"
-                onClick={() => {
-                  if (todaysSpecial.menuItem) {
-                    // Add special offer item to cart
-                    const cartItem: CartItem = {
-                      id: Date.now(), // Generate a unique ID for the cart item
-                      menuItemId: todaysSpecial.menuItem.id,
-                      name: todaysSpecial.menuItem.name,
-                      price: todaysSpecial.price, // Use the special offer price
-                      quantity: 1,
-                      image: todaysSpecial.menuItem.image
-                    };
-                    addToCart(cartItem);
-                    toast({
-                      title: "Added to cart",
-                      description: `${todaysSpecial.menuItem.name} has been added to your cart`
-                    });
+                className={`w-full py-3 font-menu rounded-lg transition-colors ${
+                  specialOffer.menuItem.soldOut 
+                    ? 'bg-muted text-muted-foreground cursor-not-allowed' 
+                    : 'bg-primary text-white hover:bg-primary/90'
+                }`}
+                disabled={specialOffer.menuItem.soldOut}
+                 onClick={async () => {
+                  if (specialOffer.menuItem.soldOut) return;
+                  
+                  // Check if item has options
+                  if (specialOffer.menuItem.hasOptions) {
+                    // Fetch options and show customization dialog
+                    try {
+                      const response = await fetch(`/api/menu-items/${specialOffer.menuItem.id}/option-groups`);
+                      const optionGroups = await response.json();
+                      
+                      if (optionGroups && optionGroups.length > 0) {
+                        setSelectedSpecialItem({
+                          ...specialOffer.menuItem,
+                          specialPrice: specialOffer.specialPrice,
+                          optionGroups
+                        });
+                        setShowCustomization(true);
+                        return;
+                      }
+                    } catch (error) {
+                      console.error('Failed to fetch options:', error);
+                    }
                   }
+                  
+                  // Direct add to cart for items without options
+                  const cartItem: CartItem = {
+                    id: Date.now(),
+                    menuItemId: specialOffer.menuItem.id,
+                    name: specialOffer.menuItem.name,
+                    price: specialOffer.specialPrice,
+                    quantity: 1,
+                    image: specialOffer.menuItem.image || ''
+                  };
+                  addToCart(cartItem);
+                  toast({
+                    title: "Added to cart",
+                    description: `${specialOffer.menuItem.name} has been added to your cart at special price!`
+                  });
                 }}
               >
-                ADD TO CART
+                {specialOffer.menuItem.soldOut ? 'SOLD OUT' : 'ADD TO CART'}
               </button>
             </div>
-          )}
-        </div>
+          </div>
+        )}
       </div>
+
+      {/* Customization Dialog for Today's Special */}
+      <Dialog open={showCustomization} onOpenChange={setShowCustomization}>
+        <DialogContent className="max-w-md mx-auto max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-heading">Customize {selectedSpecialItem?.name}</DialogTitle>
+            <DialogDescription>
+              Choose your options to customize this special offer
+            </DialogDescription>
+          </DialogHeader>
+          
+          {selectedSpecialItem && (
+            <div className="space-y-6 py-4">
+              {/* Special Price Display */}
+              <div className="bg-primary/10 p-3 rounded-lg border border-primary/20">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">Special Price:</span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-lg font-bold text-primary">€{selectedSpecialItem.specialPrice?.toFixed(2)}</span>
+                    <span className="text-sm line-through text-muted-foreground">€{selectedSpecialItem.price?.toFixed(2)}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Quantity Selection */}
+              <div className="flex items-center justify-between">
+                <span className="font-medium">Quantity</span>
+                <div className="flex items-center gap-3">
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={() => setCustomizationQuantity(Math.max(1, customizationQuantity - 1))}
+                    disabled={customizationQuantity <= 1}
+                  >
+                    <Minus className="h-4 w-4" />
+                  </Button>
+                  <span className="w-8 text-center font-medium">{customizationQuantity}</span>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={() => setCustomizationQuantity(customizationQuantity + 1)}
+                  >
+                    <Plus className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+
+              {/* Option Groups */}
+              {selectedSpecialItem.optionGroups?.map((group: MenuItemOptionGroup & { options: MenuItemOption[] }) => (
+                <div key={group.id} className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <h3 className="font-medium text-foreground">
+                      {group.name}
+                      {group.required && <span className="text-destructive ml-1">*</span>}
+                    </h3>
+                    <span className="text-xs text-muted-foreground">
+                      {group.maxSelections === 1 ? 'Choose one' : `Choose up to ${group.maxSelections}`}
+                    </span>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    {group.options.map((option) => {
+                      const isSelected = selectedOptions[group.id]?.includes(option.id) || false;
+                      const currentSelections = selectedOptions[group.id]?.length || 0;
+                      const canSelect = !isSelected && currentSelections < group.maxSelections;
+                      
+                      return (
+                        <div
+                          key={option.id}
+                          className={`p-3 border rounded-lg cursor-pointer transition-colors ${
+                            isSelected 
+                              ? 'border-primary bg-primary/5' 
+                              : canSelect 
+                                ? 'border-border hover:border-primary/50' 
+                                : 'border-border opacity-50 cursor-not-allowed'
+                          }`}
+                          onClick={() => {
+                            if (!option.available) return;
+                            
+                            const current = selectedOptions[group.id] || [];
+                            let newSelections;
+                            
+                            if (isSelected) {
+                              newSelections = current.filter(id => id !== option.id);
+                            } else if (canSelect) {
+                              if (group.maxSelections === 1) {
+                                newSelections = [option.id];
+                              } else {
+                                newSelections = [...current, option.id];
+                              }
+                            } else {
+                              return;
+                            }
+                            
+                            setSelectedOptions(prev => ({
+                              ...prev,
+                              [group.id]: newSelections
+                            }));
+                          }}
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <div className={`w-4 h-4 border rounded ${
+                                group.maxSelections === 1 ? 'rounded-full' : 'rounded-sm'
+                              } ${
+                                isSelected ? 'bg-primary border-primary' : 'border-border'
+                              } flex items-center justify-center`}>
+                                {isSelected && (
+                                  <div className={`${
+                                    group.maxSelections === 1 ? 'w-2 h-2 bg-white rounded-full' : 'text-white text-xs'
+                                  }`}>
+                                    {group.maxSelections === 1 ? '' : '✓'}
+                                  </div>
+                                )}
+                              </div>
+                              <span className={`${!option.available ? 'text-muted-foreground line-through' : ''}`}>
+                                {option.name}
+                              </span>
+                              {!option.available && (
+                                <span className="text-xs text-muted-foreground">(Unavailable)</span>
+                              )}
+                            </div>
+                            {option.priceModifier !== 0 && (
+                              <span className="text-sm text-primary font-medium">
+                                {option.priceModifier > 0 ? '+' : ''}€{option.priceModifier.toFixed(2)}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+
+              {/* Price Summary */}
+              <div className="border-t pt-4">
+                <div className="flex justify-between items-center text-lg font-medium">
+                  <span>Total</span>
+                  <span className="text-primary">
+                    €{(() => {
+                      let total = (selectedSpecialItem.specialPrice || selectedSpecialItem.price) * customizationQuantity;
+                      if (selectedSpecialItem.optionGroups) {
+                        for (const [groupId, optionIds] of Object.entries(selectedOptions)) {
+                          const group = selectedSpecialItem.optionGroups.find((g: any) => g.id === parseInt(groupId));
+                          if (group) {
+                            for (const optionId of optionIds) {
+                              const option = group.options.find((o: any) => o.id === optionId);
+                              if (option) {
+                                total += option.priceModifier * customizationQuantity;
+                              }
+                            }
+                          }
+                        }
+                      }
+                      return total.toFixed(2);
+                    })()}
+                  </span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <div className="flex gap-3 pt-4">
+            <Button 
+              variant="outline" 
+              className="flex-1"
+              onClick={() => {
+                setShowCustomization(false);
+                setSelectedSpecialItem(null);
+                setSelectedOptions({});
+                setCustomizationQuantity(1);
+              }}
+            >
+              Cancel
+            </Button>
+            <Button 
+              className="flex-1 bg-primary hover:bg-primary/90"
+              onClick={async () => {
+                if (!selectedSpecialItem) return;
+                
+                // Validate required groups
+                if (selectedSpecialItem.optionGroups) {
+                  const missingRequired = selectedSpecialItem.optionGroups.find((group: any) => 
+                    group.required && (!selectedOptions[group.id] || selectedOptions[group.id].length === 0)
+                  );
+                  
+                  if (missingRequired) {
+                    toast({
+                      title: "Required selection missing",
+                      description: `Please select an option for ${missingRequired.name}`,
+                      variant: "destructive",
+                    });
+                    return;
+                  }
+                }
+                
+                setIsAddingToCart(true);
+                
+                try {
+                  // Calculate price with option modifiers
+                  let finalPrice = selectedSpecialItem.specialPrice || selectedSpecialItem.price;
+                  let optionDetails: any[] = [];
+                  
+                  if (selectedSpecialItem.optionGroups) {
+                    for (const [groupId, optionIds] of Object.entries(selectedOptions)) {
+                      const group = selectedSpecialItem.optionGroups.find((g: any) => g.id === parseInt(groupId));
+                      if (group) {
+                        for (const optionId of optionIds) {
+                          const option = group.options.find((o: any) => o.id === optionId);
+                          if (option) {
+                            finalPrice += option.priceModifier;
+                            optionDetails.push({
+                              groupName: group.name,
+                              optionName: option.name,
+                              priceModifier: option.priceModifier
+                            });
+                          }
+                        }
+                      }
+                    }
+                  }
+
+                  await addToCart({
+                    id: Date.now(),
+                    name: selectedSpecialItem.name,
+                    price: finalPrice,
+                    quantity: customizationQuantity,
+                    image: selectedSpecialItem.image || '',
+                    menuItemId: selectedSpecialItem.id,
+                    prepTime: selectedSpecialItem.prepTime || 15,
+                    customizations: optionDetails.length > 0 ? JSON.stringify(optionDetails) : undefined
+                  });
+                  
+                  toast({
+                    title: "Added to cart",
+                    description: `${selectedSpecialItem.name} has been added to your cart at special price!`,
+                  });
+                  
+                  setShowCustomization(false);
+                  setSelectedSpecialItem(null);
+                  setSelectedOptions({});
+                  setCustomizationQuantity(1);
+                } catch (error) {
+                  toast({
+                    title: "Error",
+                    description: "Failed to add item to cart. Please try again.",
+                    variant: "destructive",
+                  });
+                }
+                
+                setIsAddingToCart(false);
+              }}
+              disabled={isAddingToCart}
+            >
+              {isAddingToCart ? (
+                <span className="flex items-center">
+                  <div className="w-4 h-4 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin mr-2" />
+                  Adding...
+                </span>
+              ) : (
+                `Add to Cart • €${(() => {
+                  if (!selectedSpecialItem) return '0.00';
+                  let total = (selectedSpecialItem.specialPrice || selectedSpecialItem.price) * customizationQuantity;
+                  if (selectedSpecialItem.optionGroups) {
+                    for (const [groupId, optionIds] of Object.entries(selectedOptions)) {
+                      const group = selectedSpecialItem.optionGroups.find((g: any) => g.id === parseInt(groupId));
+                      if (group) {
+                        for (const optionId of optionIds) {
+                          const option = group.options.find((o: any) => o.id === optionId);
+                          if (option) {
+                            total += option.priceModifier * customizationQuantity;
+                          }
+                        }
+                      }
+                    }
+                  }
+                  return total.toFixed(2);
+                })()}`
+              )}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </aside>
   );
 }

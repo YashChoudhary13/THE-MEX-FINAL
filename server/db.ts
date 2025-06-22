@@ -145,10 +145,10 @@ export async function syncSchema() {
       
       // Get the category IDs
       const categories = await db.execute(`SELECT id, slug FROM menu_categories`);
-      const categoryMap = categories.rows.reduce((map, cat: any) => {
-        map[cat.slug] = cat.id;
+      const categoryMap = categories.rows.reduce((map: Record<string, any>, cat: any) => {
+        map[cat.slug as string] = cat.id;
         return map;
-      }, {} as Record<string, number>);
+      }, {});
 
       
       // Create menu items

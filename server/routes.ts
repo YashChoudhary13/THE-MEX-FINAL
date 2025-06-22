@@ -9,7 +9,9 @@ import {
   insertMenuItemSchema, 
   insertMenuCategorySchema, 
   insertSpecialOfferSchema,
-  insertPromoCodeSchema
+  insertPromoCodeSchema,
+  insertMenuItemOptionGroupSchema,
+  insertMenuItemOptionSchema
 } from "@shared/schema";
 import { setupAuth } from "./auth";
 import { comparePasswords } from './auth';
@@ -29,6 +31,9 @@ const adminSocketConnections = new Set<WebSocket>();
 // Map to keep track of customer WebSocket connections by order ID
 const customerSocketConnections = new Map<number, Set<WebSocket>>();
 
+// Map to keep track of user WebSocket connections by user ID
+const userSocketConnections = new Map<number, Set<WebSocket>>();
+
 // Function to broadcast updates to all connected admin clients
 function broadcastToAdmins(message: any) {
   const messageStr = JSON.stringify(message);
@@ -38,6 +43,22 @@ function broadcastToAdmins(message: any) {
     }
   });
 }
+
+
+// Function to broadcast updates to users
+function broadcastToUser(userId: number, message: any) {
+  const messageStr = JSON.stringify(message);
+  const userConnections = userSocketConnections.get(userId);
+  
+  if (userConnections) {
+    userConnections.forEach(client => {
+      if (client.readyState === WebSocket.OPEN) {
+        client.send(messageStr);
+      }
+    });
+  }
+}
+
 
 // Function to broadcast updates to customers tracking specific orders
 function broadcastToCustomers(orderId: number, message: any) {
@@ -66,6 +87,11 @@ function broadcastOrderUpdate(orderId: number, orderData: any) {
   
   // Send to customers tracking this order
   broadcastToCustomers(orderId, updateMessage);
+    
+  // Send to the user who placed the order (if userId exists)
+  if (orderData && orderData.userId) {
+    broadcastToUser(orderData.userId, updateMessage);
+  }
 }
 
 // Function to broadcast new orders to admin panel
@@ -74,6 +100,13 @@ function broadcastNewOrder(orderData: any) {
     type: 'NEW_ORDER',
     order: orderData
   });
+  // Also broadcast to the user who placed the order
+  if (orderData && orderData.userId) {
+    broadcastToUser(orderData.userId, {
+      type: 'NEW_ORDER',
+      order: orderData
+    });
+  }
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -117,6 +150,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching categories:", error);
       res.status(500).json({ message: "Failed to fetch categories" });
+    }
+  });
+
+    app.put("/api/categories/reorder", async (req, res) => {
+    // Check if user is admin
+    if (!req.user || req.user.role !== 'admin') {
+      return res.status(403).json({ message: "Admin access required" });
+    }
+    try {
+      const categoryOrders = req.body.categoryOrders as { id: number; order: number }[];
+      
+      if (!Array.isArray(categoryOrders)) {
+        return res.status(400).json({ message: "Invalid category orders data" });
+      }
+
+      const success = await storage.updateCategoryOrder(categoryOrders);
+      
+      if (success) {
+        res.json({ message: "Category order updated successfully" });
+      } else {
+        res.status(500).json({ message: "Failed to update category order" });
+      }
+    } catch (error) {
+      console.error("Error updating category order:", error);
+      res.status(500).json({ message: "Failed to update category order" });
     }
   });
 
@@ -173,6 +231,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // API Route for creating an order (supports both authenticated and guest users)
   app.post("/api/orders", async (req, res) => {
     try {
+            // Check if store is open before accepting orders
+      const storeOpenSetting = await storage.getSystemSetting('store_open') || 'true';
+      const isStoreOpen = storeOpenSetting === 'true';
+      
+      if (!isStoreOpen) {
+        return res.status(423).json({ 
+          message: "Store is currently closed and not accepting new orders",
+          storeOpen: false 
+        });
+      }
       // Validate request body (dailyOrderNumber is auto-generated on backend)
       const orderData = createOrderSchema.parse(req.body);
       
@@ -319,6 +387,140 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error deleting order:", error);
       res.status(500).json({ message: "Failed to delete order" });
+    }
+  });
+
+    // Menu Item Options Routes
+  
+  // Get option groups for a menu item
+  app.get("/api/menu-items/:id/option-groups", async (req, res) => {
+    try {
+      const menuItemId = parseInt(req.params.id);
+      const groups = await storage.getMenuItemOptionGroupsWithOptions(menuItemId);
+      res.json(groups);
+    } catch (error) {
+      console.error("Error fetching menu item option groups:", error);
+      res.status(500).json({ message: "Failed to fetch option groups" });
+    }
+  });
+
+  // Create option group for a menu item
+  app.post("/api/admin/menu-items/:id/option-groups", isAdmin, async (req, res) => {
+    try {
+      const menuItemId = parseInt(req.params.id);
+      const result = insertMenuItemOptionGroupSchema.safeParse({ ...req.body, menuItemId });
+      
+      if (!result.success) {
+        return res.status(400).json({ 
+          message: "Invalid option group data", 
+          errors: result.error.errors 
+        });
+      }
+
+      const group = await storage.createMenuItemOptionGroup(result.data);
+      res.status(201).json(group);
+    } catch (error) {
+      console.error("Error creating option group:", error);
+      res.status(500).json({ message: "Failed to create option group" });
+    }
+  });
+
+  // Update option group
+  app.put("/api/admin/option-groups/:id", isAdmin, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const result = insertMenuItemOptionGroupSchema.partial().safeParse(req.body);
+      
+      if (!result.success) {
+        return res.status(400).json({ 
+          message: "Invalid option group data", 
+          errors: result.error.errors 
+        });
+      }
+
+      const group = await storage.updateMenuItemOptionGroup(id, result.data);
+      if (!group) {
+        return res.status(404).json({ message: "Option group not found" });
+      }
+      res.json(group);
+    } catch (error) {
+      console.error("Error updating option group:", error);
+      res.status(500).json({ message: "Failed to update option group" });
+    }
+  });
+
+  // Delete option group
+  app.delete("/api/admin/option-groups/:id", isAdmin, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const success = await storage.deleteMenuItemOptionGroup(id);
+      if (!success) {
+        return res.status(404).json({ message: "Option group not found" });
+      }
+      res.json({ message: "Option group deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting option group:", error);
+      res.status(500).json({ message: "Failed to delete option group" });
+    }
+  });
+
+  // Create option within a group
+  app.post("/api/admin/option-groups/:id/options", isAdmin, async (req, res) => {
+    try {
+      const optionGroupId = parseInt(req.params.id);
+      const result = insertMenuItemOptionSchema.safeParse({ ...req.body, optionGroupId });
+      
+      if (!result.success) {
+        return res.status(400).json({ 
+          message: "Invalid option data", 
+          errors: result.error.errors 
+        });
+      }
+
+      const option = await storage.createMenuItemOption(result.data);
+      res.status(201).json(option);
+    } catch (error) {
+      console.error("Error creating option:", error);
+      res.status(500).json({ message: "Failed to create option" });
+    }
+  });
+
+  // Update option
+  app.put("/api/admin/options/:id", isAdmin, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const result = insertMenuItemOptionSchema.partial().safeParse(req.body);
+      
+      if (!result.success) {
+        return res.status(400).json({ 
+          message: "Invalid option data", 
+          errors: result.error.errors 
+        });
+      }
+
+      const option = await storage.updateMenuItemOption(id, result.data);
+      if (!option) {
+        return res.status(404).json({ message: "Option not found" });
+      }
+      res.json(option);
+    } catch (error) {
+      console.error("Error updating option:", error);
+      res.status(500).json({ message: "Failed to update option" });
+    }
+  });
+
+  // Delete option
+  app.delete("/api/admin/options/:id", isAdmin, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const success = await storage.deleteMenuItemOption(id);
+      if (!success) {
+        return res.status(404).json({ message: "Option not found" });
+      }
+      res.json({ message: "Option deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting option:", error);
+      res.status(500).json({ message: "Failed to delete option" });
     }
   });
 
@@ -694,11 +896,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get user's order history
+  app.get("/api/user/orders", isAuthenticated, async (req, res) => {
+    try {
+      if (!req.user || !req.user.id) {
+        return res.status(401).json({ message: 'User not authenticated' });
+      }
+      const userOrders = await storage.getUserOrders(req.user.id);
+      console.log(`Fetched ${userOrders.length} orders for user ${req.user.id}`);
+      res.json(userOrders);
+    } catch (error) {
+      console.error("Error fetching user orders:", error);
+      res.status(500).json({ message: "Failed to fetch orders" });
+    }
+  });
+
+
   // Admin reporting routes
   app.get('/api/admin/current-stats', async (req, res) => {
-    if (!req.isAuthenticated() || req.user.username !== 'admin') {
-      return res.sendStatus(403);
-    }
 
     try {
       const stats = await storage.getCurrentDayStats();
@@ -710,9 +925,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   app.get('/api/admin/daily-reports', async (req, res) => {
-    if (!req.isAuthenticated() || req.user.username !== 'admin') {
-      return res.sendStatus(403);
-    }
 
     try {
       const days = req.query.days ? parseInt(req.query.days as string) : 30;
@@ -1040,16 +1252,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Admin endpoints for real-time stats and reporting
-  app.get('/api/admin/current-stats', isAdmin, async (req, res) => {
+   // Store open/close endpoints
+  app.get('/api/system-settings/store-open', async (req, res) => {
     try {
-      const stats = await storage.getCurrentDayStats();
-      res.json(stats);
+      const storeOpenSetting = await storage.getSystemSetting('store_open') || 'true';
+      res.json({ storeOpen: storeOpenSetting === 'true' });
     } catch (error) {
-      console.error('Error fetching current stats:', error);
-      res.status(500).json({ message: 'Failed to fetch current stats' });
+      console.error('Error fetching store open status:', error);
+      res.status(500).json({ message: 'Failed to fetch store status' });
     }
   });
+
+  app.put('/api/system-settings/store-open', isAdmin, async (req, res) => {
+    try {
+      const { value } = req.body;
+      
+      if (typeof value !== 'boolean') {
+        return res.status(400).json({ message: 'Store open value must be a boolean' });
+      }
+      
+      await storage.updateSystemSetting('store_open', value.toString());
+      res.json({ storeOpen: value });
+    } catch (error) {
+      console.error('Error updating store open status:', error);
+      res.status(500).json({ message: 'Failed to update store status' });
+    }
+  });
+
+
+ // Admin endpoints for real-time stats and reporting
+
 
   app.get('/api/admin/daily-reports', isAdmin, async (req, res) => {
     try {
@@ -1270,6 +1502,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
           
           customerSocketConnections.get(orderId)!.add(ws);
           console.log(`Customer subscribed to order ${orderId} updates`);
+        }else if (data.type === 'SUBSCRIBE_USER_ORDERS' && data.userId) {
+          // User subscribing to their order updates
+          const userId = data.userId;
+          
+          if (!userSocketConnections.has(userId)) {
+            userSocketConnections.set(userId, new Set());
+          }
+          
+          userSocketConnections.get(userId)!.add(ws);
+          console.log(`User ${userId} subscribed to order updates`);
         }
       } catch (error) {
         console.error('Error parsing WebSocket message:', error);
@@ -1288,8 +1530,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       });
       
+      // Remove from user connections
+      userSocketConnections.forEach((connections, userId) => {
+        connections.delete(ws);
+        if (connections.size === 0) {
+          userSocketConnections.delete(userId);
+        }
+      });
+      
       console.log('WebSocket client disconnected');
     });
+  });
+
+    // User profile management endpoints
+  app.post("/api/user/update-username", isAuthenticated, async (req, res) => {
+    try {
+      const { newUsername } = req.body;
+      
+      if (!newUsername || typeof newUsername !== 'string' || newUsername.trim().length < 3) {
+        return res.status(400).json({ message: "Username must be at least 3 characters long" });
+      }
+
+      const result = await storage.updateUsername(req.user!.id, newUsername.trim());
+      
+      if (!result.success) {
+        return res.status(400).json({ message: result.message });
+      }
+
+      // Update the session with the new user data
+      req.user = result.user!;
+      
+      res.json({ 
+        message: "Username updated successfully", 
+        user: result.user 
+      });
+    } catch (error) {
+      console.error("Error updating username:", error);
+      res.status(500).json({ message: "Failed to update username" });
+    }
   });
 
   return httpServer;

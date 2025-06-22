@@ -138,7 +138,7 @@ export function PromoCodeForm({ promoCode, onSubmit, isSubmitting }: PromoCodeFo
                 </FormControl>
                 <SelectContent>
                   <SelectItem value="percentage">Percentage (%)</SelectItem>
-                  <SelectItem value="amount">Fixed Amount ($)</SelectItem>
+                  <SelectItem value="amount">Fixed Amount (€)</SelectItem>
                 </SelectContent>
               </Select>
               <FormDescription>
@@ -160,13 +160,13 @@ export function PromoCodeForm({ promoCode, onSubmit, isSubmitting }: PromoCodeFo
                   {...field} 
                   type="number" 
                   step={discountType === "percentage" ? "1" : "0.01"}
-                  placeholder={discountType === "percentage" ? "e.g., 10 (for 10%)" : "e.g., 5.99 (for $5.99)"}
+                  placeholder={discountType === "percentage" ? "e.g., 10 (for 10%)" : "e.g., 5.99 (for €5.99)"}
                 />
               </FormControl>
               <FormDescription>
                 {discountType === "percentage" 
                   ? "Enter percentage without the % symbol (e.g., 10 for 10%)" 
-                  : "Enter dollar amount (e.g., 5.99 for $5.99)"}
+                  : "Enter euro amount (e.g., 5.99 for €5.99)"}
               </FormDescription>
               <FormMessage />
             </FormItem>
@@ -300,7 +300,7 @@ export function SystemSettingsForm({ initialValues, onSubmit, isSubmitting }: Sy
           name="serviceFee"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Service Fee ($)</FormLabel>
+              <FormLabel>Service Fee (€)</FormLabel>
               <FormControl>
                 <Input {...field} type="number" step="0.01" placeholder="e.g., 2.99" />
               </FormControl>

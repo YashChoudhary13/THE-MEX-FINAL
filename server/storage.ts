@@ -1,18 +1,20 @@
 import { 
   MenuCategory, InsertMenuCategory,
   MenuItem, InsertMenuItem,
+  MenuItemOptionGroup, InsertMenuItemOptionGroup,
+  MenuItemOption, InsertMenuItemOption,
   Order, InsertOrder, CreateOrder,
   User, InsertUser,
   SpecialOffer, InsertSpecialOffer,
   PromoCode, InsertPromoCode,
-  SystemSetting, InsertSystemSetting,
+  
   DailyReport, InsertDailyReport,
   MonthlyReport, InsertMonthlyReport,
-  users, menuCategories, menuItems, orders, specialOffers, promoCodes, systemSettings, dailyReports, monthlyReports
+  users, menuCategories, menuItems, menuItemOptionGroups, menuItemOptions, orders, specialOffers, promoCodes, systemSettings, dailyReports, monthlyReports
 } from "@shared/schema";
 
 import session from "express-session";
-import { eq, and, isNull, lte, gt, desc, or, lt, sql, gte } from "drizzle-orm";
+import { eq, and, isNull, lte, gt, desc, or, lt, sql, gte, max } from "drizzle-orm";
 import { db } from "./db";
 import bcrypt from "bcryptjs";
 
@@ -27,6 +29,7 @@ export interface IStorage {
   createMenuCategory(category: InsertMenuCategory): Promise<MenuCategory>;
   updateMenuCategory(id: number, category: Partial<InsertMenuCategory>): Promise<MenuCategory | undefined>;
   deleteMenuCategory(id: number): Promise<boolean>;
+  updateCategoryOrder(categoryOrders: { id: number; order: number }[]): Promise<boolean>;
 
   // Menu Items
   getMenuItems(): Promise<MenuItem[]>;
@@ -35,6 +38,18 @@ export interface IStorage {
   createMenuItem(item: InsertMenuItem): Promise<MenuItem>;
   updateMenuItem(id: number, item: Partial<InsertMenuItem>): Promise<MenuItem | undefined>;
   deleteMenuItem(id: number): Promise<boolean>;
+
+  // Menu Item Options
+  getMenuItemOptionGroups(menuItemId: number): Promise<MenuItemOptionGroup[]>;
+  getMenuItemOptionGroupsWithOptions(menuItemId: number): Promise<(MenuItemOptionGroup & { options: MenuItemOption[] })[]>;
+  createMenuItemOptionGroup(group: InsertMenuItemOptionGroup): Promise<MenuItemOptionGroup>;
+  updateMenuItemOptionGroup(id: number, group: Partial<InsertMenuItemOptionGroup>): Promise<MenuItemOptionGroup | undefined>;
+  deleteMenuItemOptionGroup(id: number): Promise<boolean>;
+  
+  getMenuItemOptions(optionGroupId: number): Promise<MenuItemOption[]>;
+  createMenuItemOption(option: InsertMenuItemOption): Promise<MenuItemOption>;
+  updateMenuItemOption(id: number, option: Partial<InsertMenuItemOption>): Promise<MenuItemOption | undefined>;
+  deleteMenuItemOption(id: number): Promise<boolean>;
 
   // Orders
   getOrders(): Promise<Order[]>;
@@ -45,6 +60,7 @@ export interface IStorage {
   updateOrderStatus(id: number, status: string): Promise<Order | undefined>;
   deleteOrder(id: number): Promise<boolean>;
   getNextDailyOrderNumber(): Promise<number>;
+  getUserOrders(userId: number): Promise<Order[]>;
 
   // Users
   getUser(id: number): Promise<User | undefined>;
@@ -54,6 +70,7 @@ export interface IStorage {
   verifyUser(username: string, password: string): Promise<User | undefined>;
   updateUserPassword(id: number, password: string): Promise<boolean>;
   updateUserProfile(id: number, data: {username?: string, email?: string}): Promise<boolean>;
+  updateUsername(id: number, newUsername: string): Promise<{ success: boolean; message?: string; user?: User }>;
   
   // Special Offers
   getSpecialOffers(): Promise<SpecialOffer[]>;
@@ -96,10 +113,14 @@ export interface IStorage {
 export class MemStorage implements IStorage {
   private menuCategories: Map<number, MenuCategory>;
   private menuItems: Map<number, MenuItem>;
+  private menuItemOptionGroups: Map<number, MenuItemOptionGroup> = new Map();
+  private menuItemOptions: Map<number, MenuItemOption> = new Map();
   private orders: Map<number, Order>;
   private users: Map<number, User>;
   private categoryIdCounter: number;
   private menuItemIdCounter: number;
+  private optionGroupIdCounter: number = 1;
+  private optionIdCounter: number = 1;
   private orderIdCounter: number;
   private userIdCounter: number;
   sessionStore: session.Store;
@@ -126,7 +147,7 @@ export class MemStorage implements IStorage {
 
   // Menu Categories
   async getMenuCategories(): Promise<MenuCategory[]> {
-    return Array.from(this.menuCategories.values());
+    return Array.from(this.menuCategories.values()).sort((a, b) => a.order - b.order);
   }
 
   async getMenuCategoryBySlug(slug: string): Promise<MenuCategory | undefined> {
@@ -137,7 +158,13 @@ export class MemStorage implements IStorage {
 
   async createMenuCategory(category: InsertMenuCategory): Promise<MenuCategory> {
     const id = this.categoryIdCounter++;
-    const newCategory: MenuCategory = { ...category, id };
+    const order = category.order ?? this.menuCategories.size;
+    const newCategory: MenuCategory = { 
+      ...category, 
+      id, 
+      order,
+      description: category.description ?? null 
+    };
     this.menuCategories.set(id, newCategory);
     return newCategory;
   }
@@ -153,6 +180,21 @@ export class MemStorage implements IStorage {
   
   async deleteMenuCategory(id: number): Promise<boolean> {
     return this.menuCategories.delete(id);
+  }
+
+  async updateCategoryOrder(categoryOrders: { id: number; order: number }[]): Promise<boolean> {
+    try {
+      for (const { id, order } of categoryOrders) {
+        const category = this.menuCategories.get(id);
+        if (category) {
+          category.order = order;
+          this.menuCategories.set(id, category);
+        }
+      }
+      return true;
+    } catch {
+      return false;
+    }
   }
 
   // Menu Items
@@ -175,14 +217,18 @@ export class MemStorage implements IStorage {
     const newItem: MenuItem = { 
       ...item, 
       id,
-      featured: item.featured || null,
+      featured: item.featured ?? false,
+      soldOut: item.soldOut ?? false,
+      isHot: item.isHot ?? false,
+      isBestSeller: item.isBestSeller ?? false,
       label: item.label || null,
       ingredients: item.ingredients || null,
       calories: item.calories || null,
       allergens: item.allergens || null,
       dietaryInfo: item.dietaryInfo || null,
       image: item.image || null,
-      prepTime: item.prepTime ?? 15
+      prepTime: item.prepTime ?? 15,
+      hasOptions: item.hasOptions ?? false
     };
     this.menuItems.set(id, newItem);
     return newItem;
@@ -192,7 +238,14 @@ export class MemStorage implements IStorage {
     const existingItem = this.menuItems.get(id);
     if (!existingItem) return undefined;
     
-    const updatedItem = { ...existingItem, ...item };
+    const updatedItem: MenuItem = { 
+      ...existingItem, 
+      ...item,
+      featured: item.featured ?? existingItem.featured,
+      soldOut: item.soldOut ?? existingItem.soldOut,
+      isHot: item.isHot ?? existingItem.isHot,
+      isBestSeller: item.isBestSeller ?? existingItem.isBestSeller,
+    };
     this.menuItems.set(id, updatedItem);
     return updatedItem;
   }
@@ -201,6 +254,85 @@ export class MemStorage implements IStorage {
     return this.menuItems.delete(id);
   }
 
+  // Menu Item Options
+  async getMenuItemOptionGroups(menuItemId: number): Promise<MenuItemOptionGroup[]> {
+    return Array.from(this.menuItemOptionGroups.values()).filter(
+      (group) => group.menuItemId === menuItemId
+    ).sort((a, b) => a.order - b.order);
+  }
+
+  async getMenuItemOptionGroupsWithOptions(menuItemId: number): Promise<(MenuItemOptionGroup & { options: MenuItemOption[] })[]> {
+    const groups = await this.getMenuItemOptionGroups(menuItemId);
+    return groups.map(group => ({
+      ...group,
+      options: Array.from(this.menuItemOptions.values())
+        .filter(option => option.optionGroupId === group.id)
+        .sort((a, b) => a.order - b.order)
+    }));
+  }
+
+  async createMenuItemOptionGroup(group: InsertMenuItemOptionGroup): Promise<MenuItemOptionGroup> {
+    const id = this.optionGroupIdCounter++;
+    const newGroup: MenuItemOptionGroup = { 
+      ...group, 
+      id,
+      order: group.order ?? 0,
+      required: group.required ?? false,
+      maxSelections: group.maxSelections ?? 1
+    };
+    this.menuItemOptionGroups.set(id, newGroup);
+    return newGroup;
+  }
+
+  async updateMenuItemOptionGroup(id: number, group: Partial<InsertMenuItemOptionGroup>): Promise<MenuItemOptionGroup | undefined> {
+    const existingGroup = this.menuItemOptionGroups.get(id);
+    if (!existingGroup) return undefined;
+    
+    const updatedGroup = { ...existingGroup, ...group };
+    this.menuItemOptionGroups.set(id, updatedGroup);
+    return updatedGroup;
+  }
+
+  async deleteMenuItemOptionGroup(id: number): Promise<boolean> {
+    // Also delete all options in this group
+    const optionsToDelete = Array.from(this.menuItemOptions.values())
+      .filter(option => option.optionGroupId === id);
+    optionsToDelete.forEach(option => this.menuItemOptions.delete(option.id));
+    
+    return this.menuItemOptionGroups.delete(id);
+  }
+
+  async getMenuItemOptions(optionGroupId: number): Promise<MenuItemOption[]> {
+    return Array.from(this.menuItemOptions.values())
+      .filter(option => option.optionGroupId === optionGroupId)
+      .sort((a, b) => a.order - b.order);
+  }
+
+  async createMenuItemOption(option: InsertMenuItemOption): Promise<MenuItemOption> {
+    const id = this.optionIdCounter++;
+    const newOption: MenuItemOption = { 
+      ...option, 
+      id,
+      order: option.order ?? 0,
+      priceModifier: option.priceModifier ?? 0,
+      available: option.available ?? true
+    };
+    this.menuItemOptions.set(id, newOption);
+    return newOption;
+  }
+
+  async updateMenuItemOption(id: number, option: Partial<InsertMenuItemOption>): Promise<MenuItemOption | undefined> {
+    const existingOption = this.menuItemOptions.get(id);
+    if (!existingOption) return undefined;
+    
+    const updatedOption = { ...existingOption, ...option };
+    this.menuItemOptions.set(id, updatedOption);
+    return updatedOption;
+  }
+
+  async deleteMenuItemOption(id: number): Promise<boolean> {
+    return this.menuItemOptions.delete(id);
+  }
   // Orders
   async getOrders(): Promise<Order[]> {
     return Array.from(this.orders.values()).sort((a, b) => 
@@ -243,12 +375,14 @@ export class MemStorage implements IStorage {
       id,
       status: order.status || 'pending',
       customerEmail: order.customerEmail || null,
+      deliveryAddress: order.deliveryAddress ?? null,
       preparationInstructions: order.preparationInstructions || null,
       userId: order.userId ?? null,
       dailyOrderNumber,
       paymentReference: null,
       completedAt: null,
       promoCode: order.promoCode ?? null,
+      items: order.items || [],
       createdAt: new Date()
     };
     this.orders.set(id, newOrder);
@@ -328,6 +462,22 @@ export class MemStorage implements IStorage {
     const updatedUser = { ...user, ...data };
     this.users.set(id, updatedUser);
     return true;
+  }
+    async updateUsername(id: number, newUsername: string): Promise<{ success: boolean; message?: string; user?: User }> {
+    // Check if new username already exists
+    const existingUser = Array.from(this.users.values()).find(u => u.username === newUsername && u.id !== id);
+    if (existingUser) {
+      return { success: false, message: "Username already taken" };
+    }
+
+    const user = this.users.get(id);
+    if (!user) {
+      return { success: false, message: "User not found" };
+    }
+
+    const updatedUser = { ...user, username: newUsername };
+    this.users.set(id, updatedUser);
+    return { success: true, user: updatedUser };
   }
   
   // Special Offers
@@ -450,6 +600,11 @@ export class MemStorage implements IStorage {
   async cleanupOldData(): Promise<boolean> {
     // For memory storage, just return true
     return true;
+  }
+  async getUserOrders(userId: number): Promise<Order[]> {
+    return Array.from(this.orders.values())
+      .filter(order => order.userId === userId)
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   }
 
   // Initialize with default data
@@ -597,7 +752,7 @@ export class DatabaseStorage implements IStorage {
   
   // Menu Categories
   async getMenuCategories(): Promise<MenuCategory[]> {
-    return await db.select().from(menuCategories);
+    return await db.select().from(menuCategories).orderBy(menuCategories.order);
   }
 
   async getMenuCategoryBySlug(slug: string): Promise<MenuCategory | undefined> {
@@ -606,7 +761,9 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createMenuCategory(category: InsertMenuCategory): Promise<MenuCategory> {
-    const [newCategory] = await db.insert(menuCategories).values(category).returning();
+    const maxOrder = await db.select({ maxOrder: max(menuCategories.order) }).from(menuCategories);
+    const order = category.order ?? (maxOrder[0]?.maxOrder ?? 0) + 1;
+    const [newCategory] = await db.insert(menuCategories).values({ ...category, order }).returning();
     return newCategory;
   }
 
@@ -620,8 +777,34 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteMenuCategory(id: number): Promise<boolean> {
-    const result = await db.delete(menuCategories).where(eq(menuCategories.id, id));
-    return true;
+    try {
+      // First delete all menu items in this category
+      await db.delete(menuItems).where(eq(menuItems.categoryId, id));
+      
+      // Then delete the category
+      await db.delete(menuCategories).where(eq(menuCategories.id, id));
+      
+      console.log(`Deleted category ${id} and all its menu items`);
+      return true;
+    } catch (error) {
+      console.error('Error deleting category:', error);
+            return false;
+    }
+  }
+
+  async updateCategoryOrder(categoryOrders: { id: number; order: number }[]): Promise<boolean> {
+    try {
+      await db.transaction(async (tx) => {
+        for (const { id, order } of categoryOrders) {
+          await tx.update(menuCategories)
+            .set({ order })
+            .where(eq(menuCategories.id, id));
+        }
+      });
+      return true;
+    } catch {
+      return false;
+    }
   }
 
   // Menu Items
@@ -796,6 +979,34 @@ export class DatabaseStorage implements IStorage {
     } catch (error) {
       console.error("Error updating user profile:", error);
       return false;
+    }
+  }
+    async updateUsername(id: number, newUsername: string): Promise<{ success: boolean; message?: string; user?: User }> {
+    try {
+      // Check if new username already exists
+      const existingUser = await db.select()
+        .from(users)
+        .where(and(eq(users.username, newUsername), sql`${users.id} != ${id}`))
+        .limit(1);
+
+      if (existingUser.length > 0) {
+        return { success: false, message: "Username already taken" };
+      }
+
+      // Update the username
+      const result = await db.update(users)
+        .set({ username: newUsername })
+        .where(eq(users.id, id))
+        .returning();
+
+      if (result.length === 0) {
+        return { success: false, message: "User not found" };
+      }
+
+      return { success: true, user: result[0] };
+    } catch (error) {
+      console.error('Error updating username:', error);
+      return { success: false, message: "Failed to update username" };
     }
   }
 
@@ -1158,7 +1369,119 @@ export class DatabaseStorage implements IStorage {
       return false;
     }
   }
+
+  async getUserOrders(userId: number): Promise<Order[]> {
+    try {
+      const userOrders = await db.select()
+        .from(orders)
+        .where(eq(orders.userId, userId))
+        .orderBy(desc(orders.createdAt));
+      
+      return userOrders;
+    } catch (error) {
+      console.error("Error fetching user orders:", error);
+      return [];
+    }
+  }
+
+// Menu Item Options Methods
+  async getMenuItemOptionGroups(menuItemId: number): Promise<MenuItemOptionGroup[]> {
+    return await db
+      .select()
+      .from(menuItemOptionGroups)
+      .where(eq(menuItemOptionGroups.menuItemId, menuItemId))
+      .orderBy(menuItemOptionGroups.order);
+  }
+
+  async getMenuItemOptionGroupsWithOptions(menuItemId: number): Promise<(MenuItemOptionGroup & { options: MenuItemOption[] })[]> {
+    const groups = await this.getMenuItemOptionGroups(menuItemId);
+    const groupsWithOptions = [];
+
+    for (const group of groups) {
+      const options = await db
+        .select()
+        .from(menuItemOptions)
+        .where(eq(menuItemOptions.optionGroupId, group.id))
+        .orderBy(menuItemOptions.order);
+      
+      groupsWithOptions.push({ ...group, options });
+    }
+
+    return groupsWithOptions;
+  }
+
+  async createMenuItemOptionGroup(group: InsertMenuItemOptionGroup): Promise<MenuItemOptionGroup> {
+    const [newGroup] = await db
+      .insert(menuItemOptionGroups)
+      .values(group)
+      .returning();
+    
+    return newGroup;
+  }
+
+  async updateMenuItemOptionGroup(id: number, group: Partial<InsertMenuItemOptionGroup>): Promise<MenuItemOptionGroup | undefined> {
+    const [updatedGroup] = await db
+      .update(menuItemOptionGroups)
+      .set(group)
+      .where(eq(menuItemOptionGroups.id, id))
+      .returning();
+    
+    return updatedGroup;
+  }
+
+  async deleteMenuItemOptionGroup(id: number): Promise<boolean> {
+    try {
+      // First delete all options in this group
+      await db.delete(menuItemOptions).where(eq(menuItemOptions.optionGroupId, id));
+      
+      // Then delete the group
+      await db.delete(menuItemOptionGroups).where(eq(menuItemOptionGroups.id, id));
+      
+      return true;
+    } catch (error) {
+      console.error('Error deleting option group:', error);
+      return false;
+    }
+  }
+
+  async getMenuItemOptions(optionGroupId: number): Promise<MenuItemOption[]> {
+    return await db
+      .select()
+      .from(menuItemOptions)
+      .where(eq(menuItemOptions.optionGroupId, optionGroupId))
+      .orderBy(menuItemOptions.order);
+  }
+
+  async createMenuItemOption(option: InsertMenuItemOption): Promise<MenuItemOption> {
+    const [newOption] = await db
+      .insert(menuItemOptions)
+      .values(option)
+      .returning();
+    
+    return newOption;
+  }
+
+  async updateMenuItemOption(id: number, option: Partial<InsertMenuItemOption>): Promise<MenuItemOption | undefined> {
+    const [updatedOption] = await db
+      .update(menuItemOptions)
+      .set(option)
+      .where(eq(menuItemOptions.id, id))
+      .returning();
+    
+    return updatedOption;
+  }
+
+  async deleteMenuItemOption(id: number): Promise<boolean> {
+    try {
+      await db.delete(menuItemOptions).where(eq(menuItemOptions.id, id));
+      return true;
+    } catch (error) {
+      console.error('Error deleting option:', error);
+      return false;
+    }
+  }
 }
 
 // Use DatabaseStorage instead of MemStorage
 export const storage = new DatabaseStorage();
+

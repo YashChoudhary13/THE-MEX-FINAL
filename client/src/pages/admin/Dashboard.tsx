@@ -1,15 +1,28 @@
 import React, { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useLocation } from "wouter";
-import { MenuCategory, MenuItem, Order, InsertMenuItem, InsertMenuCategory, InsertSpecialOffer, PromoCode, InsertPromoCode } from "@shared/schema";
-import { CreditCard, Menu, ArrowRightLeft, Settings, BarChart3, Users, LogOut, ShoppingBag, Plus, Edit, Trash, AlertTriangle, Tag } from "lucide-react";
-import { PromoCodeForm, SystemSettingsForm } from "./AdminForms";
+import { 
+  MenuCategory, 
+  MenuItem, 
+  Order, 
+  InsertMenuItem, 
+  InsertMenuCategory, 
+  InsertSpecialOffer, 
+  PromoCode, 
+  InsertPromoCode,
+  MenuItemOptionGroup,
+  MenuItemOption,
+  InsertMenuItemOptionGroup,
+  InsertMenuItemOption
+} from "@shared/schema";
+import { CreditCard, Menu, ArrowRightLeft, Settings, BarChart3, Users, LogOut, ShoppingBag, Plus, Edit, Trash, AlertTriangle, Tag, ChevronRight, Store } from "lucide-react";import { PromoCodeForm, SystemSettingsForm } from "./AdminForms";
 import MenuItemForm from "@/components/admin/MenuItemForm";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Card, CardHeader, CardContent, CardTitle, CardDescription } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -26,6 +39,7 @@ import LiveStatsDisplay from "@/components/admin/LiveStatsDisplay";
 import ReportsSection from "@/components/admin/ReportsSection";
 import AdminTimeDisplay from "@/components/admin/AdminTimeDisplay";
 import TodaysSpecialManager from "./components/TodaysSpecialManager";
+import CategoryOrderManager from "@/components/CategoryOrderManager";
 import { useWebSocket } from "@/hooks/useWebSocket";
 
 // We'll wrap the admin component sections in conditional rendering
@@ -37,9 +51,11 @@ export default function AdminDashboard() {
   const [isAddMenuItemOpen, setIsAddMenuItemOpen] = useState(false);
   const [isEditMenuItemOpen, setIsEditMenuItemOpen] = useState(false);
   const [isAddCategoryOpen, setIsAddCategoryOpen] = useState(false);
+  const [isEditCategoryOpen, setIsEditCategoryOpen] = useState(false);
   const [isUpdateSpecialOpen, setIsUpdateSpecialOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isPromoCodeOpen, setIsPromoCodeOpen] = useState(false);
+  const [isManageOptionsOpen, setIsManageOptionsOpen] = useState(false);
   const [selectedMenuItem, setSelectedMenuItem] = useState<MenuItem | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<MenuCategory | null>(null);
   const [selectedPromoCode, setSelectedPromoCode] = useState<PromoCode | null>(null);
@@ -96,7 +112,36 @@ export default function AdminDashboard() {
   });
   
   const { data: taxRate, isLoading: taxRateLoading } = useQuery<{ taxRate: number }>({
-    queryKey: ["/api/system-settings/tax-rate"],
+     queryKey: ["/api/system-settings/tax-rate"],
+  });
+
+  const { data: storeOpen = true } = useQuery({
+    queryKey: ['/api/system-settings/store-open'],
+    queryFn: async () => {
+      const response = await fetch('/api/system-settings/store-open');
+      const data = await response.json();
+      return data.storeOpen;
+    },
+  });
+
+  const storeToggleMutation = useMutation({
+    mutationFn: async (isOpen: boolean) => {
+      return apiRequest('PUT', '/api/system-settings/store-open', { value: isOpen });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/system-settings/store-open'] });
+      toast({
+        title: "Store status updated",
+        description: `Store is now ${storeOpen ? 'closed' : 'open'}`,
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to update store status",
+        variant: "destructive",
+      });
+    },
   });
   
   // Fetch promo codes
@@ -193,6 +238,51 @@ export default function AdminDashboard() {
     }
   });
 
+  const updateMenuCategoryMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: number, data: Partial<InsertMenuCategory> }) => {
+      const response = await apiRequest("PATCH", `/api/admin/categories/${id}`, data);
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/categories"] });
+      setIsEditCategoryOpen(false);
+      setSelectedCategory(null);
+      toast({
+        title: "Menu category updated",
+        description: "The category has been updated successfully",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Failed to update category",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  });
+
+  const deleteCategoryMutation = useMutation({
+    mutationFn: async (id: number) => {
+      const response = await apiRequest("DELETE", `/api/admin/categories/${id}`);
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/categories"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/menu-items"] });
+      toast({
+        title: "Category deleted",
+        description: "The category and all its items have been deleted successfully",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Failed to delete category",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  });
+
   const updateSpecialOfferMutation = useMutation({
     mutationFn: async (data: InsertSpecialOffer) => {
       // First deactivate all existing specials
@@ -252,44 +342,31 @@ export default function AdminDashboard() {
   });
   
   // System settings mutations
-  const updateServiceFeeMutation = useMutation({
-    mutationFn: async (fee: number) => {
-      const response = await apiRequest("PATCH", "/api/admin/system-settings/service-fee", { fee });
-      return response.json();
+  const updateSystemSettingsMutation = useMutation({
+    mutationFn: async (data: { serviceFee: number; taxRate: number }) => {
+      // Update both settings in parallel
+      const [serviceFeeResponse, taxRateResponse] = await Promise.all([
+        apiRequest("PATCH", "/api/admin/system-settings/service-fee", { serviceFee: data.serviceFee }),
+        apiRequest("PATCH", "/api/admin/system-settings/tax-rate", { taxRate: data.taxRate })
+      ]);
+      
+      return {
+        serviceFee: await serviceFeeResponse.json(),
+        taxRate: await taxRateResponse.json()
+      };
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/system-settings/service-fee"] });
-      setIsSettingsOpen(false);
-      toast({
-        title: "Service fee updated",
-        description: "The service fee has been updated successfully",
-      });
-    },
-    onError: (error) => {
-      toast({
-        title: "Failed to update service fee",
-        description: error.message,
-        variant: "destructive",
-      });
-    }
-  });
-  
-  const updateTaxRateMutation = useMutation({
-    mutationFn: async (rate: number) => {
-      const response = await apiRequest("PATCH", "/api/admin/system-settings/tax-rate", { rate });
-      return response.json();
-    },
-    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/system-settings/tax-rate"] });
       setIsSettingsOpen(false);
       toast({
-        title: "Tax rate updated",
-        description: "The tax rate has been updated successfully",
+        title: "System settings updated",
+        description: "Service fee and tax rate have been updated successfully",
       });
     },
     onError: (error) => {
       toast({
-        title: "Failed to update tax rate",
+        title: "Failed to update system settings",
         description: error.message,
         variant: "destructive",
       });
@@ -369,6 +446,8 @@ export default function AdminDashboard() {
       });
     }
   });
+
+
 
   const handleLogout = () => {
     // In a real app, we would handle authentication logout here
@@ -538,7 +617,7 @@ export default function AdminDashboard() {
               <p className="text-muted-foreground">
                 {activeTab === "overview" && "Monitor your restaurant's performance and manage daily operations."}
                 {activeTab === "orders" && "View, update and manage all customer orders."}
-                {activeTab === "menu" && "Add, edit or remove items from your restaurant menu."}
+                {activeTab === "menu" && "Manage category order, add/edit categories and menu items."}
                 {activeTab === "specials" && "Set and manage today's special offers and promotions."}
                 {activeTab === "promo-codes" && "Create and manage promotional codes for discounts."}
                 {activeTab === "settings" && "Configure system-wide settings such as tax rate and service fees."}
@@ -593,6 +672,36 @@ export default function AdminDashboard() {
             {activeTab === "overview" && (
               <div className="space-y-6">
                 <LiveStatsDisplay />
+
+                {/* Store Open/Close Toggle */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Store className="h-5 w-5" />
+                      Store Status
+                    </CardTitle>
+                    <CardDescription>
+                      Control whether the store accepts new orders
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="font-medium">
+                          Store is currently {storeOpen ? 'OPEN' : 'CLOSED'}
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                          {storeOpen ? 'Accepting new orders' : 'Not accepting new orders'}
+                        </p>
+                      </div>
+                      <Switch
+                        checked={storeOpen}
+                        onCheckedChange={(checked) => storeToggleMutation.mutate(checked)}
+                        disabled={storeToggleMutation.isPending}
+                      />
+                    </div>
+                  </CardContent>
+                </Card>
                 
                 <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
                   <Card className="md:col-span-2">
@@ -711,102 +820,47 @@ export default function AdminDashboard() {
             )}
             
             {activeTab === "menu" && (
-              <div className="p-6 bg-card rounded-lg">
-                <h2 className="text-xl font-semibold mb-4">Menu Management</h2>
-                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
-                  <div className="flex gap-2 overflow-x-auto w-full sm:w-auto pb-2">
-                    <Button 
-                      variant={selectedCategory === null ? "secondary" : "ghost"}
-                      size="sm"
-                      onClick={() => setSelectedCategory(null)}
-                    >
-                      All Items
-                    </Button>
-                    {categories?.map((category) => (
-                      <Button 
-                        key={category.id} 
-                        variant={selectedCategory?.id === category.id ? "secondary" : "ghost"}
-                        size="sm"
-                        onClick={() => setSelectedCategory(category)}
-                      >
-                        {category.name}
-                      </Button>
-                    ))}
-                  </div>
-                  
-                  <Button 
-                    className="bg-primary hover:bg-primary/90"
-                    onClick={() => setIsAddMenuItemOpen(true)}
-                  >
-                    <Plus className="h-4 w-4 mr-2" />
-                    Add Menu Item
-                  </Button>
-                </div>
+              <div className="space-y-6">
+                <CategoryOrderManager />
                 
-                <div className="border rounded-md overflow-hidden">
-                  <table className="w-full">
-                    <thead className="bg-muted/50">
-                      <tr>
-                        <th className="py-3 px-4 text-left">Image</th>
-                        <th className="py-3 px-4 text-left">Name</th>
-                        <th className="py-3 px-4 text-left">Category</th>
-                        <th className="py-3 px-4 text-left">Price</th>
-                        <th className="py-3 px-4 text-left">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {menuItems
-                        ?.filter(item => selectedCategory ? item.categoryId === selectedCategory.id : true)
-                        .map((item) => {
-                        const category = categories?.find(c => c.id === item.categoryId);
-                        return (
-                          <tr key={item.id} className="border-t">
-                            <td className="py-3 px-4">
-                              <div className="w-12 h-12 rounded-md overflow-hidden bg-muted">
-                                {item.image ? (
-                                  <img 
-                                    src={item.image} 
-                                    alt={item.name} 
-                                    className="w-full h-full object-cover"
-                                    onError={(e) => {
-                                      const target = e.target as HTMLImageElement;
-                                      target.style.display = 'none';
-                                    }}
-                                  />
-                                ) : (
-                                  <div className="w-full h-full flex items-center justify-center text-xs text-muted-foreground">
-                                    No Image
-                                  </div>
-                                )}
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Menu Management</CardTitle>
+                    <CardDescription>Manage categories and menu items in one place</CardDescription>
+                  </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {categories?.map((category) => {
+                      const categoryItems = menuItems?.filter(item => item.categoryId === category.id) || [];
+                      return (
+                        <Collapsible key={category.id} className="border rounded-lg">
+                          <CollapsibleTrigger className="w-full">
+                            <div className="flex items-center justify-between p-4 hover:bg-muted/50">
+                              <div className="flex items-center gap-3">
+                                <ChevronRight className="h-4 w-4 transition-transform duration-200 data-[state=open]:rotate-90" />
+                                <div className="text-left">
+                                  <h3 className="font-semibold">{category.name}</h3>
+                                  <p className="text-sm text-muted-foreground">
+                                    /{category.slug} • {categoryItems.length} items
+                                  </p>
+                                </div>
                               </div>
-                            </td>
-                            <td className="py-3 px-4">
-                              <div>
-                                <p className="font-medium">{item.name}</p>
-                                {item.featured && (
-                                  <span className="text-xs bg-amber-500/10 text-amber-500 px-1.5 py-0.5 rounded">Featured</span>
-                                )}
-                              </div>
-                            </td>
-                            <td className="py-3 px-4">{category?.name || "Unknown"}</td>
-                            <td className="py-3 px-4">${item.price.toFixed(2)}</td>
-                            <td className="py-3 px-4">
-                              <div className="flex gap-2">
-                                <Button 
-                                  variant="outline" 
-                                  size="icon"
+                              <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
                                   onClick={() => {
-                                    setSelectedMenuItem(item);
-                                    setIsEditMenuItemOpen(true);
+                                    setSelectedCategory(category);
+                                    setIsEditCategoryOpen(true);
                                   }}
                                 >
                                   <Edit className="h-4 w-4" />
                                 </Button>
                                 <AlertDialog>
                                   <AlertDialogTrigger asChild>
-                                    <Button 
-                                      variant="outline" 
-                                      size="icon"
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
                                       className="text-destructive hover:text-destructive hover:bg-destructive/10"
                                     >
                                       <Trash className="h-4 w-4" />
@@ -814,37 +868,152 @@ export default function AdminDashboard() {
                                   </AlertDialogTrigger>
                                   <AlertDialogContent>
                                     <AlertDialogHeader>
-                                      <AlertDialogTitle>Delete Menu Item</AlertDialogTitle>
+                                      <AlertDialogTitle>Delete Category</AlertDialogTitle>
                                       <AlertDialogDescription>
-                                        Are you sure you want to delete "{item.name}"? This action cannot be undone.
+                                        Are you sure you want to delete "{category.name}"? This will also delete all {categoryItems.length} menu items in this category. This action cannot be undone.
                                       </AlertDialogDescription>
                                     </AlertDialogHeader>
                                     <AlertDialogFooter>
                                       <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                      <AlertDialogAction 
-                                        onClick={() => deleteMenuItemMutation.mutate(item.id)}
+                                      <AlertDialogAction
+                                        onClick={() => deleteCategoryMutation.mutate(category.id)}
                                         className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                                       >
-                                        Delete
+                                        Delete Category
                                       </AlertDialogAction>
                                     </AlertDialogFooter>
                                   </AlertDialogContent>
                                 </AlertDialog>
                               </div>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                      {!menuItems || menuItems.length === 0 && (
-                        <tr>
-                          <td colSpan={5} className="py-8 text-center text-muted-foreground">
-                            No menu items found
-                          </td>
-                        </tr>
-                      )}
-                    </tbody>
-                  </table>
-                </div>
+                            </div>
+                          </CollapsibleTrigger>
+                          <CollapsibleContent>
+                            <div className="border-t bg-muted/20">
+                              <div className="p-4">
+                                <div className="flex justify-between items-center mb-4">
+                                  <h4 className="font-medium">Menu Items in {category.name}</h4>
+                                  <Button
+                                    size="sm"
+                                    onClick={() => {
+                                      setSelectedCategory(category);
+                                      setSelectedMenuItem(null);
+                                      setIsAddMenuItemOpen(true);
+                                    }}
+                                  >
+                                    <Plus className="h-4 w-4 mr-2" />
+                                    Add Item
+                                  </Button>
+                                </div>
+                                
+                                {categoryItems.length === 0 ? (
+                                  <div className="text-center py-8 border rounded-lg bg-background">
+                                    <p className="text-muted-foreground">No items in this category</p>
+                                  </div>
+                                ) : (
+                                  <div className="grid gap-3">
+                                    {categoryItems.map((item) => (
+                                      <div key={item.id} className="flex items-center justify-between p-3 border rounded-lg bg-background">
+                                        <div className="flex items-center gap-3">
+                                          <div className="w-12 h-12 rounded-md overflow-hidden bg-muted">
+                                            {item.image ? (
+                                              <img 
+                                                src={item.image} 
+                                                alt={item.name} 
+                                                className="w-full h-full object-cover"
+                                                onError={(e) => {
+                                                  const target = e.target as HTMLImageElement;
+                                                  target.style.display = 'none';
+                                                }}
+                                              />
+                                            ) : (
+                                              <div className="w-full h-full flex items-center justify-center text-xs text-muted-foreground">
+                                                No Image
+                                              </div>
+                                            )}
+                                          </div>
+                                          <div>
+                                            <div className="flex items-center gap-2">
+                                              <p className="font-medium">{item.name}</p>
+                                              {item.featured && (
+                                                <span className="text-xs bg-amber-500/10 text-amber-500 px-1.5 py-0.5 rounded">Featured</span>
+                                              )}
+                                              {item.hasOptions && (
+                                                <span className="text-xs bg-blue-500/10 text-blue-500 px-1.5 py-0.5 rounded">Customizable</span>
+                                              )}
+                                            </div>
+                                            <p className="text-sm text-muted-foreground">€{item.price.toFixed(2)}</p>
+                                          </div>
+                                        </div>
+                                        <div className="flex gap-2">
+                                          <Button 
+                                            variant="outline" 
+                                            size="sm"
+                                            onClick={() => {
+                                              setSelectedMenuItem(item);
+                                              setIsManageOptionsOpen(true);
+                                            }}
+                                            title="Manage Options"
+                                          >
+                                            <Settings className="h-4 w-4" />
+                                          </Button>
+                                          <Button 
+                                            variant="outline" 
+                                            size="sm"
+                                            onClick={() => {
+                                              setSelectedMenuItem(item);
+                                              setIsEditMenuItemOpen(true);
+                                            }}
+                                          >
+                                            <Edit className="h-4 w-4" />
+                                          </Button>
+                                          <AlertDialog>
+                                            <AlertDialogTrigger asChild>
+                                              <Button 
+                                                variant="outline" 
+                                                size="sm"
+                                                className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                                              >
+                                                <Trash className="h-4 w-4" />
+                                              </Button>
+                                            </AlertDialogTrigger>
+                                            <AlertDialogContent>
+                                              <AlertDialogHeader>
+                                                <AlertDialogTitle>Delete Menu Item</AlertDialogTitle>
+                                                <AlertDialogDescription>
+                                                  Are you sure you want to delete "{item.name}"? This action cannot be undone.
+                                                </AlertDialogDescription>
+                                              </AlertDialogHeader>
+                                              <AlertDialogFooter>
+                                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                                <AlertDialogAction 
+                                                  onClick={() => deleteMenuItemMutation.mutate(item.id)}
+                                                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                                >
+                                                  Delete
+                                                </AlertDialogAction>
+                                              </AlertDialogFooter>
+                                            </AlertDialogContent>
+                                          </AlertDialog>
+                                        </div>
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          </CollapsibleContent>
+                        </Collapsible>
+                      );
+                    })}
+                    
+                    {!categories || categories.length === 0 && (
+                      <div className="text-center py-8 border rounded-lg bg-muted/20">
+                        <p className="text-muted-foreground">No categories found</p>
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+                </Card>
               </div>
             )}
             
@@ -856,77 +1025,101 @@ export default function AdminDashboard() {
                     <CardDescription>The currently highlighted special on your menu</CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <div className="grid md:grid-cols-3 gap-6">
-                      <div className="col-span-1">
-                        <div className="aspect-square rounded-xl border overflow-hidden bg-muted relative">
-                          <img 
-                            src="https://images.unsplash.com/photo-1594212699903-ec8a3eca50f5?auto=format&fit=crop&w=800" 
-                            alt="Double Smash Burger"
-                            className="w-full h-full object-cover"
-                          />
-                          <div className="absolute top-3 left-3 bg-primary text-white text-sm font-bold px-3 py-1 rounded-lg">
-                            SPECIAL OFFER
+                    {specialOfferLoading ? (
+                      <div className="flex items-center justify-center h-48">
+                        <p className="text-muted-foreground">Loading special offer...</p>
+                      </div>
+                    ) : !specialOffer || !specialOffer.menuItem ? (
+                      <div className="text-center py-12 border rounded-md bg-muted/20">
+                        <Tag className="h-12 w-12 mx-auto text-muted-foreground mb-3" />
+                        <h3 className="text-lg font-medium mb-2">No Special Offer Active</h3>
+                        <p className="text-sm text-muted-foreground mb-6 max-w-md mx-auto">
+                          Create a special offer to highlight featured items with discounts.
+                        </p>
+                        <Button onClick={() => setIsUpdateSpecialOpen(true)}>
+                          Create Special Offer
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="grid md:grid-cols-3 gap-6">
+                        <div className="col-span-1">
+                          <div className="aspect-square rounded-xl border overflow-hidden bg-muted relative">
+                            {specialOffer.menuItem.image ? (
+                              <img 
+                                src={specialOffer.menuItem.image} 
+                                alt={specialOffer.menuItem.name}
+                                className="w-full h-full object-cover"
+                              />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center bg-muted">
+                                <Tag className="h-12 w-12 text-muted-foreground" />
+                              </div>
+                            )}
+                            <div className="absolute top-3 left-3 bg-primary text-white text-sm font-bold px-3 py-1 rounded-lg">
+                              SPECIAL OFFER
+                            </div>
+                          </div>
+                        </div>
+                        
+                        <div className="md:col-span-2 flex flex-col">
+                          <h3 className="text-2xl font-heading mb-2">{specialOffer.menuItem.name}</h3>
+                          <p className="text-muted-foreground mb-4">{specialOffer.menuItem.description}</p>
+                          
+                          <div className="grid grid-cols-2 gap-4 mb-6">
+                            <div className="space-y-1">
+                              <h4 className="text-sm font-medium text-muted-foreground">Special Price</h4>
+                              <p className="text-2xl font-bold text-primary">
+                                €{(() => {
+                                  if (specialOffer.discountType === 'percentage') {
+                                    const discountAmount = (specialOffer.discountValue / 100) * specialOffer.menuItem.price;
+                                    return (specialOffer.menuItem.price - discountAmount).toFixed(2);
+                                  } else {
+                                    return Math.max(specialOffer.menuItem.price - specialOffer.discountValue, 0).toFixed(2);
+                                  }
+                                })()}
+                              </p>
+                            </div>
+                            <div className="space-y-1">
+                              <h4 className="text-sm font-medium text-muted-foreground">Original Price</h4>
+                              <p className="text-xl line-through text-muted-foreground">€{specialOffer.menuItem.price.toFixed(2)}</p>
+                            </div>
+                          </div>
+                          
+                          <div className="text-sm text-muted-foreground bg-muted p-3 rounded-md mb-4">
+                            <p><strong>Discount:</strong> {
+                              specialOffer.discountType === 'percentage' 
+                                ? `${specialOffer.discountValue}% off` 
+                                : `€${specialOffer.discountValue.toFixed(2)} off`
+                            } ({
+                              specialOffer.discountType === 'percentage' 
+                                ? specialOffer.discountValue
+                                : ((specialOffer.discountValue / specialOffer.menuItem.price) * 100).toFixed(0)
+                            }%)</p>
+                            <p className="mt-1"><strong>Active until:</strong> {new Date(specialOffer.endDate).toLocaleDateString('en-IE', {
+                              timeZone: 'Europe/Dublin',
+                              day: 'numeric',
+                              month: 'short',
+                              year: 'numeric',
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            })}</p>
+                          </div>
+                          
+                          <div className="mt-auto">
+                            <Button 
+                              className="w-full" 
+                              onClick={() => setIsUpdateSpecialOpen(true)}
+                            >
+                              Change Special
+                            </Button>
                           </div>
                         </div>
                       </div>
-                      
-                      <div className="md:col-span-2 flex flex-col">
-                        <h3 className="text-2xl font-heading mb-2">Double Smash Burger</h3>
-                        <p className="text-muted-foreground mb-4">Two smashed beef patties, melted cheese, caramelized onions, special sauce, crispy pickles</p>
-                        
-                        <div className="grid grid-cols-2 gap-4 mb-6">
-                          <div className="space-y-1">
-                            <h4 className="text-sm font-medium text-muted-foreground">Special Price</h4>
-                            <p className="text-2xl font-bold text-primary">$14.99</p>
-                          </div>
-                          <div className="space-y-1">
-                            <h4 className="text-sm font-medium text-muted-foreground">Original Price</h4>
-                            <p className="text-xl line-through text-muted-foreground">$17.99</p>
-                          </div>
-                        </div>
-                        
-                        <div className="text-sm text-muted-foreground bg-muted p-3 rounded-md mb-4">
-                          <p><strong>Discount:</strong> $3.00 off (17%)</p>
-                        </div>
-                        
-                        <div className="mt-auto">
-                          <Button 
-                            className="w-full" 
-                            onClick={() => setIsUpdateSpecialOpen(true)}
-                          >
-                            Change Special
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
+                    )}
                   </CardContent>
                 </Card>
                 
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Special Offer Performance</CardTitle>
-                    <CardDescription>Analytics for your current special offer</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                      <div className="space-y-2">
-                        <h3 className="text-sm font-medium text-muted-foreground">Orders Today</h3>
-                        <p className="text-3xl font-bold">24</p>
-                        <p className="text-sm text-muted-foreground">+12% from yesterday</p>
-                      </div>
-                      <div className="space-y-2">
-                        <h3 className="text-sm font-medium text-muted-foreground">Revenue</h3>
-                        <p className="text-3xl font-bold">$359.76</p>
-                        <p className="text-sm text-muted-foreground">+8% from yesterday</p>
-                      </div>
-                      <div className="space-y-2">
-                        <h3 className="text-sm font-medium text-muted-foreground">Promotion Effectiveness</h3>
-                        <p className="text-3xl font-bold">85%</p>
-                        <p className="text-sm text-muted-foreground">of customers order the special</p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
+
               </div>
             )}
             
@@ -977,10 +1170,10 @@ export default function AdminDashboard() {
                                   <td className="whitespace-nowrap py-3 px-3 text-sm sm:px-4">
                                     {promo.discountType === 'percentage' 
                                       ? `${promo.discountValue}%` 
-                                      : `$${promo.discountValue.toFixed(2)}`
+                                      : `€${promo.discountValue.toFixed(2)}`
                                     }
                                   </td>
-                                  <td className="whitespace-nowrap py-3 px-3 text-sm sm:px-4">${promo.minOrderValue?.toFixed(2) || '0.00'}</td>
+                                  <td className="whitespace-nowrap py-3 px-3 text-sm sm:px-4">€{promo.minOrderValue?.toFixed(2) || '0.00'}</td>
                                   <td className="whitespace-nowrap py-3 px-3 text-sm sm:px-4">
                                     {promo.currentUsage} / {promo.usageLimit === null ? '∞' : promo.usageLimit}
                                   </td>
@@ -1072,7 +1265,7 @@ export default function AdminDashboard() {
                         <div className="flex items-center justify-between">
                           <h3 className="text-lg font-semibold">Service Fee</h3>
                           <div className="text-2xl font-bold text-primary">
-                            ${serviceFee?.serviceFee?.toFixed(2) || '2.99'}
+                            €{serviceFee?.serviceFee?.toFixed(2) || '2.99'}
                           </div>
                         </div>
                         <p className="text-sm text-muted-foreground">
@@ -1119,7 +1312,7 @@ export default function AdminDashboard() {
                       <div className="flex items-center justify-between border-b pb-4">
                         <div>
                           <p className="font-medium">Service Fee Updated</p>
-                          <p className="text-sm text-muted-foreground">Changed from $2.50 to $2.99</p>
+                          <p className="text-sm text-muted-foreground">Changed from €2.50 to €2.99</p>
                         </div>
                         <div className="text-sm text-muted-foreground">May 1, 2023</div>
                       </div>
@@ -1149,8 +1342,12 @@ export default function AdminDashboard() {
             </DialogHeader>
             <AddMenuItemForm
               categories={categories || []}
-              onSubmit={(data) => createMenuItemMutation.mutate(data)}
+              onSubmit={(data) => createMenuItemMutation.mutate({
+                ...data,
+                categoryId: selectedCategory ? selectedCategory.id : data.categoryId
+              })}
               isSubmitting={createMenuItemMutation.isPending}
+              defaultCategoryId={selectedCategory?.id}
             />
           </DialogContent>
         </Dialog>
@@ -1188,6 +1385,25 @@ export default function AdminDashboard() {
               onSubmit={(data) => createCategoryMutation.mutate(data)}
               isSubmitting={createCategoryMutation.isPending}
             />
+          </DialogContent>
+        </Dialog>
+
+        {/* Edit Category Dialog */}
+        <Dialog open={isEditCategoryOpen} onOpenChange={setIsEditCategoryOpen}>
+          <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Edit Category</DialogTitle>
+              <DialogDescription>
+                Update the details of this menu category.
+              </DialogDescription>
+            </DialogHeader>
+            {selectedCategory && (
+              <EditCategoryForm
+                category={selectedCategory}
+                onSubmit={(data) => updateMenuCategoryMutation.mutate({ id: selectedCategory.id, data })}
+                isSubmitting={updateMenuCategoryMutation.isPending}
+              />
+            )}
           </DialogContent>
         </Dialog>
         
@@ -1255,11 +1471,28 @@ export default function AdminDashboard() {
                 taxRate: taxRate?.taxRate || 8
               }}
               onSubmit={(data) => {
-                updateServiceFeeMutation.mutate(data.serviceFee);
-                updateTaxRateMutation.mutate(data.taxRate);
+                updateSystemSettingsMutation.mutate(data);
               }}
-              isSubmitting={updateServiceFeeMutation.isPending || updateTaxRateMutation.isPending}
+              isSubmitting={updateSystemSettingsMutation.isPending}
             />
+          </DialogContent>
+        </Dialog>
+        
+        {/* Manage Menu Item Options Dialog */}
+        <Dialog open={isManageOptionsOpen} onOpenChange={setIsManageOptionsOpen}>
+          <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Manage Menu Item Options</DialogTitle>
+              <DialogDescription>
+                Configure customization options for {selectedMenuItem?.name}
+              </DialogDescription>
+            </DialogHeader>
+            {selectedMenuItem && (
+              <MenuItemOptionsManager 
+                menuItem={selectedMenuItem}
+                onClose={() => setIsManageOptionsOpen(false)}
+              />
+            )}
           </DialogContent>
         </Dialog>
       </main>
@@ -1272,9 +1505,10 @@ type AddMenuItemFormProps = {
   categories: MenuCategory[];
   onSubmit: (data: InsertMenuItem) => void;
   isSubmitting: boolean;
+  defaultCategoryId?: number;
 };
 
-function AddMenuItemForm({ categories, onSubmit, isSubmitting }: AddMenuItemFormProps) {
+function AddMenuItemForm({ categories, onSubmit, isSubmitting, defaultCategoryId }: AddMenuItemFormProps) {
   const menuItemFormSchema = z.object({
     name: z.string().min(2, "Name must be at least 2 characters"),
     description: z.string().min(5, "Description must be at least 5 characters"),
@@ -1291,6 +1525,9 @@ function AddMenuItemForm({ categories, onSubmit, isSubmitting }: AddMenuItemForm
     }, "Please enter a valid URL or upload an image file"),
     categoryId: z.coerce.number().positive("Please select a category"),
     featured: z.boolean().default(false),
+    soldOut: z.boolean().default(false),
+    isHot: z.boolean().default(false),
+    isBestSeller: z.boolean().default(false),
     prepTime: z.coerce.number().int().min(1, "Prep time must be at least 1 minute").max(60, "Prep time should not exceed 60 minutes").default(15),
   });
 
@@ -1301,8 +1538,11 @@ function AddMenuItemForm({ categories, onSubmit, isSubmitting }: AddMenuItemForm
       description: "",
       price: 0,
       image: undefined,
-      categoryId: 0,
+      categoryId: defaultCategoryId || 0,
       featured: false,
+      soldOut: false,
+      isHot: false,
+      isBestSeller: false,
       prepTime: 15,
     },
   });
@@ -1417,22 +1657,71 @@ function AddMenuItemForm({ categories, onSubmit, isSubmitting }: AddMenuItemForm
             </FormItem>
           )}
         />
-        <FormField
-          control={form.control}
-          name="featured"
-          render={({ field }) => (
-            <FormItem className="flex items-center gap-2 space-y-0">
-              <FormControl>
-                <Switch 
-                  checked={field.value}
-                  onCheckedChange={field.onChange}
-                />
-              </FormControl>
-              <FormLabel>Featured Item</FormLabel>
-              <FormDescription className="text-xs ml-auto">Display prominently on the menu</FormDescription>
-            </FormItem>
-          )}
-        />
+        <div className="space-y-4">
+          <h4 className="text-sm font-medium">Item Status & Tags</h4>
+          <div className="grid grid-cols-2 gap-4">
+            <FormField
+              control={form.control}
+              name="featured"
+              render={({ field }) => (
+                <FormItem className="flex items-center gap-2 space-y-0">
+                  <FormControl>
+                    <Switch 
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
+                  </FormControl>
+                  <FormLabel>Featured</FormLabel>
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="soldOut"
+              render={({ field }) => (
+                <FormItem className="flex items-center gap-2 space-y-0">
+                  <FormControl>
+                    <Switch 
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
+                  </FormControl>
+                  <FormLabel>Sold Out</FormLabel>
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="isHot"
+              render={({ field }) => (
+                <FormItem className="flex items-center gap-2 space-y-0">
+                  <FormControl>
+                    <Switch 
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
+                  </FormControl>
+                  <FormLabel>Hot 🌶️</FormLabel>
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="isBestSeller"
+              render={({ field }) => (
+                <FormItem className="flex items-center gap-2 space-y-0">
+                  <FormControl>
+                    <Switch 
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
+                  </FormControl>
+                  <FormLabel>Best Seller</FormLabel>
+                </FormItem>
+              )}
+            />
+          </div>
+        </div>
         <DialogFooter>
           <Button type="submit" disabled={isSubmitting}>
             {isSubmitting ? "Creating..." : "Create Item"}
@@ -1467,6 +1756,9 @@ function EditMenuItemForm({ categories, menuItem, onSubmit, isSubmitting }: Edit
     }, "Please enter a valid URL or upload an image file"),
     categoryId: z.coerce.number().positive("Please select a category"),
     featured: z.boolean().default(false),
+    soldOut: z.boolean().default(false),
+    isHot: z.boolean().default(false),
+    isBestSeller: z.boolean().default(false),
     prepTime: z.coerce.number().int().min(1, "Prep time must be at least 1 minute").max(60, "Prep time should not exceed 60 minutes").default(15),
   });
 
@@ -1479,6 +1771,9 @@ function EditMenuItemForm({ categories, menuItem, onSubmit, isSubmitting }: Edit
       image: menuItem.image || "",
       categoryId: menuItem.categoryId,
       featured: menuItem.featured ?? false,
+      soldOut: menuItem.soldOut ?? false,
+      isHot: menuItem.isHot ?? false,
+      isBestSeller: menuItem.isBestSeller ?? false,
       prepTime: menuItem.prepTime || 15,
     },
   });
@@ -1593,22 +1888,71 @@ function EditMenuItemForm({ categories, menuItem, onSubmit, isSubmitting }: Edit
             </FormItem>
           )}
         />
-        <FormField
-          control={form.control}
-          name="featured"
-          render={({ field }) => (
-            <FormItem className="flex items-center gap-2 space-y-0">
-              <FormControl>
-                <Switch 
-                  checked={field.value}
-                  onCheckedChange={field.onChange}
-                />
-              </FormControl>
-              <FormLabel>Featured Item</FormLabel>
-              <FormDescription className="text-xs ml-auto">Display prominently on the menu</FormDescription>
-            </FormItem>
-          )}
-        />
+        <div className="space-y-4">
+          <h4 className="text-sm font-medium">Item Status & Tags</h4>
+          <div className="grid grid-cols-2 gap-4">
+            <FormField
+              control={form.control}
+              name="featured"
+              render={({ field }) => (
+                <FormItem className="flex items-center gap-2 space-y-0">
+                  <FormControl>
+                    <Switch 
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
+                  </FormControl>
+                  <FormLabel>Featured</FormLabel>
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="soldOut"
+              render={({ field }) => (
+                <FormItem className="flex items-center gap-2 space-y-0">
+                  <FormControl>
+                    <Switch 
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
+                  </FormControl>
+                  <FormLabel>Sold Out</FormLabel>
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="isHot"
+              render={({ field }) => (
+                <FormItem className="flex items-center gap-2 space-y-0">
+                  <FormControl>
+                    <Switch 
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
+                  </FormControl>
+                  <FormLabel>Hot 🌶️</FormLabel>
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="isBestSeller"
+              render={({ field }) => (
+                <FormItem className="flex items-center gap-2 space-y-0">
+                  <FormControl>
+                    <Switch 
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
+                  </FormControl>
+                  <FormLabel>Best Seller</FormLabel>
+                </FormItem>
+              )}
+            />
+          </div>
+        </div>
         <DialogFooter>
           <Button type="submit" disabled={isSubmitting}>
             {isSubmitting ? "Updating..." : "Update Item"}
@@ -1628,6 +1972,7 @@ function AddCategoryForm({ onSubmit, isSubmitting }: AddCategoryFormProps) {
   const categoryFormSchema = z.object({
     name: z.string().min(2, "Name must be at least 2 characters"),
     slug: z.string().min(2, "Slug must be at least 2 characters").regex(/^[a-z0-9-]+$/, "Slug can only contain lowercase letters, numbers, and hyphens"),
+    description: z.string().optional(),
   });
 
   const form = useForm<z.infer<typeof categoryFormSchema>>({
@@ -1635,6 +1980,7 @@ function AddCategoryForm({ onSubmit, isSubmitting }: AddCategoryFormProps) {
     defaultValues: {
       name: "",
       slug: "",
+      description: "",
     },
   });
 
@@ -1683,9 +2029,121 @@ function AddCategoryForm({ onSubmit, isSubmitting }: AddCategoryFormProps) {
             </FormItem>
           )}
         />
+                <FormField
+          control={form.control}
+          name="description"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Description</FormLabel>
+              <FormControl>
+                <Textarea placeholder="A brief description of this category that will be shown to customers..." {...field} />
+              </FormControl>
+              <FormDescription>
+                Optional description that will be displayed when customers browse this category.
+              </FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
         <DialogFooter>
           <Button type="submit" disabled={isSubmitting}>
             {isSubmitting ? "Creating..." : "Create Category"}
+          </Button>
+        </DialogFooter>
+      </form>
+    </Form>
+  );
+}
+
+type EditCategoryFormProps = {
+  category: MenuCategory;
+  onSubmit: (data: Partial<InsertMenuCategory>) => void;
+  isSubmitting: boolean;
+};
+
+function EditCategoryForm({ category, onSubmit, isSubmitting }: EditCategoryFormProps) {
+  const categoryFormSchema = z.object({
+    name: z.string().min(2, "Name must be at least 2 characters"),
+    slug: z.string().min(2, "Slug must be at least 2 characters").regex(/^[a-z0-9-]+$/, "Slug can only contain lowercase letters, numbers, and hyphens"),
+    description: z.string().optional(),
+  });
+
+  const form = useForm<z.infer<typeof categoryFormSchema>>({
+    resolver: zodResolver(categoryFormSchema),
+    defaultValues: {
+      name: category.name,
+      slug: category.slug,
+      description: category.description || "",
+    },
+  });
+
+  function handleSubmit(values: z.infer<typeof categoryFormSchema>) {
+    onSubmit(values);
+  }
+
+  // Auto-generate slug from name only if the name is significantly different
+  const watchName = form.watch("name");
+  React.useEffect(() => {
+    if (watchName && watchName !== category.name && watchName.trim() !== "") {
+      const newSlug = watchName.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
+      // Only update slug if it's different from current slug to avoid conflicts
+      if (newSlug !== category.slug) {
+        form.setValue("slug", newSlug);
+      }
+    }
+  }, [watchName, form, category.name, category.slug]);
+
+  return (
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
+        <FormField
+          control={form.control}
+          name="name"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Category Name</FormLabel>
+              <FormControl>
+                <Input placeholder="Main Dishes" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="slug"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Slug</FormLabel>
+              <FormControl>
+                <Input placeholder="main-dishes" {...field} />
+              </FormControl>
+              <FormDescription>
+                URL-friendly version of the name. Auto-generated from the name.
+              </FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="description"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Description</FormLabel>
+              <FormControl>
+                <Textarea placeholder="A brief description of this category that will be shown to customers..." {...field} />
+              </FormControl>
+              <FormDescription>
+                Optional description that will be displayed when customers browse this category.
+              </FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <DialogFooter>
+          <Button type="submit" disabled={isSubmitting}>
+            {isSubmitting ? "Updating..." : "Update Category"}
           </Button>
         </DialogFooter>
       </form>
@@ -1965,6 +2423,605 @@ function UpdateSpecialForm({ menuItems, onSubmit, isSubmitting }: UpdateSpecialF
         <DialogFooter>
           <Button type="submit" disabled={isSubmitting}>
             {isSubmitting ? "Updating..." : "Update Special"}
+          </Button>
+        </DialogFooter>
+      </form>
+    </Form>
+  );
+}
+
+
+// Menu Item Options Manager Component
+type MenuItemOptionsManagerProps = {
+  menuItem: MenuItem;
+  onClose: () => void;
+};
+
+function MenuItemOptionsManager({ menuItem, onClose }: MenuItemOptionsManagerProps) {
+  const [selectedOptionGroup, setSelectedOptionGroup] = useState<MenuItemOptionGroup | null>(null);
+  const [isAddGroupOpen, setIsAddGroupOpen] = useState(false);
+  const [isEditGroupOpen, setIsEditGroupOpen] = useState(false);
+  const [isAddOptionOpen, setIsAddOptionOpen] = useState(false);
+  const [isEditOptionOpen, setIsEditOptionOpen] = useState(false);
+  const [selectedOption, setSelectedOption] = useState<MenuItemOption | null>(null);
+
+  // Fetch option groups for this menu item
+  const { data: optionGroups, isLoading, refetch } = useQuery({
+    queryKey: ['/api/menu-items', menuItem.id, 'option-groups'],
+    queryFn: () => fetch(`/api/menu-items/${menuItem.id}/option-groups`).then(res => res.json()) as Promise<(MenuItemOptionGroup & { options: MenuItemOption[] })[]>
+  });
+
+  // Mutations for option groups
+  const createOptionGroupMutation = useMutation({
+mutationFn: (data: InsertMenuItemOptionGroup) => {
+      console.log("Creating option group with data:", data);
+      return fetch(`/api/admin/menu-items/${menuItem.id}/option-groups`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify(data)
+      }).then(res => {
+        if (!res.ok) {
+          throw new Error(`HTTP error! status: ${res.status}`);
+        }
+        return res.json();
+      });
+    },
+    onSuccess: () => {
+      refetch();
+      setIsAddGroupOpen(false);
+    }
+  });
+
+  const updateOptionGroupMutation = useMutation({
+    mutationFn: ({ id, data }: { id: number; data: Partial<InsertMenuItemOptionGroup> }) =>
+      fetch(`/api/admin/option-groups/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(data)
+      }).then(res => res.json()),
+    onSuccess: () => {
+      refetch();
+      setIsEditGroupOpen(false);
+      setSelectedOptionGroup(null);
+    }
+  });
+
+  const deleteOptionGroupMutation = useMutation({
+    mutationFn: (id: number) => fetch(`/api/admin/option-groups/${id}`, {
+      method: 'DELETE',
+      credentials: 'include'
+    }).then(res => res.json()),
+    onSuccess: () => {
+      refetch();
+    }
+  });
+
+  // Mutations for options
+  const createOptionMutation = useMutation({
+    mutationFn: (data: InsertMenuItemOption) =>
+      fetch(`/api/admin/option-groups/${selectedOptionGroup!.id}/options`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(data)
+      }).then(res => res.json()),
+    onSuccess: () => {
+      refetch();
+      setIsAddOptionOpen(false);
+    }
+  });
+
+  const updateOptionMutation = useMutation({
+    mutationFn: ({ id, data }: { id: number; data: Partial<InsertMenuItemOption> }) =>
+      fetch(`/api/admin/options/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(data)
+      }).then(res => res.json()),
+    onSuccess: () => {
+      refetch();
+      setIsEditOptionOpen(false);
+      setSelectedOption(null);
+    }
+  });
+
+  const deleteOptionMutation = useMutation({
+   mutationFn: (id: number) => fetch(`/api/admin/options/${id}`, {
+      method: 'DELETE',
+      credentials: 'include'
+    }).then(res => res.json()),
+    onSuccess: () => {
+      refetch();
+    }
+  });
+
+  // Mark menu item as having options
+  const updateMenuItemMutation = useMutation({
+    mutationFn: (data: { hasOptions: boolean }) =>
+      fetch(`/api/admin/menu-items/${menuItem.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(data)
+      }).then(res => res.json()),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/menu-items'] });
+    }
+  });
+
+  const hasAnyGroups = optionGroups && optionGroups.length > 0;
+
+  // Auto-update hasOptions field based on whether groups exist
+  React.useEffect(() => {
+    if (optionGroups !== undefined) {
+      const shouldHaveOptions = optionGroups.length > 0;
+      if (menuItem.hasOptions !== shouldHaveOptions) {
+        updateMenuItemMutation.mutate({ hasOptions: shouldHaveOptions });
+      }
+    }
+  }, [optionGroups, menuItem.hasOptions]);
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-48">
+        <p className="text-muted-foreground">Loading options...</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h3 className="text-lg font-semibold">{menuItem.name} Options</h3>
+          <p className="text-sm text-muted-foreground">
+            {hasAnyGroups ? `${optionGroups.length} option groups configured` : 'No option groups configured'}
+          </p>
+        </div>
+        <Button onClick={() => setIsAddGroupOpen(true)}>
+          <Plus className="h-4 w-4 mr-2" />
+          Add Option Group
+        </Button>
+      </div>
+
+      {!hasAnyGroups ? (
+        <div className="text-center py-12 border rounded-lg bg-muted/20">
+          <Settings className="h-12 w-12 mx-auto text-muted-foreground mb-3" />
+          <h3 className="text-lg font-medium mb-2">No Option Groups</h3>
+          <p className="text-sm text-muted-foreground mb-6 max-w-md mx-auto">
+            Create option groups like "Meat", "Rice", "Toppings" to let customers customize this item.
+          </p>
+          <Button onClick={() => setIsAddGroupOpen(true)}>
+            Create First Option Group
+          </Button>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {optionGroups.map((group) => (
+            <Collapsible key={group.id} className="border rounded-lg">
+              <CollapsibleTrigger className="w-full">
+                <div className="flex items-center justify-between p-4 hover:bg-muted/50">
+                  <div className="flex items-center gap-3">
+                    <ChevronRight className="h-4 w-4 transition-transform duration-200 data-[state=open]:rotate-90" />
+                    <div className="text-left">
+                      <h4 className="font-medium">{group.name}</h4>
+                      <p className="text-sm text-muted-foreground">
+                        {group.required ? 'Required' : 'Optional'} • 
+                        Max {group.maxSelections} selections • 
+                        {group.options.length} options
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setSelectedOptionGroup(group);
+                        setIsEditGroupOpen(true);
+                      }}
+                    >
+                      <Edit className="h-4 w-4" />
+                    </Button>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                        >
+                          <Trash className="h-4 w-4" />
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Delete Option Group</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Are you sure you want to delete "{group.name}"? This will also delete all {group.options.length} options in this group.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogAction
+                            onClick={() => deleteOptionGroupMutation.mutate(group.id)}
+                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                          >
+                            Delete Group
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  </div>
+                </div>
+              </CollapsibleTrigger>
+              <CollapsibleContent>
+                <div className="border-t bg-muted/20">
+                  <div className="p-4">
+                    <div className="flex justify-between items-center mb-4">
+                      <h5 className="font-medium">Options in {group.name}</h5>
+                      <Button
+                        size="sm"
+                        onClick={() => {
+                          setSelectedOptionGroup(group);
+                          setIsAddOptionOpen(true);
+                        }}
+                      >
+                        <Plus className="h-4 w-4 mr-2" />
+                        Add Option
+                      </Button>
+                    </div>
+
+                    {group.options.length === 0 ? (
+                      <div className="text-center py-8 border rounded-lg bg-background">
+                        <p className="text-muted-foreground">No options in this group</p>
+                      </div>
+                    ) : (
+                      <div className="grid gap-3">
+                        {group.options.map((option) => (
+                          <div key={option.id} className="flex items-center justify-between p-3 border rounded-lg bg-background">
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <p className="font-medium">{option.name}</p>
+                                {option.priceModifier > 0 && (
+                                  <span className="text-xs bg-green-500/10 text-green-500 px-1.5 py-0.5 rounded">
+                                    +€{option.priceModifier.toFixed(2)}
+                                  </span>
+                                )}
+                                {!option.available && (
+                                  <span className="text-xs bg-red-500/10 text-red-500 px-1.5 py-0.5 rounded">
+                                    Unavailable
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                            <div className="flex gap-2">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                  setSelectedOption(option);
+                                  setIsEditOptionOpen(true);
+                                }}
+                              >
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                              <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                                  >
+                                    <Trash className="h-4 w-4" />
+                                  </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                  <AlertDialogHeader>
+                                    <AlertDialogTitle>Delete Option</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                      Are you sure you want to delete "{option.name}"?
+                                    </AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                    <AlertDialogAction
+                                      onClick={() => deleteOptionMutation.mutate(option.id)}
+                                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                    >
+                                      Delete
+                                    </AlertDialogAction>
+                                  </AlertDialogFooter>
+                                </AlertDialogContent>
+                              </AlertDialog>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </CollapsibleContent>
+            </Collapsible>
+          ))}
+        </div>
+      )}
+
+      {/* Add Option Group Dialog */}
+      <Dialog open={isAddGroupOpen} onOpenChange={setIsAddGroupOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Add Option Group</DialogTitle>
+            <DialogDescription>
+              Create a new option group for {menuItem.name}
+            </DialogDescription>
+          </DialogHeader>
+          <OptionGroupForm
+            onSubmit={(data) => createOptionGroupMutation.mutate(data)}
+            isSubmitting={createOptionGroupMutation.isPending}
+          />
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Option Group Dialog */}
+      <Dialog open={isEditGroupOpen} onOpenChange={setIsEditGroupOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Edit Option Group</DialogTitle>
+            <DialogDescription>
+              Update the option group settings
+            </DialogDescription>
+          </DialogHeader>
+          {selectedOptionGroup && (
+            <OptionGroupForm
+              optionGroup={selectedOptionGroup}
+              onSubmit={(data) => updateOptionGroupMutation.mutate({ id: selectedOptionGroup.id, data })}
+              isSubmitting={updateOptionGroupMutation.isPending}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Add Option Dialog */}
+      <Dialog open={isAddOptionOpen} onOpenChange={setIsAddOptionOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Add Option</DialogTitle>
+            <DialogDescription>
+              Add a new option to {selectedOptionGroup?.name}
+            </DialogDescription>
+          </DialogHeader>
+          <OptionForm
+            onSubmit={(data) => createOptionMutation.mutate(data)}
+            isSubmitting={createOptionMutation.isPending}
+          />
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Option Dialog */}
+      <Dialog open={isEditOptionOpen} onOpenChange={setIsEditOptionOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Edit Option</DialogTitle>
+            <DialogDescription>
+              Update the option details
+            </DialogDescription>
+          </DialogHeader>
+          {selectedOption && (
+            <OptionForm
+              option={selectedOption}
+              onSubmit={(data) => updateOptionMutation.mutate({ id: selectedOption.id, data })}
+              isSubmitting={updateOptionMutation.isPending}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
+// Option Group Form Component
+type OptionGroupFormProps = {
+  optionGroup?: MenuItemOptionGroup;
+  onSubmit: (data: InsertMenuItemOptionGroup) => void;
+  isSubmitting: boolean;
+};
+
+function OptionGroupForm({ optionGroup, onSubmit, isSubmitting }: OptionGroupFormProps) {
+  const optionGroupSchema = z.object({
+    name: z.string().min(2, "Name must be at least 2 characters"),
+    required: z.boolean().default(false),
+    maxSelections: z.coerce.number().int().min(1, "Must allow at least 1 selection"),
+    order: z.coerce.number().int().min(0).default(0),
+  });
+
+  const form = useForm<z.infer<typeof optionGroupSchema>>({
+    resolver: zodResolver(optionGroupSchema),
+    defaultValues: {
+      name: optionGroup?.name || "",
+      required: optionGroup?.required || false,
+      maxSelections: optionGroup?.maxSelections || 1,
+      order: optionGroup?.order || 0,
+    },
+  });
+
+  function handleSubmit(values: z.infer<typeof optionGroupSchema>) {
+    onSubmit(values as InsertMenuItemOptionGroup);
+  }
+
+  return (
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
+        <FormField
+          control={form.control}
+          name="name"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Group Name</FormLabel>
+              <FormControl>
+                <Input placeholder="e.g., Meat, Rice, Toppings" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        
+        <div className="grid grid-cols-2 gap-4">
+          <FormField
+            control={form.control}
+            name="maxSelections"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Max Selections</FormLabel>
+                <FormControl>
+                  <Input type="number" min="1" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          
+          <FormField
+            control={form.control}
+            name="order"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Display Order</FormLabel>
+                <FormControl>
+                  <Input type="number" min="0" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
+
+        <FormField
+          control={form.control}
+          name="required"
+          render={({ field }) => (
+            <FormItem className="flex items-center gap-2 space-y-0">
+              <FormControl>
+                <Switch 
+                  checked={field.value}
+                  onCheckedChange={field.onChange}
+                />
+              </FormControl>
+              <FormLabel>Required Selection</FormLabel>
+            </FormItem>
+          )}
+        />
+
+        <DialogFooter>
+          <Button type="submit" disabled={isSubmitting}>
+            {isSubmitting ? (optionGroup ? "Updating..." : "Creating...") : (optionGroup ? "Update Group" : "Create Group")}
+          </Button>
+        </DialogFooter>
+      </form>
+    </Form>
+  );
+}
+
+// Option Form Component
+type OptionFormProps = {
+  option?: MenuItemOption;
+  onSubmit: (data: InsertMenuItemOption) => void;
+  isSubmitting: boolean;
+};
+
+function OptionForm({ option, onSubmit, isSubmitting }: OptionFormProps) {
+  const optionSchema = z.object({
+    name: z.string().min(2, "Name must be at least 2 characters"),
+    priceModifier: z.coerce.number().min(0, "Price modifier cannot be negative").default(0),
+    order: z.coerce.number().int().min(0).default(0),
+    available: z.boolean().default(true),
+  });
+
+  const form = useForm<z.infer<typeof optionSchema>>({
+    resolver: zodResolver(optionSchema),
+    defaultValues: {
+      name: option?.name || "",
+      priceModifier: option?.priceModifier || 0,
+      order: option?.order || 0,
+      available: option?.available ?? true,
+    },
+  });
+
+  function handleSubmit(values: z.infer<typeof optionSchema>) {
+    onSubmit(values as InsertMenuItemOption);
+  }
+
+  return (
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
+        <FormField
+          control={form.control}
+          name="name"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Option Name</FormLabel>
+              <FormControl>
+                <Input placeholder="e.g., Chicken, Brown Rice, Extra Cheese" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        
+        <div className="grid grid-cols-2 gap-4">
+          <FormField
+            control={form.control}
+            name="priceModifier"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Extra Cost (€)</FormLabel>
+                <FormControl>
+                  <Input type="number" step="0.01" min="0" placeholder="0.00" {...field} />
+                </FormControl>
+                <FormDescription>Additional cost for this option</FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          
+          <FormField
+            control={form.control}
+            name="order"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Display Order</FormLabel>
+                <FormControl>
+                  <Input type="number" min="0" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
+
+        <FormField
+          control={form.control}
+          name="available"
+          render={({ field }) => (
+            <FormItem className="flex items-center gap-2 space-y-0">
+              <FormControl>
+                <Switch 
+                  checked={field.value}
+                  onCheckedChange={field.onChange}
+                />
+              </FormControl>
+              <FormLabel>Available</FormLabel>
+            </FormItem>
+          )}
+        />
+
+        <DialogFooter>
+          <Button type="submit" disabled={isSubmitting}>
+            {isSubmitting ? (option ? "Updating..." : "Creating...") : (option ? "Update Option" : "Create Option")}
           </Button>
         </DialogFooter>
       </form>

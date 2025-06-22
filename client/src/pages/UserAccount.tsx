@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { Redirect } from "wouter";
+import { useQuery } from "@tanstack/react-query";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -10,11 +11,14 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Loader2, User, Lock, ShoppingBag, AlertCircle, CheckCircle2 } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Loader2, User, Lock, ShoppingBag, AlertCircle, CheckCircle2, Clock, MapPin, CreditCard } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import type { Order, OrderItem } from "@shared/schema";
 
 // Profile update form schema
 const profileSchema = z.object({
@@ -47,6 +51,71 @@ export default function UserAccount() {
   const { user, loginMutation } = useAuth();
   const { toast } = useToast();
 
+  // Fetch user orders (without polling - will use WebSocket for updates)
+  const { data: userOrders = [], isLoading: isLoadingOrders, refetch: refetchOrders } = useQuery<Order[]>({
+    queryKey: ['/api/user/orders'],
+    enabled: !!user, // Only fetch if user is logged in
+  });
+
+  // Clear success states when switching tabs
+  useEffect(() => {
+    setUpdateSuccess(false);
+    setPasswordChangeSuccess(false);
+    setUpdateError(null);
+    setPasswordError(null);
+  }, [activeTab]);
+
+  // WebSocket connection for real-time order updates
+  useEffect(() => {
+    if (!user) return;
+
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const wsUrl = `${protocol}//${window.location.host}/ws`;
+    
+    console.log('Connecting to WebSocket for user orders:', wsUrl);
+    
+    const ws = new WebSocket(wsUrl);
+    
+    ws.onopen = () => {
+      console.log('🔌 User WebSocket connected for user', user?.id);
+      // Subscribe to user-specific order updates
+      ws.send(JSON.stringify({
+        type: 'SUBSCRIBE_USER_ORDERS',
+        userId: user?.id
+      }));
+      console.log('📩 Subscribed to user order updates for user', user?.id);
+    };
+    
+    ws.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        console.log('🔄 User WebSocket message received:', data);
+        
+        if (data.type === 'ORDER_UPDATE' || data.type === 'NEW_ORDER') {
+          console.log('🔄 Order update received - refetching orders');
+          refetchOrders();
+        }
+      } catch (error) {
+        console.error('Error parsing WebSocket message:', error);
+      }
+    };
+    
+    ws.onerror = (error) => {
+      console.error('User WebSocket connection failed:', error);
+    };
+    
+    ws.onclose = () => {
+      console.log('❌ User WebSocket disconnected for user', user?.id);
+    };
+    
+    return () => {
+      console.log('Cleaning up user WebSocket connection');
+      if (ws.readyState === WebSocket.OPEN) {
+        ws.close();
+      }
+    };
+  }, [user, refetchOrders]);
+
   // If not logged in, redirect to the auth page
   if (!user) {
     return <Redirect to="/auth" />;
@@ -56,8 +125,8 @@ export default function UserAccount() {
   const profileForm = useForm<ProfileFormValues>({
     resolver: zodResolver(profileSchema),
     defaultValues: {
-      username: user.username || "",
-      email: user.email || "",
+      username: user?.username || "",
+      email: user?.email || "",
     },
   });
 
@@ -359,17 +428,122 @@ export default function UserAccount() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-center py-8">
-                    <ShoppingBag className="h-16 w-16 mx-auto mb-4 opacity-50" />
-                    <h3 className="text-xl font-medium mb-2">No orders yet</h3>
-                    <p className="text-gray-400 mb-6">When you place orders, they will appear here.</p>
-                    <Button 
-                      onClick={() => window.location.href = "/"} 
-                      className="inline-flex"
-                    >
-                      Start Ordering
-                    </Button>
-                  </div>
+                  {isLoadingOrders ? (
+                    <div className="flex items-center justify-center py-8">
+                      <Loader2 className="h-8 w-8 animate-spin" />
+                      <span className="ml-2">Loading your orders...</span>
+                    </div>
+                  ) : userOrders.length === 0 ? (
+                    <div className="text-center py-8">
+                      <ShoppingBag className="h-16 w-16 mx-auto mb-4 opacity-50" />
+                      <h3 className="text-xl font-medium mb-2">No orders yet</h3>
+                      <p className="text-gray-400 mb-6">When you place orders, they will appear here.</p>
+                      <Button 
+                        onClick={() => window.location.href = "/"} 
+                        className="inline-flex"
+                      >
+                        Start Ordering
+                      </Button>
+                    </div>
+                  ) : (
+                    <ScrollArea className="h-[600px]">
+                      <div className="space-y-4">
+                        {userOrders.map((order) => (
+                          <Card key={order.id} className="bg-gray-700/50 border-gray-600">
+                            <CardContent className="p-6">
+                              <div className="flex items-start justify-between mb-4">
+                                <div>
+                                  <div className="flex items-center gap-2 mb-2">
+                                    <h3 className="text-lg font-semibold text-white">
+                                      Order #{order.dailyOrderNumber || order.id}
+                                    </h3>
+                                    <Badge 
+                                      variant={
+                                        order.status === 'completed' ? 'default' :
+                                        order.status === 'cancelled' ? 'destructive' :
+                                        order.status === 'ready' ? 'secondary' :
+                                        'outline'
+                                      }
+                                      className="capitalize"
+                                    >
+                                      {order.status}
+                                    </Badge>
+                                  </div>
+                                  <div className="flex items-center gap-4 text-sm text-gray-400">
+                                    <div className="flex items-center gap-1">
+                                      <Clock className="h-4 w-4" />
+                                      {new Date(order.createdAt).toLocaleDateString('en-IE', {
+                                        weekday: 'short',
+                                        year: 'numeric',
+                                        month: 'short',
+                                        day: 'numeric',
+                                        hour: '2-digit',
+                                        minute: '2-digit'
+                                      })}
+                                    </div>
+                                    <div className="flex items-center gap-1">
+                                      <MapPin className="h-4 w-4" />
+                                      <span>{order.deliveryAddress || 'N/A'}</span>
+                                    </div>
+                                    <div className="flex items-center gap-1">
+                                      <CreditCard className="h-4 w-4" />
+                                      €{(order.total || 0).toFixed(2)}
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                              
+                              {/* Order Items */}
+                              {order.items && Array.isArray(order.items) && order.items.length > 0 ? (
+                                <div className="border-t border-gray-600 pt-4">
+                                  <div className="text-sm font-medium mb-2 text-gray-300">Ordered Items:</div>
+                                  <div className="space-y-2">
+                                    {(order.items as OrderItem[]).map((item: OrderItem, idx: number) => (
+                                      <div key={idx} className="flex items-center justify-between text-sm">
+                                        <span className="text-white">{item.quantity}x {item.name}</span>
+                                        <span className="text-gray-400">€{(item.price * item.quantity).toFixed(2)}</span>
+                                      </div>
+                                    ))}
+                                  </div>
+                                  
+                                  {/* Order Summary */}
+                                  <div className="mt-4 pt-2 border-t border-gray-600">
+                                    <div className="flex justify-between text-sm">
+                                      <span className="text-gray-400">Subtotal:</span>
+                                      <span className="text-white">€{((order.total || 0) - (order.serviceFee || 0)).toFixed(2)}</span>
+                                    </div>
+                                    {order.serviceFee && order.serviceFee > 0 && (
+                                      <div className="flex justify-between text-sm">
+                                        <span className="text-gray-400">Service Fee:</span>
+                                        <span className="text-white">€{(order.serviceFee || 0).toFixed(2)}</span>
+                                      </div>
+                                    )}
+                                    <div className="flex justify-between text-base font-semibold">
+                                      <span className="text-white">Total:</span>
+                                      <span className="text-white">€{(order.total || 0).toFixed(2)}</span>
+                                    </div>
+                                  </div>
+                                </div>
+                              ) : null}
+                              
+                              {/* Additional Order Info */}
+                              <div className="mt-4 text-xs text-gray-500">
+                                {order.customerName && (
+                                  <div>Customer: {order.customerName}</div>
+                                )}
+                                {order.customerPhone && (
+                                  <div>Phone: {order.customerPhone}</div>
+                                )}
+                                {order.paymentReference && (
+                                  <div>Payment Reference: {order.paymentReference}</div>
+                                )}
+                              </div>
+                            </CardContent>
+                          </Card>
+                        ))}
+                      </div>
+                    </ScrollArea>
+                  )}
                 </CardContent>
               </Card>
             </TabsContent>

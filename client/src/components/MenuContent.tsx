@@ -58,14 +58,7 @@ export default function MenuContent({ activeCategory, searchQuery }: MenuContent
       filtered.sort((a, b) => a.price - b.price);
     } else if (sortBy === 'price-high') {
       filtered.sort((a, b) => b.price - a.price);
-    } else {
-      // Sort by popularity (using rating * reviewCount as a proxy for popularity)
-      filtered.sort((a, b) => {
-        const aPopularity = (a.rating || 0) * (a.reviewCount || 0);
-        const bPopularity = (b.rating || 0) * (b.reviewCount || 0);
-        return bPopularity - aPopularity;
-      });
-    }
+    } 
     
     setFilteredItems(filtered);
   }, [menuItems, searchQuery, sortBy]);
@@ -162,7 +155,6 @@ export default function MenuContent({ activeCategory, searchQuery }: MenuContent
               onChange={(e) => setSortBy(e.target.value as any)}
               className="bg-card text-foreground border border-border rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
             >
-              <option value="popular">Popular</option>
               <option value="price-low">Price (Low to High)</option>
               <option value="price-high">Price (High to Low)</option>
             </select>
@@ -242,18 +234,14 @@ export default function MenuContent({ activeCategory, searchQuery }: MenuContent
         return (
           <section id={category.slug} key={category.id} className="mb-16">
             {/* Category description for active category */}
-            {activeCategory === category.slug && (
+            {activeCategory === category.slug && category.description && (
               <div className="mb-8 bg-gradient-to-r from-secondary/10 to-transparent p-6 rounded-xl border border-border/50">
                 <div className="flex items-center gap-3 mb-3">
                   <Flame className="h-5 w-5 text-primary" />
                   <h3 className="font-heading text-lg text-foreground">About {category.name}</h3>
                 </div>
                 <p className="text-muted-foreground leading-relaxed">
-                  {category.slug === 'starters' && "Start your meal right with our selection of mouth-watering appetizers, perfect for sharing or enjoying solo."}
-                  {category.slug === 'main-courses' && "Our signature burgers and mains are packed with premium ingredients and bold flavors that will satisfy your cravings."}
-                  {category.slug === 'sides' && "The perfect companions to your meal, our sides are crafted to complement your main course with delicious flavors."}
-                  {category.slug === 'desserts' && "End on a sweet note with our decadent desserts, made with quality ingredients for that perfect finish."}
-                  {category.slug === 'drinks' && "Refresh yourself with our range of beverages, from classic sodas to signature shakes that complement our menu perfectly."}
+                  {category.description}
                 </p>
               </div>
             )}

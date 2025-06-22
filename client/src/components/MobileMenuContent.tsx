@@ -198,9 +198,14 @@ export default function MobileMenuContent({ activeCategory, searchQuery }: Mobil
             </div>
             
             <button 
-              className="w-full py-3 bg-primary text-white font-menu rounded-lg hover:bg-primary/90 transition-colors"
+              className={`w-full py-3 font-menu rounded-lg transition-colors ${
+                todaysSpecial.menuItem?.soldOut 
+                  ? 'bg-muted text-muted-foreground cursor-not-allowed' 
+                  : 'bg-primary text-white hover:bg-primary/90'
+              }`}
+              disabled={todaysSpecial.menuItem?.soldOut}
               onClick={() => {
-                if (todaysSpecial.menuItem) {
+                if (todaysSpecial.menuItem && !todaysSpecial.menuItem.soldOut) {
                   // Add special offer item to cart with special price
                   const cartItem: CartItem = {
                     id: Date.now(),
@@ -208,7 +213,7 @@ export default function MobileMenuContent({ activeCategory, searchQuery }: Mobil
                     name: todaysSpecial.menuItem.name,
                     price: todaysSpecial.price, // Use the special offer price
                     quantity: 1,
-                    image: todaysSpecial.menuItem.image
+                    image: todaysSpecial.menuItem.image || ''
                   };
                   addToCart(cartItem);
                   toast({
@@ -218,7 +223,7 @@ export default function MobileMenuContent({ activeCategory, searchQuery }: Mobil
                 }
               }}
             >
-              ADD TO CART
+              {todaysSpecial.menuItem?.soldOut ? 'SOLD OUT' : 'ADD TO CART'}
             </button>
           </div>
         </section>

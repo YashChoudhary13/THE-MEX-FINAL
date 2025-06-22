@@ -1,10 +1,11 @@
 import { useState, useEffect } from "react";
-import { MenuItem } from "@shared/schema";
+import { MenuItem, MenuItemOptionGroup, MenuItemOption } from "@shared/schema";
 import { useCart } from "@/context/CartContext";
 import { useToast } from "@/hooks/use-toast";
+import { useQuery } from "@tanstack/react-query";
 import { 
   Plus, Minus, ShoppingBag, Flame, Clock, ChevronDown, 
-  Info, X, Heart, Share, MessageSquare
+    Info, X, Heart, Share, MessageSquare, Settings
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -22,8 +23,40 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 interface MenuItemCardProps {
   item: MenuItem;
 }
+interface SpecialOffer {
+  id: number;
+  menuItemId: number;
+  discountType: 'percentage' | 'fixed';
+  discountValue: number;
+  originalPrice: number;
+  specialPrice: number;
+  active: boolean;
+  startDate: string;
+  endDate: string | null;
+  menuItem: {
+    id: number;
+    name: string;
+    description: string;
+    price: number;
+    categoryId: number;
+    image: string | null;
+    featured: boolean;
+    label: string | null;
+    prepTime: number | null;
+  };
+}
 
 export default function MenuItemCard({ item }: MenuItemCardProps) {
+   // Check store status to disable adding items when closed
+  const { data: storeOpen = true } = useQuery({
+    queryKey: ['/api/system-settings/store-open'],
+    queryFn: async () => {
+      const response = await fetch('/api/system-settings/store-open');
+      const data = await response.json();
+      return data.storeOpen;
+    },
+    refetchInterval: 30000, // Check every 30 seconds
+  });
   const { addToCart, cart, updateCartItemQuantity, removeFromCart } = useCart();
   const { toast } = useToast();
   const [isAddingToCart, setIsAddingToCart] = useState(false);
@@ -32,10 +65,25 @@ export default function MenuItemCard({ item }: MenuItemCardProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isInCart, setIsInCart] = useState(false);
   const [cartQuantity, setCartQuantity] = useState(0);
+  const [showCustomization, setShowCustomization] = useState(false);
+  const [selectedOptions, setSelectedOptions] = useState<{[groupId: number]: number[]}>({});
+  const [customizationQuantity, setCustomizationQuantity] = useState(1);
   
   // Use mobile hook to detect screen size
   const isMobile = useIsMobile();
   
+  // Fetch current special offer to check if this item has special pricing
+  const { data: specialOffer } = useQuery<SpecialOffer>({
+    queryKey: ["/api/special-offer"],
+    refetchInterval: 30000, // Refresh every 30 seconds
+  });
+  
+  // Calculate pricing based on special offer
+  const isOnSpecial = specialOffer && specialOffer.menuItemId === item.id && specialOffer.active;
+  const displayPrice = isOnSpecial ? specialOffer.specialPrice : item.price;
+  const originalPrice = item.price;
+  const savings = isOnSpecial ? originalPrice - displayPrice : 0;
+
   // Find the cart item for this menu item
   const getCartItem = () => {
     return cart.find(cartItem => cartItem.menuItemId === item.id);
@@ -53,24 +101,79 @@ export default function MenuItemCard({ item }: MenuItemCardProps) {
     }
   }, [cart, item.id]);
 
+  // Fetch menu item options
+  const { data: optionGroups } = useQuery({
+    queryKey: ['/api/menu-items', item.id, 'option-groups'],
+    queryFn: () => fetch(`/api/menu-items/${item.id}/option-groups`).then(res => res.json()) as Promise<(MenuItemOptionGroup & { options: MenuItemOption[] })[]>,
+    enabled: item.hasOptions
+  });
+
   const handleAddToCart = async () => {
+    // Check if item is sold out
+    if (item.soldOut) {
+      toast({
+        title: "Item unavailable",
+        description: `${item.name} is currently sold out.`,
+        variant: "destructive",
+      });
+      return;
+    }
+    // If item has options, show customization dialog
+    if (item.hasOptions && optionGroups && optionGroups.length > 0) {
+      setShowCustomization(true);
+      return;
+    }
+
+    // Direct add to cart for items without options
+    await addItemToCart();
+  };
+
+  const addItemToCart = async (customOptions?: {[groupId: number]: number[]}, qty: number = 1) => {
+
     setIsAddingToCart(true);
     
     try {
+        // Calculate price with option modifiers
+      let finalPrice = displayPrice;
+      let optionDetails: any[] = [];
+      
+      if (customOptions && optionGroups) {
+        for (const [groupId, optionIds] of Object.entries(customOptions)) {
+          const group = optionGroups.find(g => g.id === parseInt(groupId));
+          if (group) {
+            for (const optionId of optionIds) {
+              const option = group.options.find(o => o.id === optionId);
+              if (option) {
+                finalPrice += option.priceModifier;
+                optionDetails.push({
+                  groupName: group.name,
+                  optionName: option.name,
+                  priceModifier: option.priceModifier
+                });
+              }
+            }
+          }
+        }
+      }
       await addToCart({
         id: Date.now(), // Temporary ID
         name: item.name,
-        price: item.price,
-        quantity: quantity,
+        price: finalPrice,
+        quantity: qty,
         image: item.image || '',
         menuItemId: item.id,
-        prepTime: item.prepTime || 15
+        prepTime: item.prepTime || 15,
+        customizations: optionDetails.length > 0 ? JSON.stringify(optionDetails) : undefined
       });
       
       toast({
         title: "Added to cart",
         description: `${item.name} has been added to your cart.`,
       });
+      setShowCustomization(false);
+      setSelectedOptions({});
+      setCustomizationQuantity(1);
+    
     } catch (error) {
       toast({
         title: "Error",
@@ -101,7 +204,9 @@ export default function MenuItemCard({ item }: MenuItemCardProps) {
   return (
     <>
       <motion.div
-        className="bg-card text-card-foreground rounded-xl shadow-md overflow-hidden border border-border cursor-pointer group relative"
+                className={`bg-card text-card-foreground rounded-xl shadow-md overflow-hidden border border-border cursor-pointer group relative ${
+          item.soldOut ? 'opacity-75 grayscale' : ''
+        }`}
         whileHover={{ y: -4, scale: 1.02 }}
         whileTap={{ scale: 0.98 }}
         transition={{ type: "spring", stiffness: 300, damping: 20 }}
@@ -120,12 +225,35 @@ export default function MenuItemCard({ item }: MenuItemCardProps) {
                 className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
               />
               
-              {/* Featured badge */}
-              {item.featured && (
-                <div className="absolute top-3 right-3 bg-primary text-primary-foreground px-2 py-1 rounded-full text-xs font-medium">
-                  Featured
-                </div>
-              )}
+                            {/* Status badges */}
+              <div className="absolute top-3 right-3 flex flex-col gap-1">
+                {item.soldOut && (
+                  <div className="bg-destructive text-destructive-foreground px-2 py-1 rounded-full text-xs font-medium">
+                    Sold Out
+                  </div>
+                )}
+                {item.featured && !item.soldOut && (
+                  <div className="bg-primary text-primary-foreground px-2 py-1 rounded-full text-xs font-medium">
+                    Featured
+                  </div>
+                )}
+                {item.isBestSeller && !item.soldOut && (
+                  <div className="bg-yellow-500 text-yellow-50 px-2 py-1 rounded-full text-xs font-medium">
+                    Best Seller
+                  </div>
+                )}
+                {isOnSpecial && !item.soldOut && (
+                  <div className="bg-gradient-to-r from-orange-500 to-red-500 text-white px-2 py-1 rounded-full text-xs font-medium flex items-center gap-1">
+                    <Flame className="h-3 w-3" />
+                    SPECIAL
+                  </div>
+                )}
+                {item.isHot && !item.soldOut && (
+                  <div className="bg-red-500 text-white px-2 py-1 rounded-full text-xs font-medium">
+                    Hot 🌶️
+                  </div>
+                )}
+              </div>
               
               {/* Label badge */}
               {item.label && (
@@ -145,7 +273,16 @@ export default function MenuItemCard({ item }: MenuItemCardProps) {
           <div className="p-5">
             <div className="flex justify-between items-start">
               <h3 className="font-heading text-xl text-foreground">{item.name}</h3>
-              <span className="font-bold text-primary text-xl">${item.price.toFixed(2)}</span>
+              <div className="text-right">
+                {isOnSpecial ? (
+                  <div className="flex flex-col items-end">
+                    <span className="font-bold text-primary text-xl">€{displayPrice.toFixed(2)}</span>
+                    <span className="text-sm line-through text-muted-foreground">€{originalPrice.toFixed(2)}</span>
+                  </div>
+                ) : (
+                  <span className="font-bold text-primary text-xl">€{displayPrice.toFixed(2)}</span>
+                )}
+              </div>
             </div>
             
             <p className="text-muted-foreground text-sm mt-2 line-clamp-2">{item.description}</p>
@@ -158,7 +295,11 @@ export default function MenuItemCard({ item }: MenuItemCardProps) {
               </div>
               
               {/* Quantity selector or Add button */}
-              {isInCart ? (
+              {item.soldOut ? (
+                <div className="bg-destructive/10 text-destructive px-3 py-1 rounded-lg text-sm font-medium">
+                  Sold Out
+                </div>
+              ) : isInCart ? (
                 <div 
                   className="flex items-center bg-muted rounded-lg h-8"
                   onClick={(e) => e.stopPropagation()} // Prevent opening the modal
@@ -356,16 +497,27 @@ export default function MenuItemCard({ item }: MenuItemCardProps) {
                 </div>
                 
                 <div className="text-lg font-bold text-primary">
-                  ${(item.price * quantity).toFixed(2)}
+                  €{(displayPrice * quantity).toFixed(2)}
                 </div>
               </div>
               
               <Button
-                className="bg-primary hover:bg-primary/90 text-primary-foreground px-8 h-12"
-                onClick={handleAddToCart}
-                disabled={isAddingToCart}
+               className={`px-8 h-12 ${!storeOpen ? 'bg-muted text-muted-foreground cursor-not-allowed' : 'bg-primary hover:bg-primary/90 text-primary-foreground'}`}
+                onClick={storeOpen ? handleAddToCart : () => {
+                  toast({
+                    title: "Store Closed",
+                    description: "We're not accepting orders at the moment. Please check back later.",
+                    variant: "destructive",
+                  });
+                }}
+                disabled={isAddingToCart || !storeOpen}
               >
-                {isAddingToCart ? (
+                {!storeOpen ? (
+                  <span className="flex items-center">
+                    <Clock className="mr-2 h-5 w-5" />
+                    Store Closed
+                  </span>
+                ) : isAddingToCart ? (
                   <span className="flex items-center">
                     <div className="w-4 h-4 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin mr-2" />
                     Adding to Cart...
@@ -378,6 +530,231 @@ export default function MenuItemCard({ item }: MenuItemCardProps) {
                 )}
               </Button>
             </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+      {/* Customization Dialog */}
+      <Dialog open={showCustomization} onOpenChange={setShowCustomization}>
+        <DialogContent className="max-w-md mx-auto max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-heading">Customize {item.name}</DialogTitle>
+            <DialogDescription>
+              Choose your options to customize this item
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-6 py-4">
+            {/* Quantity Selection */}
+            <div className="flex items-center justify-between">
+              <span className="font-medium">Quantity</span>
+              <div className="flex items-center gap-3">
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={() => setCustomizationQuantity(Math.max(1, customizationQuantity - 1))}
+                  disabled={customizationQuantity <= 1}
+                >
+                  <Minus className="h-4 w-4" />
+                </Button>
+                <span className="w-8 text-center font-medium">{customizationQuantity}</span>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={() => setCustomizationQuantity(customizationQuantity + 1)}
+                >
+                  <Plus className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+
+            {/* Option Groups */}
+            {optionGroups?.map((group) => (
+              <div key={group.id} className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <h3 className="font-medium text-foreground">
+                    {group.name}
+                    {group.required && <span className="text-destructive ml-1">*</span>}
+                  </h3>
+                  <span className="text-xs text-muted-foreground">
+                    {group.maxSelections === 1 ? 'Choose one' : `Choose up to ${group.maxSelections}`}
+                  </span>
+                </div>
+                
+                <div className="space-y-2">
+                  {group.options.map((option) => {
+                    const isSelected = selectedOptions[group.id]?.includes(option.id) || false;
+                    const currentSelections = selectedOptions[group.id]?.length || 0;
+                    const canSelect = !isSelected && currentSelections < group.maxSelections;
+                    
+                    return (
+                      <div
+                        key={option.id}
+                        className={`p-3 border rounded-lg cursor-pointer transition-colors ${
+                          isSelected 
+                            ? 'border-primary bg-primary/5' 
+                            : canSelect 
+                              ? 'border-border hover:border-primary/50' 
+                              : 'border-border opacity-50 cursor-not-allowed'
+                        }`}
+                        onClick={() => {
+                          if (!option.available) return;
+                          
+                          const current = selectedOptions[group.id] || [];
+                          let newSelections;
+                          
+                          if (isSelected) {
+                            // Remove selection
+                            newSelections = current.filter(id => id !== option.id);
+                          } else if (canSelect) {
+                            // Add selection
+                            if (group.maxSelections === 1) {
+                              newSelections = [option.id];
+                            } else {
+                              newSelections = [...current, option.id];
+                            }
+                          } else {
+                            return;
+                          }
+                          
+                          setSelectedOptions(prev => ({
+                            ...prev,
+                            [group.id]: newSelections
+                          }));
+                        }}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <div className={`w-4 h-4 border rounded ${
+                              group.maxSelections === 1 ? 'rounded-full' : 'rounded-sm'
+                            } ${
+                              isSelected ? 'bg-primary border-primary' : 'border-border'
+                            } flex items-center justify-center`}>
+                              {isSelected && (
+                                <div className={`${
+                                  group.maxSelections === 1 ? 'w-2 h-2 bg-white rounded-full' : 'text-white text-xs'
+                                }`}>
+                                  {group.maxSelections === 1 ? '' : '✓'}
+                                </div>
+                              )}
+                            </div>
+                            <span className={`${!option.available ? 'text-muted-foreground line-through' : ''}`}>
+                              {option.name}
+                            </span>
+                            {!option.available && (
+                              <span className="text-xs text-muted-foreground">(Unavailable)</span>
+                            )}
+                          </div>
+                          {option.priceModifier !== 0 && (
+                            <span className="text-sm text-primary font-medium">
+                              {option.priceModifier > 0 ? '+' : ''}€{option.priceModifier.toFixed(2)}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+
+            {/* Price Summary */}
+            <div className="border-t pt-4">
+              <div className="flex justify-between items-center text-lg font-medium">
+                <span>Total</span>
+                <span className="text-primary">
+                  €{(() => {
+                    let total = displayPrice * customizationQuantity;
+                    if (optionGroups) {
+                      for (const [groupId, optionIds] of Object.entries(selectedOptions)) {
+                        const group = optionGroups.find(g => g.id === parseInt(groupId));
+                        if (group) {
+                          for (const optionId of optionIds) {
+                            const option = group.options.find(o => o.id === optionId);
+                            if (option) {
+                              total += option.priceModifier * customizationQuantity;
+                            }
+                          }
+                        }
+                      }
+                    }
+                    return total.toFixed(2);
+                  })()}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex gap-3 pt-4">
+            <Button 
+              variant="outline" 
+              className="flex-1"
+              onClick={() => setShowCustomization(false)}
+            >
+              Cancel
+            </Button>
+            <Button 
+              className={`flex-1 ${!storeOpen ? 'bg-muted text-muted-foreground cursor-not-allowed' : 'bg-primary hover:bg-primary/90'}`}
+              onClick={() => {
+                // Validate required groups
+                if (optionGroups) {
+                  const missingRequired = optionGroups.find(group => 
+                    group.required && (!selectedOptions[group.id] || selectedOptions[group.id].length === 0)
+                  );
+                  
+                  if (missingRequired) {
+                    toast({
+                      title: "Required selection missing",
+                      description: `Please select an option for ${missingRequired.name}`,
+                      variant: "destructive",
+                    });
+                    return;
+                  }
+                }
+                
+  if (storeOpen) {
+                  addItemToCart(selectedOptions, customizationQuantity);
+                } else {
+                  toast({
+                    title: "Store Closed",
+                    description: "We're not accepting orders at the moment. Please check back later.",
+                    variant: "destructive",
+                  });
+                }
+              }}
+              disabled={isAddingToCart || !storeOpen}
+              >
+              {!storeOpen ? (
+                <span className="flex items-center">
+                  <Clock className="mr-2 h-4 w-4" />
+                  Store Closed
+                </span>
+              ) : isAddingToCart ? (
+                <span className="flex items-center">
+                  <div className="w-4 h-4 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin mr-2" />
+                  Adding...
+                </span>
+              ) : (
+                `Add to Cart • €${(() => {
+                  let total = displayPrice * customizationQuantity;
+                  if (optionGroups) {
+                    for (const [groupId, optionIds] of Object.entries(selectedOptions)) {
+                      const group = optionGroups.find(g => g.id === parseInt(groupId));
+                      if (group) {
+                        for (const optionId of optionIds) {
+                          const option = group.options.find(o => o.id === optionId);
+                          if (option) {
+                            total += option.priceModifier * customizationQuantity;
+                          }
+                        }
+                      }
+                    }
+                  }
+                  return total.toFixed(2);
+                })()}`
+              )}
+            </Button>
           </div>
         </DialogContent>
       </Dialog>

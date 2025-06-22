@@ -3,11 +3,13 @@ import { useLocation } from "wouter";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
-import { CheckCircle } from "lucide-react";
+import { CheckCircle, Store, Clock } from "lucide-react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Form,
   FormControl,
@@ -48,6 +50,16 @@ export default function Checkout() {
   const [currentStep, setCurrentStep] = useState(CheckoutStep.CustomerInfo);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [promoCodeInput, setPromoCodeInput] = useState("");
+    // Check store status
+  const { data: storeOpen = true, isLoading: storeStatusLoading } = useQuery({
+    queryKey: ['/api/system-settings/store-open'],
+    queryFn: async () => {
+      const response = await fetch('/api/system-settings/store-open');
+      const data = await response.json();
+      return data.storeOpen;
+    },
+    refetchInterval: 30000, // Check every 30 seconds
+  });
   const [isApplyingPromo, setIsApplyingPromo] = useState(false);
   const [promoError, setPromoError] = useState("");
   const [orderCompleted, setOrderCompleted] = useState(false);
@@ -134,6 +146,59 @@ export default function Checkout() {
       setIsApplyingPromo(false);
     }
   };
+
+
+  // Show store closed message if store is not open
+  if (storeStatusLoading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Header />
+        <div className="container mx-auto px-4 py-8">
+          <div className="max-w-2xl mx-auto">
+            <div className="text-center">
+              <p>Checking store status...</p>
+            </div>
+          </div>
+        </div>
+        <Footer />
+      </div>
+    );
+  }
+
+  if (!storeOpen) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Header />
+        <div className="container mx-auto px-4 py-8">
+          <div className="max-w-2xl mx-auto">
+            <Card>
+              <CardHeader className="text-center">
+                <div className="w-16 h-16 mx-auto mb-4 bg-muted rounded-full flex items-center justify-center">
+                  <Clock className="h-8 w-8 text-muted-foreground" />
+                </div>
+                <CardTitle className="text-2xl">Store Currently Closed</CardTitle>
+                <CardDescription className="text-lg">
+                  We're not accepting new orders at the moment.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="text-center space-y-4">
+                <p className="text-muted-foreground">
+                  Our store is temporarily closed. Please check back later or contact us for more information.
+                </p>
+                <Button 
+                  onClick={() => setLocation("/")}
+                  className="w-full"
+                >
+                  Return to Menu
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+        <Footer />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -304,7 +369,7 @@ export default function Checkout() {
                       ) : (
                         <div className="flex items-center justify-between">
                           <span className="text-green-600 font-medium">
-                            {promoCode} applied (-${promoDiscount.toFixed(2)})
+                            {promoCode} applied (-€{promoDiscount.toFixed(2)})
                           </span>
                           <Button
                             onClick={() => {
@@ -333,26 +398,26 @@ export default function Checkout() {
                     <div className="p-3 space-y-2">
                       <div className="flex justify-between text-sm">
                         <span className="text-muted-foreground">Subtotal</span>
-                        <span className="font-medium text-foreground">${subtotal.toFixed(2)}</span>
+                        <span className="font-medium text-foreground">€{subtotal.toFixed(2)}</span>
                       </div>
                       <div className="flex justify-between text-sm">
                         <span className="text-muted-foreground">Service Fee</span>
-                        <span className="font-medium text-foreground">${serviceFee.toFixed(2)}</span>
+                        <span className="font-medium text-foreground">€{serviceFee.toFixed(2)}</span>
                       </div>
                       <div className="flex justify-between text-sm">
                         <span className="text-muted-foreground">Tax</span>
-                        <span className="font-medium text-foreground">${tax.toFixed(2)}</span>
+                        <span className="font-medium text-foreground">€{tax.toFixed(2)}</span>
                       </div>
                       {discount > 0 && (
                         <div className="flex justify-between text-sm text-green-600">
                           <span>Discount ({promoCode})</span>
-                          <span>-${discount.toFixed(2)}</span>
+                          <span>-€{discount.toFixed(2)}</span>
                         </div>
                       )}
                       <Separator />
                       <div className="flex justify-between font-bold">
                         <span className="text-primary">Total</span>
-                        <span className="text-foreground">${total.toFixed(2)}</span>
+                        <span className="text-foreground">€{total.toFixed(2)}</span>
                       </div>
                     </div>
                   </div>
@@ -440,7 +505,7 @@ export default function Checkout() {
                                     <span className="font-medium text-primary">{item.quantity}x</span>
                                     <span className="ml-2 text-foreground">{item.name}</span>
                                   </div>
-                                  <span className="font-medium text-foreground">${(item.price * item.quantity).toFixed(2)}</span>
+                                  <span className="font-medium text-foreground">€{(item.price * item.quantity).toFixed(2)}</span>
                                 </div>
                               ))}
                             </div>
@@ -466,13 +531,13 @@ export default function Checkout() {
                               {(orderData?.discount || discount) > 0 && (
                                 <div className="flex justify-between text-sm text-green-600">
                                   <span>Discount ({orderData?.promoCode || promoCode})</span>
-                                  <span>-${(orderData?.discount || discount).toFixed(2)}</span>
+                                  <span>-€{(orderData?.discount || discount).toFixed(2)}</span>
                                 </div>
                               )}
                               <Separator />
                               <div className="flex justify-between font-bold text-lg">
                                 <span className="text-primary">Total Paid</span>
-                                <span className="text-foreground">${(orderData?.total || total).toFixed(2)}</span>
+                                <span className="text-foreground">€{(orderData?.total || total).toFixed(2)}</span>
                               </div>
                             </div>
                           </div>

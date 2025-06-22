@@ -20,6 +20,7 @@ import {
   DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
 
+
 interface HeaderProps {
   onCartToggle?: () => void;
   onSearch?: (query: string) => void;
@@ -196,6 +197,7 @@ export default function Header({
               <path d="M13 10V3L4 14h7v7l9-11h-7z" />
             </svg>
             <h1 className="ml-2 text-2xl md:text-3xl font-heading text-primary">THE MEX</h1>
+
           </Button>
         </div>
         

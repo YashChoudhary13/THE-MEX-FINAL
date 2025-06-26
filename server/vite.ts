@@ -5,6 +5,7 @@ import { createServer as createViteServer, createLogger } from "vite";
 import { type Server } from "http";
 import viteConfig from "../vite.config";
 import { nanoid } from "nanoid";
+import { fileURLToPath } from "url";
 
 const viteLogger = createLogger();
 
@@ -23,7 +24,7 @@ export async function setupVite(app: Express, server: Server) {
   const serverOptions = {
     middlewareMode: true,
     hmr: { server },
-    allowedHosts: true as true,
+    allowedHosts: true as const,
   };
 
   const vite = await createViteServer({
@@ -45,8 +46,11 @@ export async function setupVite(app: Express, server: Server) {
     const url = req.originalUrl;
 
     try {
+      // Use more compatible path resolution for deployment
+      const currentFileUrl = import.meta.url;
+      const currentDir = path.dirname(fileURLToPath(currentFileUrl));
       const clientTemplate = path.resolve(
-        import.meta.dirname,
+        currentDir,
         "..",
         "client",
         "index.html",
@@ -68,14 +72,43 @@ export async function setupVite(app: Express, server: Server) {
 }
 
 export function serveStatic(app: Express) {
-  const distPath = path.resolve(import.meta.dirname, "public");
+  // Use more robust path resolution for deployment environments
+  const currentFileUrl = import.meta.url;
+  const currentDir = path.dirname(fileURLToPath(currentFileUrl));
+  
+  // Try multiple possible paths for the dist directory
+  let distPath;
+  
+  // First try: relative to current server directory
+  distPath = path.resolve(currentDir, "public");
+  
+  // Second try: relative to project root
+  if (!fs.existsSync(distPath)) {
+    distPath = path.resolve(currentDir, "..", "dist", "public");
+  }
+  
+  // Third try: absolute path in deployment environment
+  if (!fs.existsSync(distPath)) {
+    distPath = path.resolve(process.cwd(), "dist", "public");
+  }
+  
+  // Fourth try: fallback for various deployment structures
+  if (!fs.existsSync(distPath)) {
+    distPath = path.resolve("/app", "dist", "public");
+  }
 
   if (!fs.existsSync(distPath)) {
     throw new Error(
-      `Could not find the build directory: ${distPath}, make sure to build the client first`,
+      `Could not find the build directory. Tried paths: 
+      - ${path.resolve(currentDir, "public")}
+      - ${path.resolve(currentDir, "..", "dist", "public")}
+      - ${path.resolve(process.cwd(), "dist", "public")}
+      - ${path.resolve("/app", "dist", "public")}
+      Make sure to build the client first with 'npm run build'`,
     );
   }
 
+  console.log(`Serving static files from: ${distPath}`);
   app.use(express.static(distPath));
 
   // fall through to index.html if the file doesn't exist

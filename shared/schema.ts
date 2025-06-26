@@ -163,7 +163,9 @@ export const createOrderSchema = insertOrderSchema.omit({
 
 export type InsertOrder = z.infer<typeof insertOrderSchema>;
 export type CreateOrder = z.infer<typeof createOrderSchema>;
-export type Order = typeof orders.$inferSelect;
+export type Order = typeof orders.$inferSelect & {
+  items: OrderItem[];
+};
 
 // Order item interface - moved after table definition
 export interface OrderItem {

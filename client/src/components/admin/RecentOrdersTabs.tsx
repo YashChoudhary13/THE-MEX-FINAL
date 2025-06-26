@@ -7,18 +7,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
 import { Calendar, Clock, Phone, User, CreditCard, ChevronLeft, ChevronRight } from "lucide-react";
 
-interface Order {
-  id: number;
-  customerName: string;
-  customerEmail: string;
-  customerPhone: string;
-  total: number;
-  status: string;
-  items: any[];
-  paymentReference: string | null;
-  completedAt: string | null;
-  createdAt: string;
-}
+import { Order } from "@shared/schema";
 
 interface DayTab {
   date: string;
@@ -50,10 +39,10 @@ export default function RecentOrdersTabs() {
   // Group orders by day
   const dayTabs: DayTab[] = useMemo(() => {
     return last30Days.map(date => {
-      const dayOrders = allOrders.filter(order => 
-        order.createdAt.split('T')[0] === date
-      );
-      
+      const dayOrders = allOrders.filter(order => {
+        const orderDate = new Date(order.createdAt).toISOString().split('T')[0];
+        return orderDate === date;
+      });
       const displayDate = new Date(date).toLocaleDateString('en-IE', {
         weekday: 'short',
         month: 'short',
@@ -96,8 +85,9 @@ export default function RecentOrdersTabs() {
     }).format(amount);
   };
 
-  const formatTime = (dateStr: string) => {
-    return new Date(dateStr).toLocaleTimeString('en-IE', {
+  const formatTime = (date: Date | string) => {
+    const dateObj = typeof date === 'string' ? new Date(date) : date;
+    return dateObj.toLocaleTimeString('en-IE', {
       timeZone: 'Europe/Dublin',
       hour: '2-digit',
       minute: '2-digit'
@@ -269,12 +259,14 @@ export default function RecentOrdersTabs() {
                             <div className="pt-2 border-t">
                               <div className="text-sm font-medium mb-2">Ordered Items:</div>
                               <div className="space-y-1">
-                                {order.items.map((item: any, idx: number) => (
-                                  <div key={idx} className="flex items-center justify-between text-sm">
-                                    <span>{item.quantity}x {item.name}</span>
-                                    <span className="text-muted-foreground">{formatCurrency(item.price * item.quantity)}</span>
-                                  </div>
-                                ))}
+                                  {order.items.map((item: any, idx: number) => {
+                                  return (
+                                    <div key={idx} className="flex items-center justify-between text-sm">
+                                      <span>{item.quantity}x {item.name}</span>
+                                      <span className="text-muted-foreground">{formatCurrency(item.price * item.quantity)}</span>
+                                    </div>
+                                  );
+                                })}
                               </div>
                             </div>
                           )}

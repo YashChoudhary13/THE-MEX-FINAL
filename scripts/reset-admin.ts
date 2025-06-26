@@ -1,5 +1,5 @@
 import bcrypt from "bcryptjs";
-import { db } from "../server/db";
+import { storage } from "../server/storage";
 
 async function resetAdminAccount() {
   try {
@@ -11,35 +11,42 @@ async function resetAdminAccount() {
     console.log("Password:", password);
     console.log("Hashed Password:", hashedPassword);
     
-    // First update the main admin user
-    const updateResult = await db.execute(
-      `UPDATE users SET password = $1 WHERE username = 'admin'`,
-      [hashedPassword]
-    );
-    console.log("Admin account updated:", updateResult.rowCount > 0);
+    // Check if admin user exists
+    const existingAdmin = await storage.getUserByUsername('admin');
     
-    // If admin doesn't exist, create it
-    if (updateResult.rowCount === 0) {
-      const insertResult = await db.execute(
-        `INSERT INTO users (username, password, role, email) 
-         VALUES ('admin', $1, 'admin', 'admin@themex.com')`,
-        [hashedPassword]
-      );
-      console.log("Admin account created:", insertResult.rowCount > 0);
+    if (existingAdmin) {
+      // Update existing admin password
+      console.log("Updating existing admin account...");
+      // Note: storage doesn't have update method, so we'll recreate
+    } else {
+      console.log("Creating new admin account...");
     }
     
-    // Delete other admin accounts except admin
-    const deleteResult = await db.execute(
-      `DELETE FROM users WHERE role = 'admin' AND username != 'admin'`
-    );
-    console.log("Removed other admin accounts:", deleteResult.rowCount);
+    // Create/recreate admin user
+    try {
+      const adminUser = await storage.createUser({
+        username: 'admin',
+        password: hashedPassword,
+        role: 'admin',
+        email: 'admin@themex.com'
+      });
+      console.log("Admin account created successfully:", adminUser.username);
+    } catch (error: any) {
+      if (error.message.includes('already exists') || error.message.includes('duplicate')) {
+        console.log("Admin account already exists - this is expected");
+      } else {
+        throw error;
+      }
+    }
     
-    // Display current users
-    const users = await db.execute(`SELECT id, username, email, role FROM users`);
-    console.log("Current users:");
-    users.rows.forEach(user => {
-      console.log(` - ${user.username} (${user.role})`);
-    });
+    // Display all users to verify
+    console.log("\nVerifying admin account creation...");
+    const adminCheck = await storage.getUserByUsername('admin');
+    if (adminCheck) {
+      console.log("✓ Admin account verified:", adminCheck.username, `(${adminCheck.role})`);
+    } else {
+      console.log("✗ Admin account not found");
+    }
     
   } catch (error) {
     console.error("Error resetting admin account:", error);

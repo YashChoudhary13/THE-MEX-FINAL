@@ -220,7 +220,7 @@ export default function AdminMenu({ categories, menuItems, isLoading }: AdminMen
                   </div>
                   <div className="grid w-full items-center gap-2">
                     <Label htmlFor="edit-image">Image URL</Label>
-                    <Input id="edit-image" defaultValue={selectedItem.image} />
+                    <Input id="edit-image" defaultValue={selectedItem.image || ""} />
                   </div>
                 </div>
               )}
@@ -262,11 +262,17 @@ export default function AdminMenu({ categories, menuItems, isLoading }: AdminMen
                     <TableRow key={item.id}>
                       <TableCell>
                         <div className="w-12 h-12 rounded-md overflow-hidden bg-muted">
-                          <img 
-                            src={item.image} 
-                            alt={item.name} 
-                            className="w-full h-full object-cover"
-                          />
+                          {item.image ? (
+                            <img 
+                              src={item.image} 
+                              alt={item.name} 
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center text-muted-foreground text-xs">
+                              No Image
+                            </div>
+                          )}
                         </div>
                       </TableCell>
                       <TableCell className="font-medium">{item.name}</TableCell>

@@ -26,18 +26,7 @@ import { RefreshCcw, Trash2, Clock, User, Phone } from "lucide-react";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
-interface Order {
-  id: number;
-  dailyOrderNumber?: number;
-  customerName: string;
-  customerEmail?: string;
-  customerPhone: string;
-  preparationInstructions?: string | null;
-  total: number;
-  status: string;
-  items: any[];
-  createdAt: string;
-}
+import { Order } from "@shared/schema";
 
 const statusOptions = [
   { value: 'pending', label: 'Pending', color: 'default' },
@@ -118,8 +107,9 @@ export default function TodayOrderManager() {
     }).format(amount);
   };
 
-  const formatTime = (dateStr: string) => {
-    return new Date(dateStr).toLocaleTimeString('en-IE', {
+  const formatTime = (date: Date | string) => {
+    const dateObj = typeof date === 'string' ? new Date(date) : date;
+    return dateObj.toLocaleTimeString('en-IE', {
       timeZone: 'Europe/Dublin',
       hour: '2-digit',
       minute: '2-digit'

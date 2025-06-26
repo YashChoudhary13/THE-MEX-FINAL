@@ -1,13 +1,11 @@
 import { Pool, neonConfig } from '@neondatabase/serverless';
 import { drizzle } from 'drizzle-orm/neon-serverless';
+import ws from "ws";
 import * as schema from "@shared/schema";
-// redis.ts
-import { createClient } from "redis";
 import dotenv from 'dotenv';
 dotenv.config();
 
-
-neonConfig.fetchConnectionCache = true; 
+neonConfig.webSocketConstructor = ws;
 
 if (!process.env.DATABASE_URL) {
   throw new Error(
@@ -17,17 +15,6 @@ if (!process.env.DATABASE_URL) {
 
 export const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 export const db = drizzle(pool, { schema });
-
-export const redis = createClient({
-  url: process.env.REDIS_URL,
-});
-
-
-
-export async function initRedis() {
-  redis.on("error", (err) => console.error("Redis Client Error", err));
-  await redis.connect();
-}
 
 // Push the schema to the database on server start
 export async function syncSchema() {
@@ -127,10 +114,8 @@ export async function syncSchema() {
     const categoriesExist = await db.execute(
       `SELECT COUNT(*) FROM menu_categories`
     );
-    type CountRow = { count: string };
-    const [countRow] = categoriesExist.rows as CountRow[];
-    const count = parseInt(countRow?.count || "0");
-    if (count === 0) {
+    
+    if (categoriesExist.rows && parseInt(categoriesExist.rows[0].count as string) === 0) {
       console.log('No menu categories found. Creating default categories and menu items...');
       
       // Create categories
@@ -149,7 +134,6 @@ export async function syncSchema() {
         map[cat.slug as string] = cat.id;
         return map;
       }, {});
-
       
       // Create menu items
       await db.execute(`

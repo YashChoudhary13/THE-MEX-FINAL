@@ -2,8 +2,6 @@ import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { syncSchema } from "./db";
-import { initRedis } from "./db";
-
 
 const app = express();
 app.use(express.json());
@@ -40,7 +38,6 @@ app.use((req, res, next) => {
 });
 
 (async () => {
-  await initRedis();
   // Sync database schema before starting the server
   log("Syncing database schema...");
   await syncSchema();

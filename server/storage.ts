@@ -3,11 +3,10 @@ import {
   MenuItem, InsertMenuItem,
   MenuItemOptionGroup, InsertMenuItemOptionGroup,
   MenuItemOption, InsertMenuItemOption,
-  Order, InsertOrder, CreateOrder,
+  Order, InsertOrder, CreateOrder, OrderItem,
   User, InsertUser,
   SpecialOffer, InsertSpecialOffer,
   PromoCode, InsertPromoCode,
-  
   DailyReport, InsertDailyReport,
   MonthlyReport, InsertMonthlyReport,
   users, menuCategories, menuItems, menuItemOptionGroups, menuItemOptions, orders, specialOffers, promoCodes, systemSettings, dailyReports, monthlyReports
@@ -17,10 +16,10 @@ import session from "express-session";
 import { eq, and, isNull, lte, gt, desc, or, lt, sql, gte, max } from "drizzle-orm";
 import { db } from "./db";
 import bcrypt from "bcryptjs";
-
-import { redis } from "./db"; // <- assuming redis.ts
-import { RedisStore } from "connect-redis";
+import connectPg from "connect-pg-simple";
+import { pool } from "./db";
 import createMemoryStore from "memorystore";
+
 
 export interface IStorage {
   // Menu Categories
@@ -333,6 +332,7 @@ export class MemStorage implements IStorage {
   async deleteMenuItemOption(id: number): Promise<boolean> {
     return this.menuItemOptions.delete(id);
   }
+
   // Orders
   async getOrders(): Promise<Order[]> {
     return Array.from(this.orders.values()).sort((a, b) => 
@@ -382,7 +382,7 @@ export class MemStorage implements IStorage {
       paymentReference: null,
       completedAt: null,
       promoCode: order.promoCode ?? null,
-      items: order.items || [],
+      items: Array.isArray(order.items) ? order.items as OrderItem[] : [],
       createdAt: new Date()
     };
     this.orders.set(id, newOrder);
@@ -463,7 +463,8 @@ export class MemStorage implements IStorage {
     this.users.set(id, updatedUser);
     return true;
   }
-    async updateUsername(id: number, newUsername: string): Promise<{ success: boolean; message?: string; user?: User }> {
+
+  async updateUsername(id: number, newUsername: string): Promise<{ success: boolean; message?: string; user?: User }> {
     // Check if new username already exists
     const existingUser = Array.from(this.users.values()).find(u => u.username === newUsername && u.id !== id);
     if (existingUser) {
@@ -601,6 +602,7 @@ export class MemStorage implements IStorage {
     // For memory storage, just return true
     return true;
   }
+
   async getUserOrders(userId: number): Promise<Order[]> {
     return Array.from(this.orders.values())
       .filter(order => order.userId === userId)
@@ -744,10 +746,20 @@ export class DatabaseStorage implements IStorage {
   sessionStore: session.Store;
 
   constructor() {
-    this.sessionStore = new RedisStore({
-      client: redis,
-      prefix: "sess:", // Optional but good for production
+    const PostgresStore = connectPg(session);
+    this.sessionStore = new PostgresStore({
+      pool,
+      tableName: 'session',
+      createTableIfMissing: true
     });
+  }
+
+  // Helper function to safely cast database items to OrderItem[]
+  private parseOrderItems(items: unknown): OrderItem[] {
+    if (Array.isArray(items)) {
+      return items as OrderItem[];
+    }
+    return [];
   }
   
   // Menu Categories
@@ -788,7 +800,7 @@ export class DatabaseStorage implements IStorage {
       return true;
     } catch (error) {
       console.error('Error deleting category:', error);
-            return false;
+      return false;
     }
   }
 
@@ -842,7 +854,11 @@ export class DatabaseStorage implements IStorage {
 
   // Orders
   async getOrders(): Promise<Order[]> {
-    return await db.select().from(orders).orderBy(desc(orders.createdAt));
+    const dbOrders = await db.select().from(orders).orderBy(desc(orders.createdAt));
+    return dbOrders.map(order => ({
+      ...order,
+      items: this.parseOrderItems(order.items)
+    }));
   }
 
   async getTodaysOrders(): Promise<Order[]> {
@@ -850,7 +866,7 @@ export class DatabaseStorage implements IStorage {
     const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
     const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59, 999);
     
-    return await db.select().from(orders)
+    const dbOrders = await db.select().from(orders)
       .where(
         and(
           gte(orders.createdAt, startOfDay),
@@ -858,13 +874,18 @@ export class DatabaseStorage implements IStorage {
         )
       )
       .orderBy(desc(orders.createdAt));
+    
+    return dbOrders.map(order => ({
+      ...order,
+      items: this.parseOrderItems(order.items)
+    }));
   }
 
   async getOrdersByDateRange(startDate: string, endDate: string): Promise<Order[]> {
     const start = new Date(startDate + 'T00:00:00.000Z');
     const end = new Date(endDate + 'T23:59:59.999Z');
     
-    return await db.select().from(orders)
+    const dbOrders = await db.select().from(orders)
       .where(
         and(
           gte(orders.createdAt, start),
@@ -872,11 +893,20 @@ export class DatabaseStorage implements IStorage {
         )
       )
       .orderBy(desc(orders.createdAt));
+    
+    return dbOrders.map(order => ({
+      ...order,
+      items: this.parseOrderItems(order.items)
+    }));
   }
 
   async getOrder(id: number): Promise<Order | undefined> {
     const [order] = await db.select().from(orders).where(eq(orders.id, id));
-    return order;
+    if (!order) return undefined;
+    return {
+      ...order,
+      items: this.parseOrderItems(order.items)
+    };
   }
 
   async getNextDailyOrderNumber(): Promise<number> {
@@ -904,7 +934,10 @@ export class DatabaseStorage implements IStorage {
         dailyOrderNumber
       })
       .returning();
-    return newOrder;
+    return {
+      ...newOrder,
+      items: this.parseOrderItems(newOrder.items)
+    };
   }
 
   async updateOrderStatus(id: number, status: string): Promise<Order | undefined> {
@@ -913,7 +946,11 @@ export class DatabaseStorage implements IStorage {
       .set({ status })
       .where(eq(orders.id, id))
       .returning();
-    return updatedOrder;
+    if (!updatedOrder) return undefined;
+    return {
+      ...updatedOrder,
+      items: this.parseOrderItems(updatedOrder.items)
+    };
   }
 
   async deleteOrder(id: number): Promise<boolean> {
@@ -981,7 +1018,8 @@ export class DatabaseStorage implements IStorage {
       return false;
     }
   }
-    async updateUsername(id: number, newUsername: string): Promise<{ success: boolean; message?: string; user?: User }> {
+
+  async updateUsername(id: number, newUsername: string): Promise<{ success: boolean; message?: string; user?: User }> {
     try {
       // Check if new username already exists
       const existingUser = await db.select()
@@ -1257,6 +1295,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getCurrentDayStats(): Promise<{ totalOrders: number; totalRevenue: number; completedRevenue: number; completedOrders: number }> {
+    console.log('📊 Calculating current day stats...');
     const today = new Date();
     // Convert to Cork/Dublin timezone
     const dublinDate = new Intl.DateTimeFormat('en-CA', {
@@ -1265,6 +1304,8 @@ export class DatabaseStorage implements IStorage {
       month: '2-digit',
       day: '2-digit'
     }).format(today);
+
+    console.log('📊 Dublin date:', dublinDate);
 
     const todayOrders = await db
       .select()
@@ -1276,6 +1317,8 @@ export class DatabaseStorage implements IStorage {
         )
       );
 
+    console.log(`📊 Found ${todayOrders.length} orders for today`);
+
     const totalOrders = todayOrders.length;
     const totalRevenue = todayOrders.reduce((sum, order) => sum + parseFloat(order.total.toString()), 0);
     
@@ -1284,7 +1327,9 @@ export class DatabaseStorage implements IStorage {
     const completedOrders = completedTodayOrders.length;
     const completedRevenue = completedTodayOrders.reduce((sum, order) => sum + parseFloat(order.total.toString()), 0);
 
-    return { totalOrders, totalRevenue, completedRevenue, completedOrders };
+    const stats = { totalOrders, totalRevenue, completedRevenue, completedOrders };
+    console.log('📊 Final stats:', stats);
+    return stats;
   }
 
   async resetDailyStats(): Promise<boolean> {
@@ -1377,14 +1422,17 @@ export class DatabaseStorage implements IStorage {
         .where(eq(orders.userId, userId))
         .orderBy(desc(orders.createdAt));
       
-      return userOrders;
+      return userOrders.map(order => ({
+        ...order,
+        items: this.parseOrderItems(order.items)
+      } as Order));
     } catch (error) {
       console.error("Error fetching user orders:", error);
       return [];
     }
   }
 
-// Menu Item Options Methods
+  // Menu Item Options Methods
   async getMenuItemOptionGroups(menuItemId: number): Promise<MenuItemOptionGroup[]> {
     return await db
       .select()

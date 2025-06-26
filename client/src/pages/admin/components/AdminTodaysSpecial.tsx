@@ -146,7 +146,7 @@ export default function AdminTodaysSpecial({ menuItems, isLoading }: AdminTodays
                                 <div className="w-16 h-16 rounded-md overflow-hidden bg-muted">
                                   {menuItems.find(i => i.id.toString() === selectedItemId)?.image ? (
                                     <img 
-                                      src={menuItems.find(i => i.id.toString() === selectedItemId)?.image} 
+                                      src={menuItems.find(i => i.id.toString() === selectedItemId)?.image || undefined}  
                                       alt="Selected item"
                                       className="w-full h-full object-cover"
                                     />

@@ -203,9 +203,9 @@ export default function Home() {
               <div className="relative w-full">
                 {/* Main hero image */}
                 <img 
-                  src="https://res.cloudinary.com/dva2pren5/image/upload/b_rgb:F10000/c_fill,w_800,h_600,ar_4:3,e_improve/v1750576587/470203602_18016000436644923_8240666612134347088_n.jpg_v98bvs.jpg?auto=format&fit=crop&w=800"
+                  src="https://res.cloudinary.com/dva2pren5/image/upload/b_rgb:F10000/c_fill,w_800,h_600,ar_4:3,e_improve/v1750576587/470203602_18016000436644923_8240666612134347088_n.jpg_v98bvs.jpg?auto=format&fit=crop&w=800&q=80"
                   alt="Signature Burger"
-                  className="w-full h-[500px] object-cover rounded-xl sm:rounded-2xl shadow-lg sm:shadow-2xl"
+                  className="w-full h-auto rounded-xl sm:rounded-2xl shadow-lg sm:shadow-2xl"
                 />
                 
                 {/* Floating cards with additional menu categories - responsive positioning */}

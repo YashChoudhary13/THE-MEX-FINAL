@@ -97,65 +97,89 @@ export async function calculateTaxForDateRange(
   const taxBreakdown: Record<string, { amount: number; orders: number }> = {};
   const orderDetails: OrderTaxDetail[] = [];
 
-  // Process orders using stored totals for consistency with revenue reports
+  // Process orders using actual tax rates from menu items
   for (const order of ordersInRange) {
-    // Use the stored order total instead of recalculating
-    const orderTotal = order.total || 0;
+    let orderTotal = 0;
+    let orderTaxAmount = 0;
+    let orderPreTaxAmount = 0;
+    const orderItemDetails: Array<{name: string; quantity: number; price: number; itemTax: number}> = [];
     
-    // Calculate tax using the default rate for simplicity and consistency
-    const taxRate = DEFAULT_TAX_RATE;
-    const taxAmount = orderTotal * taxRate;
-    const preTaxAmount = orderTotal - taxAmount;
-    
-    totalTaxCollected += taxAmount;
-    totalPreTaxRevenue += preTaxAmount;
-    totalIncTaxRevenue += orderTotal;
-
-    // Add to tax breakdown
-    const rateKey = `${(taxRate * 100).toFixed(1)}%`;
-    if (!taxBreakdown[rateKey]) {
-      taxBreakdown[rateKey] = { amount: 0, orders: 0 };
+    // Parse order items
+    let items: any[] = [];
+    try {
+      items = typeof order.items === 'string' ? JSON.parse(order.items) : order.items || [];
+    } catch (error) {
+      console.error('Error parsing order items:', error);
+      continue;
     }
-    taxBreakdown[rateKey].amount += Math.round(taxAmount * 100) / 100;
-    taxBreakdown[rateKey].orders += 1;
-
-    // Add order details if requested
-    if (includeOrderDetails) {
-      // Parse order items for display
-      let items: any[] = [];
-      const orderItemDetails: Array<{name: string; quantity: number; price: number; itemTax: number}> = [];
-      
-      try {
-        items = typeof order.items === 'string' ? JSON.parse(order.items) : order.items || [];
+    
+    if (Array.isArray(items)) {
+      // Process items sequentially to handle async tax rate lookups
+      for (const item of items) {
+        const itemTotal = (item.price || 0) * (item.quantity || 1);
         
-        if (Array.isArray(items)) {
-          items.forEach(item => {
-            const itemTotal = (item.price || 0) * (item.quantity || 1);
-            const itemTax = itemTotal * taxRate;
-            
-            orderItemDetails.push({
-              name: item.name || 'Unknown Item',
-              quantity: item.quantity || 1,
-              price: itemTotal,
-              itemTax: Math.round(itemTax * 100) / 100
-            });
+        // Get the actual tax rate for this menu item
+        const taxRate = await getMenuItemTaxRate(item.menuItemId || 0);
+        
+        // For tax-inclusive pricing: taxAmount = finalPrice * taxRate
+        const taxAmount = itemTotal * taxRate;
+        const preTaxAmount = itemTotal - taxAmount;
+        
+        totalTaxCollected += taxAmount;
+        totalPreTaxRevenue += preTaxAmount;
+        totalIncTaxRevenue += itemTotal;
+        orderTaxAmount += taxAmount;
+        orderPreTaxAmount += preTaxAmount;
+        orderTotal += itemTotal;
+
+        if (includeOrderDetails) {
+          orderItemDetails.push({
+            name: item.name || 'Unknown Item',
+            quantity: item.quantity || 1,
+            price: itemTotal,
+            itemTax: Math.round(taxAmount * 100) / 100
           });
         }
-      } catch (error) {
-        console.error('Error parsing order items for details:', error);
+        
+        // Add to tax breakdown by actual tax rate used
+        const rateKey = `${(taxRate * 100).toFixed(1)}%`;
+        if (!taxBreakdown[rateKey]) {
+          taxBreakdown[rateKey] = { amount: 0, orders: 0 };
+        }
+        taxBreakdown[rateKey].amount += Math.round(taxAmount * 100) / 100;
       }
       
-      orderDetails.push({
-        orderId: order.id,
-        customerName: order.customerName || 'Anonymous',
-        dailyOrderNumber: order.dailyOrderNumber || 0,
-        orderTotal: Math.round(orderTotal * 100) / 100,
-        taxAmount: Math.round(taxAmount * 100) / 100,
-        preTaxAmount: Math.round(preTaxAmount * 100) / 100,
-        status: order.status || 'unknown',
-        createdAt: order.createdAt || new Date(),
-        items: orderItemDetails
-      });
+      // Count order once in tax breakdown
+      const orderRateKeys = Object.keys(taxBreakdown);
+      if (orderRateKeys.length > 0) {
+        // For orders with multiple tax rates, increment order count for the rate with highest amount
+        let maxRateKey = orderRateKeys[0];
+        let maxAmount = 0;
+        for (const rateKey of orderRateKeys) {
+          if (taxBreakdown[rateKey].amount > maxAmount) {
+            maxAmount = taxBreakdown[rateKey].amount;
+            maxRateKey = rateKey;
+          }
+        }
+        if (orderTaxAmount > 0) {
+          taxBreakdown[maxRateKey].orders += 1;
+        }
+      }
+
+      // Add order details if requested
+      if (includeOrderDetails) {
+        orderDetails.push({
+          orderId: order.id,
+          customerName: order.customerName || 'Anonymous',
+          dailyOrderNumber: order.dailyOrderNumber || 0,
+          orderTotal: Math.round(orderTotal * 100) / 100,
+          taxAmount: Math.round(orderTaxAmount * 100) / 100,
+          preTaxAmount: Math.round(orderPreTaxAmount * 100) / 100,
+          status: order.status || 'unknown',
+          createdAt: order.createdAt || new Date(),
+          items: orderItemDetails
+        });
+      }
     }
   }
 

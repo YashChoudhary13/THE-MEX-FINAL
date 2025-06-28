@@ -10,6 +10,7 @@ export const menuCategories = pgTable("menu_categories", {
   slug: text("slug").notNull().unique(),
   description: text("description"),
   order: integer("order").notNull().default(0),
+  taxRate: decimal("tax_rate", { precision: 5, scale: 4 }).default("0.0000"), // Category-level tax rate (e.g., 0.2300 for 23%)
 });
 
 export const insertMenuCategorySchema = createInsertSchema(menuCategories).pick({
@@ -17,6 +18,7 @@ export const insertMenuCategorySchema = createInsertSchema(menuCategories).pick(
   slug: true,
   description: true,
   order: true,
+  taxRate: true,
 });
 
 export type InsertMenuCategory = z.infer<typeof insertMenuCategorySchema>;
@@ -27,7 +29,8 @@ export const menuItems = pgTable("menu_items", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
   description: text("description").notNull(),
-  price: doublePrecision("price").notNull(),
+  price: doublePrecision("price").notNull(), // Tax-inclusive price
+  basePrice: doublePrecision("base_price").notNull(), // Price before tax
   categoryId: integer("category_id").notNull(),
   image: text("image"),
   featured: boolean("featured").default(false),
@@ -41,6 +44,7 @@ export const menuItems = pgTable("menu_items", {
   dietaryInfo: text("dietary_info").array(),
   prepTime: integer("prep_time").default(15), // Preparation time in minutes
   hasOptions: boolean("has_options").default(false).notNull(),
+  taxRate: decimal("tax_rate", { precision: 5, scale: 4 }), // Item-specific tax rate (overrides category rate if set)
 });
 
 // Menu Item Option Groups (e.g., "Meat or Veg", "Rice", "Burrito Fillings")
@@ -67,6 +71,7 @@ export const insertMenuItemSchema = createInsertSchema(menuItems).pick({
   name: true,
   description: true,
   price: true,
+  basePrice: true,
   categoryId: true,
   image: true,
   featured: true,
@@ -80,6 +85,7 @@ export const insertMenuItemSchema = createInsertSchema(menuItems).pick({
   dietaryInfo: true,
   prepTime: true,
   hasOptions: true,
+  taxRate: true,
 }).extend({
   image: z.string().optional().refine((val) => {
     if (!val || val === "") return true; // Allow empty
@@ -171,8 +177,12 @@ export type Order = typeof orders.$inferSelect & {
 export interface OrderItem {
   quantity: number;
   name: string;
-  price: number;
+  price: number; // Tax-inclusive price
+  basePrice: number; // Price before tax
+  taxRate: number; // Tax rate applied (0.23 for 23%)
+  taxAmount: number; // Calculated tax amount
   menuItemId?: number;
+  customizations?: string; // JSON string for customization details
 }
 
 // Users
@@ -317,6 +327,34 @@ export const insertMonthlyReportSchema = createInsertSchema(monthlyReports).omit
 
 export type InsertMonthlyReport = z.infer<typeof insertMonthlyReportSchema>;
 export type MonthlyReport = typeof monthlyReports.$inferSelect;
+
+// Tax Reports Table - stores tax data aggregated by different periods
+export const taxReports = pgTable("tax_reports", {
+  id: serial("id").primaryKey(),
+  reportType: text("report_type").notNull(), // 'daily', 'monthly', 'yearly'
+  reportDate: date("report_date").notNull(), // The date this report covers
+  year: integer("year").notNull(),
+  month: integer("month"), // null for yearly reports
+  day: integer("day"), // null for monthly/yearly reports
+  totalTaxCollected: decimal("total_tax_collected", { precision: 10, scale: 2 }).notNull().default("0.00"),
+  totalPreTaxRevenue: decimal("total_pre_tax_revenue", { precision: 10, scale: 2 }).notNull().default("0.00"),
+  totalIncTaxRevenue: decimal("total_inc_tax_revenue", { precision: 10, scale: 2 }).notNull().default("0.00"),
+  totalOrders: integer("total_orders").notNull().default(0),
+  taxBreakdown: jsonb("tax_breakdown"), // JSON object with tax rates and amounts
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => ({
+  uniqueReport: unique().on(table.reportType, table.reportDate),
+}));
+
+export const insertTaxReportSchema = createInsertSchema(taxReports).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type InsertTaxReport = z.infer<typeof insertTaxReportSchema>;
+export type TaxReport = typeof taxReports.$inferSelect;
 
 // Cart Item (client-side type only)
 export type CartItem = {

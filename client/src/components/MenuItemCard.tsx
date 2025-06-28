@@ -2,10 +2,10 @@ import { useState, useEffect } from "react";
 import { MenuItem, MenuItemOptionGroup, MenuItemOption } from "@shared/schema";
 import { useCart } from "@/context/CartContext";
 import { useToast } from "@/hooks/use-toast";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { 
   Plus, Minus, ShoppingBag, Flame, Clock, ChevronDown, 
-    Info, X, Heart, Share, MessageSquare, Settings
+  Info, X, Heart, Share, MessageSquare, Settings
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -23,6 +23,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 interface MenuItemCardProps {
   item: MenuItem;
 }
+
 interface SpecialOffer {
   id: number;
   menuItemId: number;
@@ -47,7 +48,7 @@ interface SpecialOffer {
 }
 
 export default function MenuItemCard({ item }: MenuItemCardProps) {
-   // Check store status to disable adding items when closed
+  // Check store status to disable adding items when closed
   const { data: storeOpen = true } = useQuery({
     queryKey: ['/api/system-settings/store-open'],
     queryFn: async () => {
@@ -57,8 +58,13 @@ export default function MenuItemCard({ item }: MenuItemCardProps) {
     },
     refetchInterval: 30000, // Check every 30 seconds
   });
+
+  // Use the item prop directly - the parent components handle cache invalidation
+  const currentItem = item;
+
   const { addToCart, cart, updateCartItemQuantity, removeFromCart } = useCart();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [isAddingToCart, setIsAddingToCart] = useState(false);
   const [isHovering, setIsHovering] = useState(false);
   const [quantity, setQuantity] = useState(1);
@@ -72,21 +78,25 @@ export default function MenuItemCard({ item }: MenuItemCardProps) {
   // Use mobile hook to detect screen size
   const isMobile = useIsMobile();
   
+
+  
   // Fetch current special offer to check if this item has special pricing
   const { data: specialOffer } = useQuery<SpecialOffer>({
     queryKey: ["/api/special-offer"],
     refetchInterval: 30000, // Refresh every 30 seconds
   });
   
-  // Calculate pricing based on special offer
-  const isOnSpecial = specialOffer && specialOffer.menuItemId === item.id && specialOffer.active;
-  const displayPrice = isOnSpecial ? specialOffer.specialPrice : item.price;
-  const originalPrice = item.price;
+  // Calculate pricing based on special offer using current item data
+  const isOnSpecial = specialOffer && specialOffer.menuItemId === currentItem.id && specialOffer.active;
+  const displayPrice = isOnSpecial ? specialOffer.specialPrice : currentItem.price;
+  const originalPrice = currentItem.price;
   const savings = isOnSpecial ? originalPrice - displayPrice : 0;
 
+
+  
   // Find the cart item for this menu item
   const getCartItem = () => {
-    return cart.find(cartItem => cartItem.menuItemId === item.id);
+    return cart.find(cartItem => cartItem.menuItemId === currentItem.id);
   };
   
   // Check if item is already in cart and update state accordingly
@@ -99,27 +109,28 @@ export default function MenuItemCard({ item }: MenuItemCardProps) {
       setIsInCart(false);
       setCartQuantity(0);
     }
-  }, [cart, item.id]);
+  }, [cart, currentItem.id]);
 
   // Fetch menu item options
   const { data: optionGroups } = useQuery({
-    queryKey: ['/api/menu-items', item.id, 'option-groups'],
-    queryFn: () => fetch(`/api/menu-items/${item.id}/option-groups`).then(res => res.json()) as Promise<(MenuItemOptionGroup & { options: MenuItemOption[] })[]>,
-    enabled: item.hasOptions
+    queryKey: ['/api/menu-items', currentItem.id, 'option-groups'],
+    queryFn: () => fetch(`/api/menu-items/${currentItem.id}/option-groups`).then(res => res.json()) as Promise<(MenuItemOptionGroup & { options: MenuItemOption[] })[]>,
+    enabled: currentItem.hasOptions
   });
 
   const handleAddToCart = async () => {
     // Check if item is sold out
-    if (item.soldOut) {
+    if (currentItem.soldOut) {
       toast({
         title: "Item unavailable",
-        description: `${item.name} is currently sold out.`,
+        description: `${currentItem.name} is currently sold out.`,
         variant: "destructive",
       });
       return;
     }
+
     // If item has options, show customization dialog
-    if (item.hasOptions && optionGroups && optionGroups.length > 0) {
+    if (currentItem.hasOptions && optionGroups && optionGroups.length > 0) {
       setShowCustomization(true);
       return;
     }
@@ -133,7 +144,7 @@ export default function MenuItemCard({ item }: MenuItemCardProps) {
     setIsAddingToCart(true);
     
     try {
-        // Calculate price with option modifiers
+      // Calculate price with option modifiers
       let finalPrice = displayPrice;
       let optionDetails: any[] = [];
       
@@ -155,21 +166,23 @@ export default function MenuItemCard({ item }: MenuItemCardProps) {
           }
         }
       }
+
       await addToCart({
         id: Date.now(), // Temporary ID
-        name: item.name,
+        name: currentItem.name,
         price: finalPrice,
         quantity: qty,
-        image: item.image || '',
-        menuItemId: item.id,
-        prepTime: item.prepTime || 15,
+        image: currentItem.image || '',
+        menuItemId: currentItem.id,
+        prepTime: currentItem.prepTime || 15,
         customizations: optionDetails.length > 0 ? JSON.stringify(optionDetails) : undefined
       });
       
       toast({
         title: "Added to cart",
-        description: `${item.name} has been added to your cart.`,
+        description: `${currentItem.name} has been added to your cart.`,
       });
+      
       setShowCustomization(false);
       setSelectedOptions({});
       setCustomizationQuantity(1);
@@ -198,14 +211,16 @@ export default function MenuItemCard({ item }: MenuItemCardProps) {
     setIsModalOpen(true);
   };
 
-  // Use the item's prep time or calculate a fixed one based on item ID to avoid fluctuation
-  const prepTime = item.prepTime || (10 + (item.id % 16)); // Fixed time based on item ID
+  // Calculate preparation time using currentItem
+  const prepTime = currentItem.prepTime || 15;
+
+
 
   return (
     <>
       <motion.div
-                className={`bg-card text-card-foreground rounded-xl shadow-md overflow-hidden border border-border cursor-pointer group relative ${
-          item.soldOut ? 'opacity-75 grayscale' : ''
+        className={`bg-card text-card-foreground rounded-xl shadow-md overflow-hidden border border-border cursor-pointer group relative ${
+          currentItem.soldOut ? 'opacity-75 grayscale' : ''
         }`}
         whileHover={{ y: -4, scale: 1.02 }}
         whileTap={{ scale: 0.98 }}
@@ -217,38 +232,45 @@ export default function MenuItemCard({ item }: MenuItemCardProps) {
         {/* Card Content */}
         <div className="relative">
           {/* Image container */}
-          {item.image && (
+          {currentItem.image && (
             <div className="relative h-48 overflow-hidden">
               <img
-                src={item.image}
-                alt={item.name}
+                src={currentItem.image}
+                alt={currentItem.name}
                 className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
+                onError={(e) => {
+                  const target = e.target as HTMLImageElement;
+                  const container = target.parentElement;
+                  if (container) {
+                    container.style.display = 'none';
+                  }
+                }}
               />
               
-                            {/* Status badges */}
+              {/* Status badges */}
               <div className="absolute top-3 right-3 flex flex-col gap-1">
-                {item.soldOut && (
+                {currentItem.soldOut && (
                   <div className="bg-destructive text-destructive-foreground px-2 py-1 rounded-full text-xs font-medium">
                     Sold Out
                   </div>
                 )}
-                {item.featured && !item.soldOut && (
-                  <div className="bg-primary text-primary-foreground px-2 py-1 rounded-full text-xs font-medium">
-                    Featured
-                  </div>
-                )}
-                {item.isBestSeller && !item.soldOut && (
-                  <div className="bg-yellow-500 text-yellow-50 px-2 py-1 rounded-full text-xs font-medium">
-                    Best Seller
-                  </div>
-                )}
-                {isOnSpecial && !item.soldOut && (
+                {isOnSpecial && !currentItem.soldOut && (
                   <div className="bg-gradient-to-r from-orange-500 to-red-500 text-white px-2 py-1 rounded-full text-xs font-medium flex items-center gap-1">
                     <Flame className="h-3 w-3" />
                     SPECIAL
                   </div>
                 )}
-                {item.isHot && !item.soldOut && (
+                {currentItem.featured && !currentItem.soldOut && !isOnSpecial && (
+                  <div className="bg-primary text-primary-foreground px-2 py-1 rounded-full text-xs font-medium">
+                    Featured
+                  </div>
+                )}
+                {currentItem.isBestSeller && !currentItem.soldOut && (
+                  <div className="bg-yellow-500 text-yellow-50 px-2 py-1 rounded-full text-xs font-medium">
+                    Best Seller
+                  </div>
+                )}
+                {currentItem.isHot && !currentItem.soldOut && (
                   <div className="bg-red-500 text-white px-2 py-1 rounded-full text-xs font-medium">
                     Hot 🌶️
                   </div>
@@ -256,9 +278,9 @@ export default function MenuItemCard({ item }: MenuItemCardProps) {
               </div>
               
               {/* Label badge */}
-              {item.label && (
+              {currentItem.label && (
                 <div className="absolute top-3 left-3 bg-secondary text-secondary-foreground px-2 py-1 rounded-full text-xs font-medium">
-                  {item.label}
+                  {currentItem.label}
                 </div>
               )}
 
@@ -272,7 +294,7 @@ export default function MenuItemCard({ item }: MenuItemCardProps) {
           
           <div className="p-5">
             <div className="flex justify-between items-start">
-              <h3 className="font-heading text-xl text-foreground">{item.name}</h3>
+              <h3 className="font-heading text-xl text-foreground">{currentItem.name}</h3>
               <div className="text-right">
                 {isOnSpecial ? (
                   <div className="flex flex-col items-end">
@@ -285,7 +307,7 @@ export default function MenuItemCard({ item }: MenuItemCardProps) {
               </div>
             </div>
             
-            <p className="text-muted-foreground text-sm mt-2 line-clamp-2">{item.description}</p>
+            <p className="text-muted-foreground text-sm mt-2 line-clamp-2">{currentItem.description}</p>
             
             <div className="mt-4 flex justify-between items-center">
               {/* Prep Time */}
@@ -295,7 +317,7 @@ export default function MenuItemCard({ item }: MenuItemCardProps) {
               </div>
               
               {/* Quantity selector or Add button */}
-              {item.soldOut ? (
+              {currentItem.soldOut ? (
                 <div className="bg-destructive/10 text-destructive px-3 py-1 rounded-lg text-sm font-medium">
                   Sold Out
                 </div>
@@ -371,7 +393,7 @@ export default function MenuItemCard({ item }: MenuItemCardProps) {
             >
               <X className="h-5 w-5" />
             </Button>
-            <h3 className="font-heading text-lg flex-1 truncate">{item.name}</h3>
+            <h3 className="font-heading text-lg flex-1 truncate">{currentItem.name}</h3>
             <div className="flex items-center text-sm text-muted-foreground">
               <Clock className="h-4 w-4 text-primary mr-1" />
               <span>{prepTime} min</span>
@@ -381,24 +403,24 @@ export default function MenuItemCard({ item }: MenuItemCardProps) {
           {/* Content area */}
           <div className="px-4 pt-4 pb-24 h-[calc(75vh-58px-68px)] overflow-y-auto no-scrollbar">
             {/* Image section - only render if image exists and loads successfully */}
-            {item.image && (
+            {currentItem.image && (
               <div className="relative w-full h-64 rounded-lg overflow-hidden mb-6">
                 <img
-                  src={item.image}
-                  alt={item.name}
+                  src={currentItem.image}
+                  alt={currentItem.name}
                   className="w-full h-full object-cover"
                 />
                 
                 {/* Badges */}
                 <div className="absolute top-3 left-3 flex gap-2">
-                  {item.featured && (
+                  {currentItem.featured && (
                     <div className="bg-primary text-primary-foreground px-2 py-1 rounded-full text-xs font-medium">
                       Featured
                     </div>
                   )}
-                  {item.label && (
+                  {currentItem.label && (
                     <div className="bg-secondary text-secondary-foreground px-2 py-1 rounded-full text-xs font-medium">
-                      {item.label}
+                      {currentItem.label}
                     </div>
                   )}
                 </div>
@@ -410,11 +432,11 @@ export default function MenuItemCard({ item }: MenuItemCardProps) {
               <div>
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex-1">
-                    <h2 className="text-2xl font-heading text-foreground mb-2">{item.name}</h2>
-                    <p className="text-muted-foreground leading-relaxed">{item.description}</p>
+                    <h2 className="text-2xl font-heading text-foreground mb-2">{currentItem.name}</h2>
+                    <p className="text-muted-foreground leading-relaxed">{currentItem.description}</p>
                   </div>
                   <div className="ml-4 text-right">
-                    <div className="text-3xl font-bold text-primary">${item.price.toFixed(2)}</div>
+                    <div className="text-3xl font-bold text-primary">€{displayPrice.toFixed(2)}</div>
                     <div className="flex items-center text-sm text-muted-foreground mt-1">
                       <Clock className="h-4 w-4 mr-1" />
                       <span>{prepTime} min prep</span>
@@ -424,39 +446,39 @@ export default function MenuItemCard({ item }: MenuItemCardProps) {
               </div>
 
               {/* Additional details tabs if available */}
-              {(item.ingredients || item.calories || item.allergens || (item.dietaryInfo && item.dietaryInfo.length > 0)) && (
+              {(currentItem.ingredients || currentItem.calories || currentItem.allergens || (currentItem.dietaryInfo && currentItem.dietaryInfo.length > 0)) && (
                 <Tabs defaultValue="details" className="w-full">
                   <TabsList className="grid w-full grid-cols-1">
                     <TabsTrigger value="details">Details</TabsTrigger>
                   </TabsList>
                   
                   <TabsContent value="details" className="space-y-4 mt-4">
-                    {item.ingredients && (
+                    {currentItem.ingredients && (
                       <div>
                         <h4 className="font-semibold text-foreground mb-2">Ingredients</h4>
-                        <p className="text-muted-foreground text-sm">{item.ingredients}</p>
+                        <p className="text-muted-foreground text-sm">{currentItem.ingredients}</p>
                       </div>
                     )}
                     
-                    {item.calories && (
+                    {currentItem.calories && (
                       <div>
                         <h4 className="font-semibold text-foreground mb-2">Calories</h4>
-                        <p className="text-muted-foreground text-sm">{item.calories}</p>
+                        <p className="text-muted-foreground text-sm">{currentItem.calories}</p>
                       </div>
                     )}
                     
-                    {item.allergens && (
+                    {currentItem.allergens && (
                       <div>
                         <h4 className="font-semibold text-foreground mb-2">Allergens</h4>
-                        <p className="text-muted-foreground text-sm">{item.allergens}</p>
+                        <p className="text-muted-foreground text-sm">{currentItem.allergens}</p>
                       </div>
                     )}
                     
-                    {item.dietaryInfo && item.dietaryInfo.length > 0 && (
+                    {currentItem.dietaryInfo && currentItem.dietaryInfo.length > 0 && (
                       <div>
                         <h4 className="font-semibold text-foreground mb-2">Dietary Information</h4>
                         <div className="flex flex-wrap gap-2">
-                          {item.dietaryInfo.map((info, index) => (
+                          {currentItem.dietaryInfo.map((info, index) => (
                             <span key={index} className="bg-muted text-muted-foreground px-2 py-1 rounded-full text-xs">
                               {info}
                             </span>
@@ -502,7 +524,7 @@ export default function MenuItemCard({ item }: MenuItemCardProps) {
               </div>
               
               <Button
-               className={`px-8 h-12 ${!storeOpen ? 'bg-muted text-muted-foreground cursor-not-allowed' : 'bg-primary hover:bg-primary/90 text-primary-foreground'}`}
+                className={`px-8 h-12 ${!storeOpen ? 'bg-muted text-muted-foreground cursor-not-allowed' : 'bg-primary hover:bg-primary/90 text-primary-foreground'}`}
                 onClick={storeOpen ? handleAddToCart : () => {
                   toast({
                     title: "Store Closed",
@@ -533,6 +555,7 @@ export default function MenuItemCard({ item }: MenuItemCardProps) {
           </div>
         </DialogContent>
       </Dialog>
+
       {/* Customization Dialog */}
       <Dialog open={showCustomization} onOpenChange={setShowCustomization}>
         <DialogContent className="max-w-md mx-auto max-h-[90vh] overflow-y-auto">
@@ -713,7 +736,7 @@ export default function MenuItemCard({ item }: MenuItemCardProps) {
                   }
                 }
                 
-  if (storeOpen) {
+                if (storeOpen) {
                   addItemToCart(selectedOptions, customizationQuantity);
                 } else {
                   toast({
@@ -724,7 +747,7 @@ export default function MenuItemCard({ item }: MenuItemCardProps) {
                 }
               }}
               disabled={isAddingToCart || !storeOpen}
-              >
+            >
               {!storeOpen ? (
                 <span className="flex items-center">
                   <Clock className="mr-2 h-4 w-4" />

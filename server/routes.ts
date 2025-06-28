@@ -2,6 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { WebSocketServer, WebSocket } from 'ws';
 import { storage } from "./storage";
+import { taxService } from "./tax-service";
 import { z } from "zod";
 import { 
   insertOrderSchema, 
@@ -66,9 +67,12 @@ function broadcastToCustomers(orderId: number, message: any) {
   const customerConnections = customerSocketConnections.get(orderId);
   
   if (customerConnections) {
+    let sentCount = 0;
     customerConnections.forEach(client => {
       if (client.readyState === WebSocket.OPEN) {
         client.send(messageStr);
+        sentCount++;
+        console.log(`Sent update to customer tracking order ${orderId}`);
       }
     });
   }
@@ -85,9 +89,15 @@ function broadcastOrderUpdate(orderId: number, orderData: any) {
   // Send to admins
   broadcastToAdmins(updateMessage);
   
+  // Also broadcast stats refresh message to trigger Overview updates
+  broadcastToAdmins({
+    type: 'REFRESH_STATS',
+    reason: 'order_status_changed'
+  });
+  
   // Send to customers tracking this order
   broadcastToCustomers(orderId, updateMessage);
-    
+  
   // Send to the user who placed the order (if userId exists)
   if (orderData && orderData.userId) {
     broadcastToUser(orderData.userId, updateMessage);
@@ -100,6 +110,7 @@ function broadcastNewOrder(orderData: any) {
     type: 'NEW_ORDER',
     order: orderData
   });
+  
   // Also broadcast to the user who placed the order
   if (orderData && orderData.userId) {
     broadcastToUser(orderData.userId, {
@@ -153,7 +164,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-    app.put("/api/categories/reorder", async (req, res) => {
+  app.put("/api/categories/reorder", async (req, res) => {
     // Check if user is admin
     if (!req.user || req.user.role !== 'admin') {
       return res.status(403).json({ message: "Admin access required" });
@@ -231,7 +242,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // API Route for creating an order (supports both authenticated and guest users)
   app.post("/api/orders", async (req, res) => {
     try {
-            // Check if store is open before accepting orders
+      // Check if store is open before accepting orders
       const storeOpenSetting = await storage.getSystemSetting('store_open') || 'true';
       const isStoreOpen = storeOpenSetting === 'true';
       
@@ -241,6 +252,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           storeOpen: false 
         });
       }
+      
       // Validate request body (dailyOrderNumber is auto-generated on backend)
       const orderData = createOrderSchema.parse(req.body);
       
@@ -390,7 +402,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-    // Menu Item Options Routes
+  // Menu Item Options Routes
   
   // Get option groups for a menu item
   app.get("/api/menu-items/:id/option-groups", async (req, res) => {
@@ -408,7 +420,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/admin/menu-items/:id/option-groups", isAdmin, async (req, res) => {
     try {
       const menuItemId = parseInt(req.params.id);
-      const result = insertMenuItemOptionGroupSchema.safeParse({ ...req.body, menuItemId });
+      
+      const dataToValidate = { ...req.body, menuItemId };
+      const result = insertMenuItemOptionGroupSchema.safeParse(dataToValidate);
       
       if (!result.success) {
         return res.status(400).json({ 
@@ -611,6 +625,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!updatedMenuItem) {
         return res.status(404).json({ message: "Menu item not found" });
       }
+      
+      // Broadcast menu update to all connected clients
+      broadcastToAdmins({
+        type: "MENU_ITEM_UPDATED",
+        data: updatedMenuItem
+      });
+      
+      // Also broadcast to customers so their menu refreshes
+      wss.clients.forEach((client) => {
+        if (client.readyState === WebSocket.OPEN) {
+          client.send(JSON.stringify({
+            type: "MENU_UPDATED",
+            data: { menuItemId: updatedMenuItem.id, menuItem: updatedMenuItem }
+          }));
+        }
+      });
       
       res.json(updatedMenuItem);
     } catch (error) {
@@ -902,6 +932,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!req.user || !req.user.id) {
         return res.status(401).json({ message: 'User not authenticated' });
       }
+      
       const userOrders = await storage.getUserOrders(req.user.id);
       console.log(`Fetched ${userOrders.length} orders for user ${req.user.id}`);
       res.json(userOrders);
@@ -913,8 +944,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
 
   // Admin reporting routes
-  app.get('/api/admin/current-stats', async (req, res) => {
-
+  app.get('/api/admin/current-stats', isAdmin, async (req, res) => {
     try {
       const stats = await storage.getCurrentDayStats();
       res.json(stats);
@@ -924,8 +954,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get('/api/admin/daily-reports', async (req, res) => {
-
+  app.get('/api/admin/daily-reports', isAdmin, async (req, res) => {
     try {
       const days = req.query.days ? parseInt(req.query.days as string) : 30;
       const reports = await storage.getDailyReports(days);
@@ -1199,6 +1228,163 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Tax reporting routes - Extract tax amounts from final prices
+  app.get('/api/admin/tax-reports/daily', isAdmin, async (req, res) => {
+    try {
+      const { date } = req.query;
+      const reportDate = date ? new Date(date as string) : new Date();
+      
+      console.log('📊 Daily tax report request:');
+      console.log('📊 Query date:', date);
+      console.log('📊 Parsed date:', reportDate.toISOString());
+      console.log('📊 Report date string:', reportDate.toLocaleDateString('en-GB'));
+      
+      // Import the new tax calculator
+      const { calculateDailyTax } = await import('./tax-calculator');
+      
+      // Calculate tax data directly for the specific date with order details
+      const taxData = await calculateDailyTax(reportDate, true);
+      
+      console.log('📊 Tax data for', reportDate.toLocaleDateString('en-GB'), ':', {
+        orders: taxData.totalOrders,
+        revenue: taxData.totalIncTaxRevenue,
+        tax: taxData.totalTaxCollected
+      });
+      
+      // Format as a report array for consistency
+      const report = {
+        id: Date.now(),
+        reportType: 'daily',
+        reportDate: reportDate.toLocaleDateString('en-GB', { 
+          day: '2-digit', 
+          month: '2-digit', 
+          year: 'numeric' 
+        }),
+        year: reportDate.getFullYear(),
+        month: reportDate.getMonth() + 1,
+        day: reportDate.getDate(),
+        totalOrders: taxData.totalOrders,
+        totalTaxCollected: taxData.totalTaxCollected.toString(),
+        totalPreTaxRevenue: taxData.totalPreTaxRevenue.toString(),
+        totalIncTaxRevenue: taxData.totalIncTaxRevenue.toString(),
+        averageTaxPerOrder: taxData.averageTaxPerOrder,
+        averageOrderValue: taxData.averageOrderValue,
+        taxBreakdown: taxData.taxBreakdown,
+        orderDetails: taxData.orderDetails || [],
+        createdAt: new Date(),
+        updatedAt: new Date()
+      };
+      
+      res.json([report]);
+    } catch (error) {
+      console.error('Error generating daily tax report:', error);
+      res.status(500).json({ message: 'Failed to generate daily tax report' });
+    }
+  });
+
+  app.get('/api/admin/tax-reports/monthly', isAdmin, async (req, res) => {
+    try {
+      const { year, month } = req.query;
+      const reportYear = year ? parseInt(year as string) : new Date().getFullYear();
+      const reportMonth = month ? parseInt(month as string) : new Date().getMonth() + 1;
+      
+      // Import the new tax calculator
+      const { calculateMonthlyTax } = await import('./tax-calculator');
+      
+      // Calculate tax data directly for the specific month
+      const taxData = await calculateMonthlyTax(reportYear, reportMonth);
+      
+      // Format as a report array for consistency
+      const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      const report = {
+        id: Date.now(),
+        reportType: 'monthly',
+        reportDate: `${monthNames[reportMonth - 1]} ${reportYear}`,
+        year: reportYear,
+        month: reportMonth,
+        day: null,
+        totalOrders: taxData.totalOrders,
+        totalTaxCollected: taxData.totalTaxCollected.toString(),
+        totalPreTaxRevenue: taxData.totalPreTaxRevenue.toString(),
+        totalIncTaxRevenue: taxData.totalIncTaxRevenue.toString(),
+        averageTaxPerOrder: taxData.averageTaxPerOrder,
+        averageOrderValue: taxData.averageOrderValue,
+        taxBreakdown: taxData.taxBreakdown,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      };
+      
+      res.json([report]);
+    } catch (error) {
+      console.error('Error generating monthly tax report:', error);
+      res.status(500).json({ message: 'Failed to generate monthly tax report' });
+    }
+  });
+
+  app.get('/api/admin/tax-reports/yearly', isAdmin, async (req, res) => {
+    try {
+      const { year } = req.query;
+      const reportYear = year ? parseInt(year as string) : new Date().getFullYear();
+      
+      // Import the new tax calculator
+      const { calculateYearlyTax } = await import('./tax-calculator');
+      
+      // Calculate tax data directly for the specific year
+      const taxData = await calculateYearlyTax(reportYear);
+      
+      // Format as a report array for consistency
+      const report = {
+        id: Date.now(),
+        reportType: 'yearly',
+        reportDate: `Year ${reportYear}`,
+        year: reportYear,
+        month: null,
+        day: null,
+        totalOrders: taxData.totalOrders,
+        totalTaxCollected: taxData.totalTaxCollected.toString(),
+        totalPreTaxRevenue: taxData.totalPreTaxRevenue.toString(),
+        totalIncTaxRevenue: taxData.totalIncTaxRevenue.toString(),
+        averageTaxPerOrder: taxData.averageTaxPerOrder,
+        averageOrderValue: taxData.averageOrderValue,
+        taxBreakdown: taxData.taxBreakdown,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      };
+      
+      res.json([report]);
+    } catch (error) {
+      console.error('Error generating yearly tax report:', error);
+      res.status(500).json({ message: 'Failed to generate yearly tax report' });
+    }
+  });
+
+  app.get('/api/admin/tax-reports/range', isAdmin, async (req, res) => {
+    try {
+      const { startDate, endDate } = req.query;
+      
+      if (!startDate || !endDate) {
+        return res.status(400).json({ message: 'Start date and end date are required' });
+      }
+      
+      const reports = await taxService.getTaxReportsByDateRange(startDate as string, endDate as string);
+      res.json(reports);
+    } catch (error) {
+      console.error('Error fetching tax reports:', error);
+      res.status(500).json({ message: 'Failed to fetch tax reports' });
+    }
+  });
+
+  // Generate current period tax reports (for cron jobs)
+  app.post('/api/admin/tax-reports/generate-current', isAdmin, async (req, res) => {
+    try {
+      await taxService.generateCurrentPeriodReports();
+      res.json({ message: 'Current period tax reports generated successfully' });
+    } catch (error) {
+      console.error('Error generating current period reports:', error);
+      res.status(500).json({ message: 'Failed to generate current period reports' });
+    }
+  });
+
   // System settings routes
   app.get('/api/system-settings/service-fee', async (req, res) => {
     try {
@@ -1212,14 +1398,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.patch('/api/admin/system-settings/service-fee', isAdmin, async (req, res) => {
     try {
-      const { serviceFee } = req.body;
+      const { fee, serviceFee } = req.body;
+      const feeValue = fee || serviceFee; // Accept both parameter names
       
-      if (isNaN(parseFloat(serviceFee))) {
+      if (isNaN(parseFloat(feeValue))) {
         return res.status(400).json({ message: 'Invalid service fee value' });
       }
       
-      await storage.updateSystemSetting('service_fee', serviceFee.toString());
-      res.json({ serviceFee: parseFloat(serviceFee) });
+      await storage.updateSystemSetting('service_fee', feeValue.toString());
+      res.json({ serviceFee: parseFloat(feeValue) });
     } catch (error) {
       console.error('Error updating service fee:', error);
       res.status(500).json({ message: 'Failed to update service fee' });
@@ -1238,21 +1425,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   app.patch('/api/admin/system-settings/tax-rate', isAdmin, async (req, res) => {
     try {
-      const { taxRate } = req.body;
+      const { rate, taxRate } = req.body;
+      const rateValue = rate || taxRate; // Accept both parameter names
       
-      if (isNaN(parseFloat(taxRate)) || parseFloat(taxRate) < 0 || parseFloat(taxRate) > 100) {
+      if (isNaN(parseFloat(rateValue)) || parseFloat(rateValue) < 0 || parseFloat(rateValue) > 100) {
         return res.status(400).json({ message: 'Invalid tax rate value' });
       }
       
-      await storage.updateSystemSetting('tax_rate', taxRate.toString());
-      res.json({ taxRate: parseFloat(taxRate) });
+      await storage.updateSystemSetting('tax_rate', rateValue.toString());
+      res.json({ taxRate: parseFloat(rateValue) });
     } catch (error) {
       console.error('Error updating tax rate:', error);
       res.status(500).json({ message: 'Failed to update tax rate' });
     }
   });
 
-   // Store open/close endpoints
+  // Store open/close endpoints
   app.get('/api/system-settings/store-open', async (req, res) => {
     try {
       const storeOpenSetting = await storage.getSystemSetting('store_open') || 'true';
@@ -1279,8 +1467,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-
- // Admin endpoints for real-time stats and reporting
+  // Admin endpoints for real-time stats and reporting
 
 
   app.get('/api/admin/daily-reports', isAdmin, async (req, res) => {
@@ -1482,6 +1669,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     path: '/ws' 
   });
 
+  // Add error handling for WebSocket server
+  wss.on('error', (error) => {
+    console.error('WebSocket server error:', error);
+    // Don't crash the entire server if WebSocket fails
+  });
+
   wss.on('connection', (ws) => {
     console.log('WebSocket client connected');
     
@@ -1502,7 +1695,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
           
           customerSocketConnections.get(orderId)!.add(ws);
           console.log(`Customer subscribed to order ${orderId} updates`);
-        }else if (data.type === 'SUBSCRIBE_USER_ORDERS' && data.userId) {
+          
+          // Send confirmation back to client
+          ws.send(JSON.stringify({
+            type: 'SUBSCRIPTION_CONFIRMED',
+            orderId: orderId,
+            message: `Successfully subscribed to order ${orderId} updates`
+          }));
+        } else if (data.type === 'SUBSCRIBE_USER_ORDERS' && data.userId) {
           // User subscribing to their order updates
           const userId = data.userId;
           
@@ -1542,7 +1742,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   });
 
-    // User profile management endpoints
+  // User profile management endpoints
   app.post("/api/user/update-username", isAuthenticated, async (req, res) => {
     try {
       const { newUsername } = req.body;

@@ -50,7 +50,8 @@ export default function Checkout() {
   const [currentStep, setCurrentStep] = useState(CheckoutStep.CustomerInfo);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [promoCodeInput, setPromoCodeInput] = useState("");
-    // Check store status
+
+  // Check store status
   const { data: storeOpen = true, isLoading: storeStatusLoading } = useQuery({
     queryKey: ['/api/system-settings/store-open'],
     queryFn: async () => {
@@ -75,7 +76,20 @@ export default function Checkout() {
   });
 
   // Calculate totals from cart context
-  const { subtotal, serviceFee, tax, discount, total } = calculateTotals();
+  const { subtotal, discount, total } = calculateTotals();
+  
+  // Fetch service fee settings
+  const { data: serviceFeeData } = useQuery({
+    queryKey: ['/api/system-settings/service-fee'],
+    queryFn: async () => {
+      const response = await fetch('/api/system-settings/service-fee');
+      return response.json();
+    },
+  });
+
+  // Since we use tax-inclusive pricing, we don't need separate tax calculation
+  const serviceFee = serviceFeeData?.serviceFee || 0;
+  const tax = 0; // Tax is already included in item prices
 
   useEffect(() => {
     if (cart.length === 0 && currentStep !== CheckoutStep.Success && !orderCompleted) {
@@ -400,14 +414,6 @@ export default function Checkout() {
                         <span className="text-muted-foreground">Subtotal</span>
                         <span className="font-medium text-foreground">€{subtotal.toFixed(2)}</span>
                       </div>
-                      <div className="flex justify-between text-sm">
-                        <span className="text-muted-foreground">Service Fee</span>
-                        <span className="font-medium text-foreground">€{serviceFee.toFixed(2)}</span>
-                      </div>
-                      <div className="flex justify-between text-sm">
-                        <span className="text-muted-foreground">Tax</span>
-                        <span className="font-medium text-foreground">€{tax.toFixed(2)}</span>
-                      </div>
                       {discount > 0 && (
                         <div className="flex justify-between text-sm text-green-600">
                           <span>Discount ({promoCode})</span>
@@ -518,15 +524,7 @@ export default function Checkout() {
                             <div className="p-3 space-y-2">
                               <div className="flex justify-between text-sm">
                                 <span className="text-muted-foreground">Subtotal</span>
-                                <span className="font-medium text-foreground">${(orderData?.subtotal || subtotal).toFixed(2)}</span>
-                              </div>
-                              <div className="flex justify-between text-sm">
-                                <span className="text-muted-foreground">Service Fee</span>
-                                <span className="font-medium text-foreground">${(orderData?.serviceFee || serviceFee).toFixed(2)}</span>
-                              </div>
-                              <div className="flex justify-between text-sm">
-                                <span className="text-muted-foreground">Tax</span>
-                                <span className="font-medium text-foreground">${(orderData?.tax || tax).toFixed(2)}</span>
+                                <span className="font-medium text-foreground">€{(orderData?.subtotal || subtotal).toFixed(2)}</span>
                               </div>
                               {(orderData?.discount || discount) > 0 && (
                                 <div className="flex justify-between text-sm text-green-600">

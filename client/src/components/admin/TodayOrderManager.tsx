@@ -60,6 +60,19 @@ export default function TodayOrderManager() {
       queryClient.invalidateQueries({ queryKey: ['/api/orders'] });
       queryClient.invalidateQueries({ queryKey: ['/api/admin/orders'] });
       queryClient.invalidateQueries({ queryKey: ['/api/admin/orders/today'] });
+      
+      // Invalidate current stats for Overview section
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/current-stats'] });
+      
+      // Invalidate tax reports since completed orders affect tax calculations
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/tax-reports/daily'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/tax-reports/monthly'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/tax-reports/yearly'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/tax-reports/range'] });
+      
+      // Force refetch for immediate updates
+      queryClient.refetchQueries({ queryKey: ['/api/admin/current-stats'] });
+      
       toast({
         title: 'Order updated',
         description: 'The order status has been updated successfully.',
@@ -84,6 +97,19 @@ export default function TodayOrderManager() {
       queryClient.invalidateQueries({ queryKey: ['/api/orders'] });
       queryClient.invalidateQueries({ queryKey: ['/api/admin/orders'] });
       queryClient.invalidateQueries({ queryKey: ['/api/admin/orders/today'] });
+      
+      // Invalidate current stats for Overview section
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/current-stats'] });
+      
+      // Invalidate tax reports since deleting orders affects tax calculations
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/tax-reports/daily'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/tax-reports/monthly'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/tax-reports/yearly'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/tax-reports/range'] });
+      
+      // Force refetch for immediate updates
+      queryClient.refetchQueries({ queryKey: ['/api/admin/current-stats'] });
+      
       setDeleteDialogOpen(false);
       setOrderToDelete(null);
       toast({

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import { MenuCategory, MenuItem, CartItem } from "@shared/schema";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -18,6 +18,7 @@ export default function MobileMenuContent({ activeCategory, searchQuery }: Mobil
   const [filteredItems, setFilteredItems] = useState<MenuItem[]>([]);
   const { addToCart } = useCart();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   
   // Fetch current special offer for real-time display
   const { data: specialOffer } = useQuery<{
@@ -60,6 +61,33 @@ export default function MobileMenuContent({ activeCategory, searchQuery }: Mobil
     queryKey: ["/api/menu-items"],
     refetchInterval: 30000,
   });
+
+  // WebSocket listener for real-time menu updates
+  useEffect(() => {
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const wsUrl = `${protocol}//${window.location.host}/ws`;
+    
+    const ws = new WebSocket(wsUrl);
+    
+    ws.onmessage = (event) => {
+      try {
+        const message = JSON.parse(event.data);
+        if (message.type === 'MENU_UPDATED') {
+          console.log('🔄 Menu update received, refreshing mobile customer view');
+          // Force immediate refresh of menu data
+          queryClient.invalidateQueries({ queryKey: ["/api/menu-items"] });
+          queryClient.refetchQueries({ queryKey: ["/api/menu-items"] });
+          queryClient.invalidateQueries({ queryKey: ["/api/special-offer"] });
+        }
+      } catch (error) {
+        console.error('Error parsing WebSocket message:', error);
+      }
+    };
+    
+    return () => {
+      ws.close();
+    };
+  }, [queryClient]);
 
   // Apply filters
   useEffect(() => {
@@ -170,18 +198,25 @@ export default function MobileMenuContent({ activeCategory, searchQuery }: Mobil
           </div>
           
           <div className="bg-gradient-to-br from-primary/20 to-accent/20 p-5 rounded-xl border border-border">
-            <div className="relative">
-              <div className="absolute top-2 left-2 bg-primary text-white text-xs px-3 py-1 rounded-full font-menu z-10">
-                {todaysSpecial.label}
-              </div>
+            <div className="bg-primary text-white text-xs px-3 py-1 rounded-full font-menu w-fit mb-4">
+              {todaysSpecial.label}
+            </div>
+            {todaysSpecial.image && (
               <div className="w-full h-48 overflow-hidden rounded-lg mb-4">
                 <img 
                   src={todaysSpecial.image} 
                   alt={todaysSpecial.name} 
                   className="w-full h-full object-cover"
+                  onError={(e) => {
+                    const target = e.target as HTMLImageElement;
+                    const container = target.parentElement;
+                    if (container) {
+                      container.style.display = 'none';
+                    }
+                  }}
                 />
               </div>
-            </div>
+            )}
             
             <h3 className="font-heading text-xl text-foreground mb-2">{todaysSpecial.name}</h3>
             <p className="text-sm text-muted-foreground mb-3">{todaysSpecial.description}</p>
@@ -206,7 +241,8 @@ export default function MobileMenuContent({ activeCategory, searchQuery }: Mobil
               disabled={todaysSpecial.menuItem?.soldOut}
               onClick={() => {
                 if (todaysSpecial.menuItem && !todaysSpecial.menuItem.soldOut) {
-                  // Add special offer item to cart with special price
+                  // For items with options, we need to trigger customization
+                  // For now, add directly - we'll enhance this with customization later
                   const cartItem: CartItem = {
                     id: Date.now(),
                     menuItemId: todaysSpecial.menuItem.id,

@@ -118,25 +118,28 @@ export default function CategorySidebar({
             
             <div className="space-y-4">
               <div className="relative">
-                <div className="absolute top-3 left-3 bg-primary text-white text-xs px-3 py-1 rounded-full font-menu">
+                <div className="bg-primary text-white text-xs px-3 py-1 rounded-full font-menu w-fit mb-3">
                   {specialOffer.discountType === 'percentage' 
                     ? `${specialOffer.discountValue}% OFF`
                     : `€${specialOffer.discountValue.toFixed(2)} OFF`
                   }
                 </div>
-                <div className="w-full h-48 overflow-hidden rounded-xl food-3d-effect">
-                  {specialOffer.menuItem.image ? (
+                {specialOffer.menuItem.image && (
+                  <div className="w-full h-48 overflow-hidden rounded-xl food-3d-effect">
                     <img 
                       src={specialOffer.menuItem.image} 
                       alt={specialOffer.menuItem.name} 
                       className="w-full h-full object-cover"
+                      onError={(e) => {
+                        const target = e.target as HTMLImageElement;
+                        const container = target.parentElement;
+                        if (container) {
+                          container.style.display = 'none';
+                        }
+                      }}
                     />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center text-muted-foreground bg-muted">
-                      No Image
-                    </div>
-                  )}
-                </div>
+                  </div>
+                )}
               </div>
               <h4 className="font-heading text-xl text-foreground">{specialOffer.menuItem.name}</h4>
               <p className="text-sm text-muted-foreground">{specialOffer.menuItem.description}</p>
@@ -151,7 +154,7 @@ export default function CategorySidebar({
                     : 'bg-primary text-white hover:bg-primary/90'
                 }`}
                 disabled={specialOffer.menuItem.soldOut}
-                 onClick={async () => {
+                onClick={async () => {
                   if (specialOffer.menuItem.soldOut) return;
                   
                   // Check if item has options

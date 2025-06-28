@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import { MenuCategory, MenuItem } from "@shared/schema";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -21,6 +21,7 @@ export default function MenuContent({ activeCategory, searchQuery }: MenuContent
   const [showFilters, setShowFilters] = useState(false);
   const { addToCart } = useCart();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   // Fetch categories and menu items
   const { data: categories } = useQuery<MenuCategory[]>({
@@ -37,6 +38,33 @@ export default function MenuContent({ activeCategory, searchQuery }: MenuContent
     queryKey: ["/api/special-offer"],
     refetchInterval: 15000,
   });
+
+  // WebSocket listener for real-time menu updates
+  useEffect(() => {
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const wsUrl = `${protocol}//${window.location.host}/ws`;
+    
+    const ws = new WebSocket(wsUrl);
+    
+    ws.onmessage = (event) => {
+      try {
+        const message = JSON.parse(event.data);
+        if (message.type === 'MENU_UPDATED') {
+          console.log('🔄 Menu update received, refreshing customer view');
+          // Force immediate refresh of menu data
+          queryClient.invalidateQueries({ queryKey: ["/api/menu-items"] });
+          queryClient.refetchQueries({ queryKey: ["/api/menu-items"] });
+          queryClient.invalidateQueries({ queryKey: ["/api/special-offer"] });
+        }
+      } catch (error) {
+        console.error('Error parsing WebSocket message:', error);
+      }
+    };
+    
+    return () => {
+      ws.close();
+    };
+  }, [queryClient]);
 
   // Group items by category and apply filters
   useEffect(() => {

@@ -69,7 +69,7 @@ export function useOrderTracker(orderId: number) {
       
       // Subscribe to updates for this specific order
       const subscriptionMessage = {
-        type: 'SUBSCRIBE_TO_ORDER',
+        type: 'SUBSCRIBE_ORDER_UPDATES',
         orderId: orderId
       };
       console.log('Sending subscription message:', subscriptionMessage);

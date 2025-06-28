@@ -75,8 +75,44 @@ export default function OrderManager() {
   // Fetch today's orders from admin endpoint
   const { data: orders, isLoading, error, refetch } = useQuery<Order[]>({
     queryKey: ['/api/admin/orders/today'],
-    refetchInterval: 5000, // auto refresh every 5 seconds
   });
+
+  // WebSocket integration for instant order updates
+  useEffect(() => {
+    const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+    const wsUrl = `${protocol}//${window.location.host}/ws`;
+    const socket = new WebSocket(wsUrl);
+
+    socket.onopen = () => {
+      console.log('OrderManager WebSocket connected');
+      socket.send(JSON.stringify({ type: 'SUBSCRIBE_ADMIN' }));
+    };
+
+    socket.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        const updateTypes = ['NEW_ORDER', 'ORDER_UPDATE', 'daily_reset'];
+        if (updateTypes.includes(data.type)) {
+          refetch();
+          queryClient.invalidateQueries({ queryKey: ['/api/admin/orders/today'] });
+        }
+      } catch (error) {
+        console.error('Error parsing WebSocket message:', error);
+      }
+    };
+
+    socket.onclose = () => {
+      console.log('OrderManager WebSocket disconnected');
+    };
+
+    socket.onerror = (error) => {
+      console.error('OrderManager WebSocket error:', error);
+    };
+
+    return () => {
+      socket.close();
+    };
+  }, [refetch]);
   
   // Update order status mutation
   const updateOrderStatusMutation = useMutation({
@@ -85,8 +121,23 @@ export default function OrderManager() {
       return response.json();
     },
     onSuccess: () => {
+      // Invalidate all order-related queries
       queryClient.invalidateQueries({ queryKey: ['/api/orders'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/orders'] });
       queryClient.invalidateQueries({ queryKey: ['/api/admin/orders/today'] });
+      
+      // Invalidate current stats for Overview section
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/current-stats'] });
+      
+      // Invalidate tax reports since completed orders affect tax calculations
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/tax-reports/daily'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/tax-reports/monthly'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/tax-reports/yearly'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/tax-reports/range'] });
+      
+      // Force refetch for immediate updates
+      queryClient.refetchQueries({ queryKey: ['/api/admin/current-stats'] });
+      
       toast({
         title: 'Order updated',
         description: 'The order status has been updated successfully.',
@@ -108,8 +159,23 @@ export default function OrderManager() {
       return response.json();
     },
     onSuccess: () => {
+      // Invalidate all order-related queries
       queryClient.invalidateQueries({ queryKey: ['/api/orders'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/orders'] });
       queryClient.invalidateQueries({ queryKey: ['/api/admin/orders/today'] });
+      
+      // Invalidate current stats for Overview section
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/current-stats'] });
+      
+      // Invalidate tax reports since deleting orders affects tax calculations
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/tax-reports/daily'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/tax-reports/monthly'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/tax-reports/yearly'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/tax-reports/range'] });
+      
+      // Force refetch for immediate updates
+      queryClient.refetchQueries({ queryKey: ['/api/admin/current-stats'] });
+      
       toast({
         title: 'Order deleted',
         description: 'The order has been deleted successfully.',

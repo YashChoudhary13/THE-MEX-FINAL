@@ -143,19 +143,22 @@ export default function AdminTodaysSpecial({ menuItems, isLoading }: AdminTodays
                             <h3 className="font-medium mb-2">Preview Selected Item</h3>
                             {selectedItemId ? (
                               <div className="flex items-center gap-4">
-                                <div className="w-16 h-16 rounded-md overflow-hidden bg-muted">
-                                  {menuItems.find(i => i.id.toString() === selectedItemId)?.image ? (
+                                {menuItems.find(i => i.id.toString() === selectedItemId)?.image && (
+                                  <div className="w-16 h-16 rounded-md overflow-hidden bg-muted">
                                     <img 
-                                      src={menuItems.find(i => i.id.toString() === selectedItemId)?.image || undefined}  
+                                      src={menuItems.find(i => i.id.toString() === selectedItemId)?.image || undefined} 
                                       alt="Selected item"
                                       className="w-full h-full object-cover"
+                                      onError={(e) => {
+                                        const target = e.target as HTMLImageElement;
+                                        const container = target.parentElement;
+                                        if (container) {
+                                          container.style.display = 'none';
+                                        }
+                                      }}
                                     />
-                                  ) : (
-                                    <div className="w-full h-full flex items-center justify-center">
-                                      <span className="text-muted-foreground text-xs">No image</span>
-                                    </div>
-                                  )}
-                                </div>
+                                  </div>
+                                )}
                                 <div>
                                   <p className="font-medium">
                                     {menuItems.find(i => i.id.toString() === selectedItemId)?.name}

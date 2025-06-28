@@ -178,7 +178,7 @@ export function PromoCodeForm({ promoCode, onSubmit, isSubmitting }: PromoCodeFo
           name="minOrderValue"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Minimum Order Value</FormLabel>
+              <FormLabel>Minimum Order Value (€)</FormLabel>
               <FormControl>
                 <Input {...field} type="number" step="0.01" placeholder="e.g., 25.00" />
               </FormControl>

@@ -417,12 +417,13 @@ export default function Checkout() {
                               <h3 className="font-medium text-primary">Items Ordered</h3>
                             </div>
                             <div className="p-3 divide-y divide-border">
-                                {(orderData?.items || cart).map((item: CartItem, index: number) => (                                <div key={index} className="py-2 flex justify-between items-center">
+                              {(orderData?.items || cart).map((item: CartItem, index: number) => (
+                                <div key={index} className="py-2 flex justify-between items-center">
                                   <div className="flex items-center">
                                     <span className="font-medium text-primary">{item.quantity}x</span>
                                     <span className="ml-2 text-foreground">{item.name}</span>
                                   </div>
-                                  <span className="font-medium text-foreground">${(item.price * item.quantity).toFixed(2)}</span>
+                                  <span className="font-medium text-foreground">€{(item.price * item.quantity).toFixed(2)}</span>
                                 </div>
                               ))}
                             </div>

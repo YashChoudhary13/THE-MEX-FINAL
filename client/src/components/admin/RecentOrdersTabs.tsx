@@ -259,7 +259,7 @@ export default function RecentOrdersTabs() {
                             <div className="pt-2 border-t">
                               <div className="text-sm font-medium mb-2">Ordered Items:</div>
                               <div className="space-y-1">
-                                  {order.items.map((item: any, idx: number) => {
+                                {order.items.map((item: any, idx: number) => {
                                   return (
                                     <div key={idx} className="flex items-center justify-between text-sm">
                                       <span>{item.quantity}x {item.name}</span>

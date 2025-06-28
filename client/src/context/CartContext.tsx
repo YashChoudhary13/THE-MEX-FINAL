@@ -15,8 +15,6 @@ interface CartContextProps {
   clearPromoCode: () => void;
   calculateTotals: () => {
     subtotal: number;
-    serviceFee: number;
-    tax: number;
     discount: number;
     total: number;
   };
@@ -50,18 +48,7 @@ export function CartProvider({ children }: CartProviderProps) {
   const [promoCode, setPromoCode] = useState<string>("");
   const [promoDiscount, setPromoDiscount] = useState<number>(0);
 
-  // Fetch service fee from the backend
-  const { data: serviceFeeData } = useQuery({
-    queryKey: ["/api/system-settings/service-fee"],
-    queryFn: async ({ signal }) => {
-      const response = await fetch("/api/system-settings/service-fee", { signal });
-      if (!response.ok) {
-        throw new Error("Failed to fetch service fee");
-      }
-      return response.json();
-    },
-    refetchOnWindowFocus: false,
-  });
+  // Note: Service fees removed - tax is included in menu item prices
 
   // Save cart to localStorage whenever it changes
   useEffect(() => {
@@ -172,29 +159,20 @@ export function CartProvider({ children }: CartProviderProps) {
   };
 
   const calculateTotals = () => {
+    // Calculate subtotal with tax-inclusive pricing
     const subtotal = cart.reduce(
       (total, item) => total + item.price * item.quantity,
       0
     );
     
-    // Dynamic service fee from backend, fallback to 2.99 if not available
-    const serviceFee = cart.length > 0 
-      ? (serviceFeeData?.serviceFee || 2.99) 
-      : 0;
-    
-    // Calculate tax (10% for this demo)
-    const tax = subtotal * 0.1;
-    
     // Apply promo discount
     const discount = promoDiscount || 0;
     
-    // Calculate total (subtotal + service fee + tax - discount)
-    const total = Math.max(0, subtotal + serviceFee + tax - discount);
+    // Calculate total (subtotal with tax already included - discount)
+    const total = Math.max(0, subtotal - discount);
     
     return {
       subtotal,
-      serviceFee,
-      tax,
       discount,
       total,
     };

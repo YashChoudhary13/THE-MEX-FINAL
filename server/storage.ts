@@ -9,7 +9,8 @@ import {
   PromoCode, InsertPromoCode,
   DailyReport, InsertDailyReport,
   MonthlyReport, InsertMonthlyReport,
-  users, menuCategories, menuItems, menuItemOptionGroups, menuItemOptions, orders, specialOffers, promoCodes, systemSettings, dailyReports, monthlyReports
+  TaxReport, InsertTaxReport,
+  users, menuCategories, menuItems, menuItemOptionGroups, menuItemOptions, orders, specialOffers, promoCodes, systemSettings, dailyReports, monthlyReports, taxReports
 } from "@shared/schema";
 
 import session from "express-session";
@@ -102,6 +103,12 @@ export interface IStorage {
   getMonthlyReports(months?: number): Promise<MonthlyReport[]>;
   createOrUpdateMonthlyReport(year: number, month: number, orders: number, revenue: number): Promise<MonthlyReport>;
   
+  // Tax Reports
+  getTaxReports(reportType?: 'daily' | 'monthly' | 'yearly', limit?: number): Promise<TaxReport[]>;
+  createOrUpdateTaxReport(reportData: InsertTaxReport): Promise<TaxReport>;
+  generateTaxReportForPeriod(reportType: 'daily' | 'monthly' | 'yearly', date: Date): Promise<TaxReport>;
+  getTaxReportsByDateRange(startDate: string, endDate: string): Promise<TaxReport[]>;
+  
   // Data Cleanup
   cleanupOldData(): Promise<boolean>;
   
@@ -162,7 +169,8 @@ export class MemStorage implements IStorage {
       ...category, 
       id, 
       order,
-      description: category.description ?? null 
+      description: category.description ?? null,
+      taxRate: category.taxRate ?? null
     };
     this.menuCategories.set(id, newCategory);
     return newCategory;
@@ -227,7 +235,8 @@ export class MemStorage implements IStorage {
       dietaryInfo: item.dietaryInfo || null,
       image: item.image || null,
       prepTime: item.prepTime ?? 15,
-      hasOptions: item.hasOptions ?? false
+      hasOptions: item.hasOptions ?? false,
+      taxRate: item.taxRate ?? null
     };
     this.menuItems.set(id, newItem);
     return newItem;
@@ -609,6 +618,50 @@ export class MemStorage implements IStorage {
       .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   }
 
+  // Tax Reports - Memory implementation
+  async getTaxReports(): Promise<TaxReport[]> {
+    return [];
+  }
+
+  async createOrUpdateTaxReport(data: InsertTaxReport): Promise<TaxReport> {
+    const taxReport: TaxReport = {
+      id: Date.now(),
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      month: data.month ?? null,
+      day: data.day ?? null,
+      year: data.year,
+      reportType: data.reportType,
+      reportDate: data.reportDate,
+      totalOrders: data.totalOrders ?? 0,
+      totalTaxCollected: data.totalTaxCollected ?? "0.00",
+      totalPreTaxRevenue: data.totalPreTaxRevenue ?? "0.00",
+      totalIncTaxRevenue: data.totalIncTaxRevenue ?? "0.00",
+      taxBreakdown: data.taxBreakdown ?? {}
+    };
+    return taxReport;
+  }
+
+  async generateTaxReportForPeriod(period: 'daily' | 'monthly' | 'yearly', date: Date): Promise<TaxReport> {
+    const reportData: InsertTaxReport = {
+      reportDate: date.toISOString().split('T')[0],
+      reportType: period,
+      year: date.getFullYear(),
+      month: period !== 'yearly' ? date.getMonth() + 1 : null,
+      day: period === 'daily' ? date.getDate() : null,
+      totalTaxCollected: "0.00",
+      totalPreTaxRevenue: "0.00",
+      totalIncTaxRevenue: "0.00",
+      totalOrders: 0,
+      taxBreakdown: {}
+    };
+    return this.createOrUpdateTaxReport(reportData);
+  }
+
+  async getTaxReportsByDateRange(startDate: string, endDate: string): Promise<TaxReport[]> {
+    return [];
+  }
+
   // Initialize with default data
   private async initializeDefaultData() {
     // Create categories
@@ -760,6 +813,44 @@ export class DatabaseStorage implements IStorage {
       return items as OrderItem[];
     }
     return [];
+  }
+
+  // Tax Reports
+  async getTaxReports(): Promise<TaxReport[]> {
+    return await db.select().from(taxReports).orderBy(desc(taxReports.reportDate));
+  }
+
+  async createOrUpdateTaxReport(data: InsertTaxReport): Promise<TaxReport> {
+    const [taxReport] = await db.insert(taxReports).values(data).returning();
+    return taxReport;
+  }
+
+  async generateTaxReportForPeriod(period: 'daily' | 'monthly' | 'yearly', date: Date): Promise<TaxReport> {
+    // This would contain complex tax calculation logic
+    // For now, return a placeholder
+    const reportData: InsertTaxReport = {
+      reportDate: date.toISOString().split('T')[0],
+      reportType: period,
+      year: date.getFullYear(),
+      month: period !== 'yearly' ? date.getMonth() + 1 : null,
+      day: period === 'daily' ? date.getDate() : null,
+      totalOrders: 0,
+      totalTaxCollected: "0.00",
+      totalPreTaxRevenue: "0.00", 
+      totalIncTaxRevenue: "0.00",
+      taxBreakdown: {}
+    };
+    return this.createOrUpdateTaxReport(reportData);
+  }
+
+  async getTaxReportsByDateRange(startDate: string, endDate: string): Promise<TaxReport[]> {
+    return await db.select()
+      .from(taxReports)
+      .where(and(
+        gte(taxReports.reportDate, startDate),
+        lte(taxReports.reportDate, endDate)
+      ))
+      .orderBy(desc(taxReports.reportDate));
   }
   
   // Menu Categories

@@ -25,7 +25,7 @@ export default function CartPanel({ isOpen, onClose }: CartPanelProps) {
   } = useCart();
   const { toast } = useToast();
 
-  const { subtotal, serviceFee, tax, discount, total } = calculateTotals();
+  const { subtotal, discount, total } = calculateTotals();
 
   const handleProceedToCheckout = () => {
     if (cart.length === 0) {
@@ -190,7 +190,7 @@ export default function CartPanel({ isOpen, onClose }: CartPanelProps) {
                                 })()}
                               </div>
                             )}
-                          </div>                          
+                          </div>
                           <Button 
                             variant="ghost" 
                             size="icon"
@@ -221,7 +221,7 @@ export default function CartPanel({ isOpen, onClose }: CartPanelProps) {
                               <Plus className="h-3 w-3 md:h-4 md:w-4" />
                             </Button>
                           </div>
-                          <span className="font-bold text-primary text-sm md:text-base">${(item.price * item.quantity).toFixed(2)}</span>
+                          <span className="font-bold text-primary text-sm md:text-base">€{(item.price * item.quantity).toFixed(2)}</span>
                         </div>
                       </div>
                     </motion.div>
@@ -237,29 +237,21 @@ export default function CartPanel({ isOpen, onClose }: CartPanelProps) {
           <div className="border-t border-border p-4 bg-card absolute bottom-0 left-0 right-0 z-10 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)]">
             <div className="space-y-2 mb-3">
               <div className="flex justify-between text-xs md:text-sm">
-                <span className="text-muted-foreground">Subtotal</span>
-                <span className="font-medium text-foreground">${subtotal.toFixed(2)}</span>
-              </div>
-              <div className="flex justify-between text-xs md:text-sm">
-                <span className="text-muted-foreground">Service Fee</span>
-                <span className="font-medium text-foreground">${serviceFee.toFixed(2)}</span>
-              </div>
-              <div className="flex justify-between text-xs md:text-sm">
-                <span className="text-muted-foreground">Tax</span>
-                <span className="font-medium text-foreground">${tax.toFixed(2)}</span>
+                <span className="text-muted-foreground">Subtotal (Tax Included)</span>
+                <span className="font-medium text-foreground">€{subtotal.toFixed(2)}</span>
               </div>
               {discount > 0 && (
                 <div className="flex justify-between text-xs md:text-sm">
                   <span className="text-green-500 flex items-center">
                     Promo ({promoCode}) <span className="ml-1 text-[10px] bg-green-500/10 px-1 py-0.5 rounded">APPLIED</span>
                   </span>
-                  <span className="font-medium text-green-500">-${discount.toFixed(2)}</span>
+                  <span className="font-medium text-green-500">-€{discount.toFixed(2)}</span>
                 </div>
               )}
               <Separator className="my-2 bg-border" />
               <div className="flex justify-between font-bold text-base md:text-xl">
                 <span className="font-heading text-foreground">TOTAL</span>
-                <span className="text-primary">${total.toFixed(2)}</span>
+                <span className="text-primary">€{total.toFixed(2)}</span>
               </div>
             </div>
             

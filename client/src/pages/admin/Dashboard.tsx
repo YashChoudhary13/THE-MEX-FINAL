@@ -15,7 +15,8 @@ import {
   InsertMenuItemOptionGroup,
   InsertMenuItemOption
 } from "@shared/schema";
-import { CreditCard, Menu, ArrowRightLeft, Settings, BarChart3, Users, LogOut, ShoppingBag, Plus, Edit, Trash, AlertTriangle, Tag, ChevronRight, Store } from "lucide-react";import { PromoCodeForm, SystemSettingsForm } from "./AdminForms";
+import { CreditCard, Menu, ArrowRightLeft, Settings, BarChart3, Users, LogOut, ShoppingBag, Plus, Edit, Trash, AlertTriangle, Tag, ChevronRight, Store, FileText } from "lucide-react";
+import { PromoCodeForm } from "./AdminForms";
 import MenuItemForm from "@/components/admin/MenuItemForm";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -41,6 +42,9 @@ import AdminTimeDisplay from "@/components/admin/AdminTimeDisplay";
 import TodaysSpecialManager from "./components/TodaysSpecialManager";
 import CategoryOrderManager from "@/components/CategoryOrderManager";
 import { useWebSocket } from "@/hooks/useWebSocket";
+import { TaxRateFields } from "@/components/admin/TaxRateFields";
+import { AddMenuItemForm } from "@/components/admin/AddMenuItemForm";
+import TaxReportsManager from "@/components/admin/TaxReportsManager";
 
 // We'll wrap the admin component sections in conditional rendering
 // to avoid errors when the component files are being loaded
@@ -53,7 +57,7 @@ export default function AdminDashboard() {
   const [isAddCategoryOpen, setIsAddCategoryOpen] = useState(false);
   const [isEditCategoryOpen, setIsEditCategoryOpen] = useState(false);
   const [isUpdateSpecialOpen, setIsUpdateSpecialOpen] = useState(false);
-  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+
   const [isPromoCodeOpen, setIsPromoCodeOpen] = useState(false);
   const [isManageOptionsOpen, setIsManageOptionsOpen] = useState(false);
   const [selectedMenuItem, setSelectedMenuItem] = useState<MenuItem | null>(null);
@@ -66,6 +70,9 @@ export default function AdminDashboard() {
     onMessage: (data) => {
       console.log('Admin received WebSocket message:', data);
       if (data.type === 'NEW_ORDER') {
+        // Invalidate promo codes cache when new orders are placed (may include promo code usage)
+        queryClient.invalidateQueries({ queryKey: ["/api/admin/promo-codes"] });
+        
         toast({
           title: "New Order Received",
           description: `Order #${data.order.dailyOrderNumber || data.order.id} from ${data.order.customerName}`,
@@ -106,14 +113,7 @@ export default function AdminDashboard() {
     refetchInterval: 10000, // Admin gets faster updates
   });
   
-  // Fetch system settings
-  const { data: serviceFee, isLoading: serviceFeeLoading } = useQuery<{ serviceFee: number }>({
-    queryKey: ["/api/system-settings/service-fee"],
-  });
-  
-  const { data: taxRate, isLoading: taxRateLoading } = useQuery<{ taxRate: number }>({
-     queryKey: ["/api/system-settings/tax-rate"],
-  });
+
 
   const { data: storeOpen = true } = useQuery({
     queryKey: ['/api/system-settings/store-open'],
@@ -144,9 +144,10 @@ export default function AdminDashboard() {
     },
   });
   
-  // Fetch promo codes
+  // Fetch promo codes with real-time updates
   const { data: promoCodes, isLoading: promoCodesLoading } = useQuery<PromoCode[]>({
     queryKey: ["/api/admin/promo-codes"],
+    refetchInterval: 10000, // Refresh every 10 seconds to catch usage updates
   });
 
   // Mutations for menu management
@@ -178,7 +179,19 @@ export default function AdminDashboard() {
       return response.json();
     },
     onSuccess: () => {
+      // Aggressive cache invalidation to ensure customer menu updates immediately
       queryClient.invalidateQueries({ queryKey: ["/api/menu-items"] });
+      queryClient.refetchQueries({ queryKey: ["/api/menu-items"] });
+      
+      // Also invalidate special offers in case the updated item is part of a special
+      queryClient.invalidateQueries({ queryKey: ["/api/special-offer"] });
+      queryClient.refetchQueries({ queryKey: ["/api/special-offer"] });
+      
+      // Invalidate categories in case tax rates changed at category level
+      queryClient.invalidateQueries({ queryKey: ["/api/categories"] });
+      
+      console.log("🔄 Menu item updated - forced cache refresh for customer views");
+      
       setIsEditMenuItemOpen(false);
       setSelectedMenuItem(null);
       toast({
@@ -341,37 +354,7 @@ export default function AdminDashboard() {
     }
   });
   
-  // System settings mutations
-  const updateSystemSettingsMutation = useMutation({
-    mutationFn: async (data: { serviceFee: number; taxRate: number }) => {
-      // Update both settings in parallel
-      const [serviceFeeResponse, taxRateResponse] = await Promise.all([
-        apiRequest("PATCH", "/api/admin/system-settings/service-fee", { serviceFee: data.serviceFee }),
-        apiRequest("PATCH", "/api/admin/system-settings/tax-rate", { taxRate: data.taxRate })
-      ]);
-      
-      return {
-        serviceFee: await serviceFeeResponse.json(),
-        taxRate: await taxRateResponse.json()
-      };
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/system-settings/service-fee"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/system-settings/tax-rate"] });
-      setIsSettingsOpen(false);
-      toast({
-        title: "System settings updated",
-        description: "Service fee and tax rate have been updated successfully",
-      });
-    },
-    onError: (error) => {
-      toast({
-        title: "Failed to update system settings",
-        description: error.message,
-        variant: "destructive",
-      });
-    }
-  });
+
   
   // Promo code mutations
   const createPromoCodeMutation = useMutation({
@@ -506,13 +489,14 @@ export default function AdminDashboard() {
             <Tag className="mr-2 h-4 w-4" />
             Promo Codes
           </Button>
+
           <Button 
-            variant={activeTab === "settings" ? "secondary" : "ghost"}
+            variant={activeTab === "tax-reports" ? "secondary" : "ghost"}
             className="w-full justify-start" 
-            onClick={() => setActiveTab("settings")}
+            onClick={() => setActiveTab("tax-reports")}
           >
-            <Settings className="mr-2 h-4 w-4" />
-            System Settings
+            <FileText className="mr-2 h-4 w-4" />
+            Tax Reports
           </Button>
           
           <Separator className="my-4" />
@@ -590,14 +574,7 @@ export default function AdminDashboard() {
         >
           <Tag className="h-5 w-5" />
         </Button>
-        <Button 
-          variant={activeTab === "settings" ? "secondary" : "ghost"}
-          className="flex-1" 
-          size="sm"
-          onClick={() => setActiveTab("settings")}
-        >
-          <Settings className="h-5 w-5" />
-        </Button>
+
       </div>
       
       {/* Main Content */}
@@ -612,7 +589,7 @@ export default function AdminDashboard() {
                 {activeTab === "menu" && "Menu Management"}
                 {activeTab === "specials" && "Today's Special"}
                 {activeTab === "promo-codes" && "Promo Code Management"}
-                {activeTab === "settings" && "System Settings"}
+
               </h1>
               <p className="text-muted-foreground">
                 {activeTab === "overview" && "Monitor your restaurant's performance and manage daily operations."}
@@ -620,7 +597,7 @@ export default function AdminDashboard() {
                 {activeTab === "menu" && "Manage category order, add/edit categories and menu items."}
                 {activeTab === "specials" && "Set and manage today's special offers and promotions."}
                 {activeTab === "promo-codes" && "Create and manage promotional codes for discounts."}
-                {activeTab === "settings" && "Configure system-wide settings such as tax rate and service fees."}
+
               </p>
             </div>
             
@@ -658,12 +635,7 @@ export default function AdminDashboard() {
                   Add Promo Code
                 </Button>
               )}
-              {activeTab === "settings" && (
-                <Button className="bg-primary hover:bg-primary/90" onClick={() => setIsSettingsOpen(true)}>
-                  <Settings className="h-4 w-4 mr-2" />
-                  Update Settings
-                </Button>
-              )}
+
             </div>
           </div>
           
@@ -672,7 +644,7 @@ export default function AdminDashboard() {
             {activeTab === "overview" && (
               <div className="space-y-6">
                 <LiveStatsDisplay />
-
+                
                 {/* Store Open/Close Toggle */}
                 <Card>
                   <CardHeader>
@@ -778,16 +750,25 @@ export default function AdminDashboard() {
                     <CardContent>
                       {specialOffer?.menuItem ? (
                         <div className="space-y-3">
-                          <div className="aspect-video bg-muted rounded-md overflow-hidden relative">
-                            <img 
-                              src={specialOffer.menuItem.image || "https://images.unsplash.com/photo-1594212699903-ec8a3eca50f5?auto=format&fit=crop&w=800"} 
-                              alt={specialOffer.menuItem.name}
-                              className="w-full h-full object-cover"
-                            />
-                            <div className="absolute top-2 left-2 bg-primary text-white text-xs px-2 py-1 rounded-md">
-                              SPECIAL OFFER
-                            </div>
+                          <div className="bg-primary text-white text-xs px-2 py-1 rounded-md w-fit mb-2">
+                            SPECIAL OFFER
                           </div>
+                          {specialOffer.menuItem.image && (
+                            <div className="aspect-video bg-muted rounded-md overflow-hidden">
+                              <img 
+                                src={specialOffer.menuItem.image} 
+                                alt={specialOffer.menuItem.name}
+                                className="w-full h-full object-cover"
+                                onError={(e) => {
+                                  const target = e.target as HTMLImageElement;
+                                  const container = target.parentElement;
+                                  if (container) {
+                                    container.style.display = 'none';
+                                  }
+                                }}
+                              />
+                            </div>
+                          )}
                           <h3 className="font-medium">{specialOffer.menuItem.name}</h3>
                           <div className="flex justify-between items-center">
                             <p className="text-lg font-bold text-primary">
@@ -1043,22 +1024,25 @@ export default function AdminDashboard() {
                     ) : (
                       <div className="grid md:grid-cols-3 gap-6">
                         <div className="col-span-1">
-                          <div className="aspect-square rounded-xl border overflow-hidden bg-muted relative">
-                            {specialOffer.menuItem.image ? (
+                          <div className="bg-primary text-white text-sm font-bold px-3 py-1 rounded-lg w-fit mb-3">
+                            SPECIAL OFFER
+                          </div>
+                          {specialOffer.menuItem.image && (
+                            <div className="aspect-square rounded-xl border overflow-hidden bg-muted">
                               <img 
                                 src={specialOffer.menuItem.image} 
                                 alt={specialOffer.menuItem.name}
                                 className="w-full h-full object-cover"
+                                onError={(e) => {
+                                  const target = e.target as HTMLImageElement;
+                                  const container = target.parentElement;
+                                  if (container) {
+                                    container.style.display = 'none';
+                                  }
+                                }}
                               />
-                            ) : (
-                              <div className="w-full h-full flex items-center justify-center bg-muted">
-                                <Tag className="h-12 w-12 text-muted-foreground" />
-                              </div>
-                            )}
-                            <div className="absolute top-3 left-3 bg-primary text-white text-sm font-bold px-3 py-1 rounded-lg">
-                              SPECIAL OFFER
                             </div>
-                          </div>
+                          )}
                         </div>
                         
                         <div className="md:col-span-2 flex flex-col">
@@ -1252,82 +1236,11 @@ export default function AdminDashboard() {
               </div>
             )}
             
-            {activeTab === "settings" && (
-              <div className="space-y-6">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>System Settings</CardTitle>
-                    <CardDescription>Configure global system settings</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="grid md:grid-cols-2 gap-6">
-                      <div className="space-y-4 p-4 border rounded-lg">
-                        <div className="flex items-center justify-between">
-                          <h3 className="text-lg font-semibold">Service Fee</h3>
-                          <div className="text-2xl font-bold text-primary">
-                            €{serviceFee?.serviceFee?.toFixed(2) || '2.99'}
-                          </div>
-                        </div>
-                        <p className="text-sm text-muted-foreground">
-                          This fee is applied to all orders placed through the system.
-                        </p>
-                        <Button 
-                          variant="outline" 
-                          className="w-full"
-                          onClick={() => setIsSettingsOpen(true)}
-                        >
-                          Update Service Fee
-                        </Button>
-                      </div>
-                      
-                      <div className="space-y-4 p-4 border rounded-lg">
-                        <div className="flex items-center justify-between">
-                          <h3 className="text-lg font-semibold">Tax Rate</h3>
-                          <div className="text-2xl font-bold text-primary">
-                            {taxRate?.taxRate?.toFixed(1) || '8.0'}%
-                          </div>
-                        </div>
-                        <p className="text-sm text-muted-foreground">
-                          Current tax rate applied to the subtotal of all orders.
-                        </p>
-                        <Button 
-                          variant="outline" 
-                          className="w-full"
-                          onClick={() => setIsSettingsOpen(true)}
-                        >
-                          Update Tax Rate
-                        </Button>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-                
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Service Settings History</CardTitle>
-                    <CardDescription>Recent changes to system settings</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-4">
-                      <div className="flex items-center justify-between border-b pb-4">
-                        <div>
-                          <p className="font-medium">Service Fee Updated</p>
-                          <p className="text-sm text-muted-foreground">Changed from €2.50 to €2.99</p>
-                        </div>
-                        <div className="text-sm text-muted-foreground">May 1, 2023</div>
-                      </div>
-                      <div className="flex items-center justify-between border-b pb-4">
-                        <div>
-                          <p className="font-medium">Tax Rate Updated</p>
-                          <p className="text-sm text-muted-foreground">Changed from 7.5% to 8%</p>
-                        </div>
-                        <div className="text-sm text-muted-foreground">April 15, 2023</div>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
+            {activeTab === "tax-reports" && (
+              <TaxReportsManager />
             )}
+            
+
           </div>
         </div>
         
@@ -1362,11 +1275,11 @@ export default function AdminDashboard() {
               </DialogDescription>
             </DialogHeader>
             {selectedMenuItem && (
-              <EditMenuItemForm
+              <AddMenuItemForm
                 categories={categories || []}
-                menuItem={selectedMenuItem}
                 onSubmit={(data) => updateMenuItemMutation.mutate({ id: selectedMenuItem.id, data })}
                 isSubmitting={updateMenuItemMutation.isPending}
+                menuItem={selectedMenuItem}
               />
             )}
           </DialogContent>
@@ -1456,27 +1369,7 @@ export default function AdminDashboard() {
           </DialogContent>
         </Dialog>
         
-        {/* System Settings Dialog */}
-        <Dialog open={isSettingsOpen} onOpenChange={setIsSettingsOpen}>
-          <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>Update System Settings</DialogTitle>
-              <DialogDescription>
-                Configure global system settings like tax rate and service fee.
-              </DialogDescription>
-            </DialogHeader>
-            <SystemSettingsForm 
-              initialValues={{
-                serviceFee: serviceFee?.serviceFee || 2.99,
-                taxRate: taxRate?.taxRate || 8
-              }}
-              onSubmit={(data) => {
-                updateSystemSettingsMutation.mutate(data);
-              }}
-              isSubmitting={updateSystemSettingsMutation.isPending}
-            />
-          </DialogContent>
-        </Dialog>
+
         
         {/* Manage Menu Item Options Dialog */}
         <Dialog open={isManageOptionsOpen} onOpenChange={setIsManageOptionsOpen}>
@@ -1501,468 +1394,6 @@ export default function AdminDashboard() {
 }
 
 // Form components for the admin dialogs
-type AddMenuItemFormProps = {
-  categories: MenuCategory[];
-  onSubmit: (data: InsertMenuItem) => void;
-  isSubmitting: boolean;
-  defaultCategoryId?: number;
-};
-
-function AddMenuItemForm({ categories, onSubmit, isSubmitting, defaultCategoryId }: AddMenuItemFormProps) {
-  const menuItemFormSchema = z.object({
-    name: z.string().min(2, "Name must be at least 2 characters"),
-    description: z.string().min(5, "Description must be at least 5 characters"),
-    price: z.coerce.number().positive("Price must be a positive number"),
-    image: z.string().optional().refine((val) => {
-      if (!val || val === "") return true; // Allow empty
-      if (val.startsWith("data:")) return true; // Allow data URLs from file uploads
-      try {
-        new URL(val);
-        return true;
-      } catch {
-        return false;
-      }
-    }, "Please enter a valid URL or upload an image file"),
-    categoryId: z.coerce.number().positive("Please select a category"),
-    featured: z.boolean().default(false),
-    soldOut: z.boolean().default(false),
-    isHot: z.boolean().default(false),
-    isBestSeller: z.boolean().default(false),
-    prepTime: z.coerce.number().int().min(1, "Prep time must be at least 1 minute").max(60, "Prep time should not exceed 60 minutes").default(15),
-  });
-
-  const form = useForm<z.infer<typeof menuItemFormSchema>>({
-    resolver: zodResolver(menuItemFormSchema),
-    defaultValues: {
-      name: "",
-      description: "",
-      price: 0,
-      image: undefined,
-      categoryId: defaultCategoryId || 0,
-      featured: false,
-      soldOut: false,
-      isHot: false,
-      isBestSeller: false,
-      prepTime: 15,
-    },
-  });
-
-  function handleSubmit(values: z.infer<typeof menuItemFormSchema>) {
-    onSubmit(values);
-  }
-
-  return (
-    <Form {...form}>
-      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
-        <FormField
-          control={form.control}
-          name="name"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Item Name</FormLabel>
-              <FormControl>
-                <Input placeholder="Loaded Nachos" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name="description"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Description</FormLabel>
-              <FormControl>
-                <Textarea placeholder="Crispy nachos topped with cheese, jalapeños, and guacamole" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <div className="grid grid-cols-2 gap-4">
-          <FormField
-            control={form.control}
-            name="price"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Price</FormLabel>
-                <FormControl>
-                  <Input type="number" step="0.01" placeholder="9.99" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="categoryId"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Category</FormLabel>
-                <Select 
-                  onValueChange={(value) => field.onChange(parseInt(value))}
-                  defaultValue={field.value.toString()}
-                >
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select a category" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {categories.map((category) => (
-                      <SelectItem key={category.id} value={category.id.toString()}>
-                        {category.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
-        <FormField
-          control={form.control}
-          name="image"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Image URL</FormLabel>
-              <FormControl>
-                <Input placeholder="https://example.com/image.jpg" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name="prepTime"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Preparation Time (minutes)</FormLabel>
-              <FormControl>
-                <Input 
-                  type="number" 
-                  min="1" 
-                  max="60" 
-                  placeholder="15" 
-                  {...field} 
-                />
-              </FormControl>
-              <FormDescription>
-                Average time to prepare this item in minutes
-              </FormDescription>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <div className="space-y-4">
-          <h4 className="text-sm font-medium">Item Status & Tags</h4>
-          <div className="grid grid-cols-2 gap-4">
-            <FormField
-              control={form.control}
-              name="featured"
-              render={({ field }) => (
-                <FormItem className="flex items-center gap-2 space-y-0">
-                  <FormControl>
-                    <Switch 
-                      checked={field.value}
-                      onCheckedChange={field.onChange}
-                    />
-                  </FormControl>
-                  <FormLabel>Featured</FormLabel>
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="soldOut"
-              render={({ field }) => (
-                <FormItem className="flex items-center gap-2 space-y-0">
-                  <FormControl>
-                    <Switch 
-                      checked={field.value}
-                      onCheckedChange={field.onChange}
-                    />
-                  </FormControl>
-                  <FormLabel>Sold Out</FormLabel>
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="isHot"
-              render={({ field }) => (
-                <FormItem className="flex items-center gap-2 space-y-0">
-                  <FormControl>
-                    <Switch 
-                      checked={field.value}
-                      onCheckedChange={field.onChange}
-                    />
-                  </FormControl>
-                  <FormLabel>Hot 🌶️</FormLabel>
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="isBestSeller"
-              render={({ field }) => (
-                <FormItem className="flex items-center gap-2 space-y-0">
-                  <FormControl>
-                    <Switch 
-                      checked={field.value}
-                      onCheckedChange={field.onChange}
-                    />
-                  </FormControl>
-                  <FormLabel>Best Seller</FormLabel>
-                </FormItem>
-              )}
-            />
-          </div>
-        </div>
-        <DialogFooter>
-          <Button type="submit" disabled={isSubmitting}>
-            {isSubmitting ? "Creating..." : "Create Item"}
-          </Button>
-        </DialogFooter>
-      </form>
-    </Form>
-  );
-}
-
-type EditMenuItemFormProps = {
-  categories: MenuCategory[];
-  menuItem: MenuItem;
-  onSubmit: (data: Partial<InsertMenuItem>) => void;
-  isSubmitting: boolean;
-};
-
-function EditMenuItemForm({ categories, menuItem, onSubmit, isSubmitting }: EditMenuItemFormProps) {
-  const menuItemFormSchema = z.object({
-    name: z.string().min(2, "Name must be at least 2 characters"),
-    description: z.string().min(5, "Description must be at least 5 characters"),
-    price: z.coerce.number().positive("Price must be a positive number"),
-    image: z.string().optional().refine((val) => {
-      if (!val || val === "") return true; // Allow empty
-      if (val.startsWith("data:")) return true; // Allow data URLs from file uploads
-      try {
-        new URL(val);
-        return true;
-      } catch {
-        return false;
-      }
-    }, "Please enter a valid URL or upload an image file"),
-    categoryId: z.coerce.number().positive("Please select a category"),
-    featured: z.boolean().default(false),
-    soldOut: z.boolean().default(false),
-    isHot: z.boolean().default(false),
-    isBestSeller: z.boolean().default(false),
-    prepTime: z.coerce.number().int().min(1, "Prep time must be at least 1 minute").max(60, "Prep time should not exceed 60 minutes").default(15),
-  });
-
-  const form = useForm<z.infer<typeof menuItemFormSchema>>({
-    resolver: zodResolver(menuItemFormSchema),
-    defaultValues: {
-      name: menuItem.name,
-      description: menuItem.description,
-      price: menuItem.price,
-      image: menuItem.image || "",
-      categoryId: menuItem.categoryId,
-      featured: menuItem.featured ?? false,
-      soldOut: menuItem.soldOut ?? false,
-      isHot: menuItem.isHot ?? false,
-      isBestSeller: menuItem.isBestSeller ?? false,
-      prepTime: menuItem.prepTime || 15,
-    },
-  });
-
-  function handleSubmit(values: z.infer<typeof menuItemFormSchema>) {
-    onSubmit(values);
-  }
-
-  return (
-    <Form {...form}>
-      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
-        <FormField
-          control={form.control}
-          name="name"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Item Name</FormLabel>
-              <FormControl>
-                <Input placeholder="Loaded Nachos" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name="description"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Description</FormLabel>
-              <FormControl>
-                <Textarea placeholder="Crispy nachos topped with cheese, jalapeños, and guacamole" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <div className="grid grid-cols-2 gap-4">
-          <FormField
-            control={form.control}
-            name="price"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Price</FormLabel>
-                <FormControl>
-                  <Input type="number" step="0.01" placeholder="9.99" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="categoryId"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Category</FormLabel>
-                <Select 
-                  onValueChange={(value) => field.onChange(parseInt(value))}
-                  defaultValue={field.value.toString()}
-                >
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select a category" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {categories.map((category) => (
-                      <SelectItem key={category.id} value={category.id.toString()}>
-                        {category.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
-        <FormField
-          control={form.control}
-          name="image"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Image URL</FormLabel>
-              <FormControl>
-                <Input placeholder="https://example.com/image.jpg" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name="prepTime"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Preparation Time (minutes)</FormLabel>
-              <FormControl>
-                <Input 
-                  type="number" 
-                  min="1" 
-                  max="60" 
-                  placeholder="15" 
-                  {...field} 
-                />
-              </FormControl>
-              <FormDescription>
-                Average time to prepare this item in minutes
-              </FormDescription>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <div className="space-y-4">
-          <h4 className="text-sm font-medium">Item Status & Tags</h4>
-          <div className="grid grid-cols-2 gap-4">
-            <FormField
-              control={form.control}
-              name="featured"
-              render={({ field }) => (
-                <FormItem className="flex items-center gap-2 space-y-0">
-                  <FormControl>
-                    <Switch 
-                      checked={field.value}
-                      onCheckedChange={field.onChange}
-                    />
-                  </FormControl>
-                  <FormLabel>Featured</FormLabel>
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="soldOut"
-              render={({ field }) => (
-                <FormItem className="flex items-center gap-2 space-y-0">
-                  <FormControl>
-                    <Switch 
-                      checked={field.value}
-                      onCheckedChange={field.onChange}
-                    />
-                  </FormControl>
-                  <FormLabel>Sold Out</FormLabel>
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="isHot"
-              render={({ field }) => (
-                <FormItem className="flex items-center gap-2 space-y-0">
-                  <FormControl>
-                    <Switch 
-                      checked={field.value}
-                      onCheckedChange={field.onChange}
-                    />
-                  </FormControl>
-                  <FormLabel>Hot 🌶️</FormLabel>
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="isBestSeller"
-              render={({ field }) => (
-                <FormItem className="flex items-center gap-2 space-y-0">
-                  <FormControl>
-                    <Switch 
-                      checked={field.value}
-                      onCheckedChange={field.onChange}
-                    />
-                  </FormControl>
-                  <FormLabel>Best Seller</FormLabel>
-                </FormItem>
-              )}
-            />
-          </div>
-        </div>
-        <DialogFooter>
-          <Button type="submit" disabled={isSubmitting}>
-            {isSubmitting ? "Updating..." : "Update Item"}
-          </Button>
-        </DialogFooter>
-      </form>
-    </Form>
-  );
-}
-
 type AddCategoryFormProps = {
   onSubmit: (data: InsertMenuCategory) => void;
   isSubmitting: boolean;
@@ -1973,6 +1404,7 @@ function AddCategoryForm({ onSubmit, isSubmitting }: AddCategoryFormProps) {
     name: z.string().min(2, "Name must be at least 2 characters"),
     slug: z.string().min(2, "Slug must be at least 2 characters").regex(/^[a-z0-9-]+$/, "Slug can only contain lowercase letters, numbers, and hyphens"),
     description: z.string().optional(),
+    taxRate: z.coerce.number().min(0, "Tax rate cannot be negative").max(100, "Tax rate cannot exceed 100%").optional(),
   });
 
   const form = useForm<z.infer<typeof categoryFormSchema>>({
@@ -1981,11 +1413,18 @@ function AddCategoryForm({ onSubmit, isSubmitting }: AddCategoryFormProps) {
       name: "",
       slug: "",
       description: "",
+      taxRate: 0,
     },
   });
 
   function handleSubmit(values: z.infer<typeof categoryFormSchema>) {
-    onSubmit(values);
+    const submitData: InsertMenuCategory = {
+      name: values.name,
+      slug: values.slug,
+      description: values.description || null,
+      taxRate: values.taxRate !== undefined ? (values.taxRate / 100).toString() : undefined, // Convert percentage to decimal
+    };
+    onSubmit(submitData);
   }
 
   // Auto-generate slug from name
@@ -2029,7 +1468,7 @@ function AddCategoryForm({ onSubmit, isSubmitting }: AddCategoryFormProps) {
             </FormItem>
           )}
         />
-                <FormField
+        <FormField
           control={form.control}
           name="description"
           render={({ field }) => (
@@ -2040,6 +1479,29 @@ function AddCategoryForm({ onSubmit, isSubmitting }: AddCategoryFormProps) {
               </FormControl>
               <FormDescription>
                 Optional description that will be displayed when customers browse this category.
+              </FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="taxRate"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Tax Rate (%)</FormLabel>
+              <FormControl>
+                <Input 
+                  type="number" 
+                  step="0.1" 
+                  min="0" 
+                  max="100"
+                  placeholder="13.5" 
+                  {...field} 
+                />
+              </FormControl>
+              <FormDescription>
+                Tax rate for all items in this category (%). Individual items can override this rate. Leave empty to use default system rate.
               </FormDescription>
               <FormMessage />
             </FormItem>
@@ -2066,6 +1528,7 @@ function EditCategoryForm({ category, onSubmit, isSubmitting }: EditCategoryForm
     name: z.string().min(2, "Name must be at least 2 characters"),
     slug: z.string().min(2, "Slug must be at least 2 characters").regex(/^[a-z0-9-]+$/, "Slug can only contain lowercase letters, numbers, and hyphens"),
     description: z.string().optional(),
+    taxRate: z.coerce.number().min(0, "Tax rate cannot be negative").max(100, "Tax rate cannot exceed 100%").optional(),
   });
 
   const form = useForm<z.infer<typeof categoryFormSchema>>({
@@ -2074,11 +1537,16 @@ function EditCategoryForm({ category, onSubmit, isSubmitting }: EditCategoryForm
       name: category.name,
       slug: category.slug,
       description: category.description || "",
+      taxRate: category.taxRate ? parseFloat(category.taxRate) * 100 : 0, // Convert from decimal to percentage
     },
   });
 
   function handleSubmit(values: z.infer<typeof categoryFormSchema>) {
-    onSubmit(values);
+    const submitData: Partial<InsertMenuCategory> = {
+      ...values,
+      taxRate: values.taxRate !== undefined ? (values.taxRate / 100).toString() : undefined, // Convert percentage to decimal
+    };
+    onSubmit(submitData);
   }
 
   // Auto-generate slug from name only if the name is significantly different
@@ -2136,6 +1604,29 @@ function EditCategoryForm({ category, onSubmit, isSubmitting }: EditCategoryForm
               </FormControl>
               <FormDescription>
                 Optional description that will be displayed when customers browse this category.
+              </FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="taxRate"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Tax Rate (%)</FormLabel>
+              <FormControl>
+                <Input 
+                  type="number" 
+                  step="0.1" 
+                  min="0" 
+                  max="100"
+                  placeholder="13.5" 
+                  {...field} 
+                />
+              </FormControl>
+              <FormDescription>
+                Tax rate for all items in this category (%). Individual items can override this rate. Leave empty to use default system rate.
               </FormDescription>
               <FormMessage />
             </FormItem>
@@ -2453,7 +1944,7 @@ function MenuItemOptionsManager({ menuItem, onClose }: MenuItemOptionsManagerPro
 
   // Mutations for option groups
   const createOptionGroupMutation = useMutation({
-mutationFn: (data: InsertMenuItemOptionGroup) => {
+    mutationFn: (data: InsertMenuItemOptionGroup) => {
       console.log("Creating option group with data:", data);
       return fetch(`/api/admin/menu-items/${menuItem.id}/option-groups`, {
         method: 'POST',
@@ -2472,6 +1963,9 @@ mutationFn: (data: InsertMenuItemOptionGroup) => {
     onSuccess: () => {
       refetch();
       setIsAddGroupOpen(false);
+    },
+    onError: (error) => {
+      console.error("Failed to create option group:", error);
     }
   });
 
@@ -2531,7 +2025,7 @@ mutationFn: (data: InsertMenuItemOptionGroup) => {
   });
 
   const deleteOptionMutation = useMutation({
-   mutationFn: (id: number) => fetch(`/api/admin/options/${id}`, {
+    mutationFn: (id: number) => fetch(`/api/admin/options/${id}`, {
       method: 'DELETE',
       credentials: 'include'
     }).then(res => res.json()),
@@ -2850,6 +2344,7 @@ function OptionGroupForm({ optionGroup, onSubmit, isSubmitting }: OptionGroupFor
   });
 
   function handleSubmit(values: z.infer<typeof optionGroupSchema>) {
+    console.log("Form submitted with values:", values);
     onSubmit(values as InsertMenuItemOptionGroup);
   }
 

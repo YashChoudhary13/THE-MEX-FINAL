@@ -55,9 +55,7 @@ export default function LiveStatsDisplay() {
     socket.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data);
-
-        const updateTypes = ['NEW_ORDER', 'ORDER_UPDATE', 'daily_reset'];
-
+        const updateTypes = ['NEW_ORDER', 'ORDER_UPDATE', 'REFRESH_STATS', 'daily_reset'];
         if (updateTypes.includes(data.type)) {
           refetch();
           setLastUpdated(new Date());
@@ -65,6 +63,10 @@ export default function LiveStatsDisplay() {
           queryClient.invalidateQueries({ queryKey: ['/api/admin/current-stats'] });
           queryClient.invalidateQueries({ queryKey: ['/api/admin/daily-reports'] });
           queryClient.invalidateQueries({ queryKey: ['/api/admin/monthly-reports'] });
+          // Force immediate refetch for critical stats updates
+          if (data.type === 'REFRESH_STATS' || data.type === 'ORDER_UPDATE') {
+            queryClient.refetchQueries({ queryKey: ['/api/admin/current-stats'] });
+          }
         }
       } catch (error) {
         console.error('Error parsing WebSocket message:', error);

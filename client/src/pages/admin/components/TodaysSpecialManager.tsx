@@ -218,16 +218,25 @@ export default function TodaysSpecialManager({ menuItems }: TodaysSpecialManager
           {specialOffer && (specialOffer as any)?.menuItem ? (
             <div className="grid md:grid-cols-3 gap-6">
               <div className="col-span-1">
-                <div className="aspect-square rounded-xl border overflow-hidden bg-muted relative">
-                  <img
-                    src={(specialOffer as any).menuItem.image || "https://images.unsplash.com/photo-1594212699903-ec8a3eca50f5?auto=format&fit=crop&w=800"}
-                    alt={(specialOffer as any).menuItem.name}
-                    className="w-full h-full object-cover"
-                  />
-                  <div className="absolute top-3 left-3 bg-primary text-white text-xs font-bold px-2 py-1 rounded-md">
-                    SPECIAL OFFER
-                  </div>
+                <div className="bg-primary text-white text-xs font-bold px-2 py-1 rounded-md w-fit mb-3">
+                  SPECIAL OFFER
                 </div>
+                {(specialOffer as any).menuItem.image && (
+                  <div className="aspect-square rounded-xl border overflow-hidden bg-muted">
+                    <img
+                      src={(specialOffer as any).menuItem.image}
+                      alt={(specialOffer as any).menuItem.name}
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        const target = e.target as HTMLImageElement;
+                        const container = target.parentElement;
+                        if (container) {
+                          container.style.display = 'none';
+                        }
+                      }}
+                    />
+                  </div>
+                )}
               </div>
               
               <div className="col-span-2 space-y-4">

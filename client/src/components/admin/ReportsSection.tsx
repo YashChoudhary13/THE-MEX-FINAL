@@ -94,7 +94,10 @@ export default function ReportsSection() {
         }
         
         dailyData[dateKey].orders += 1;
-        dailyData[dateKey].revenue += order.total;
+        if (order.status === "completed") {
+          dailyData[dateKey].revenue += order.total || 0;
+        }
+
         
         if (order.status === 'completed') {
           dailyData[dateKey].completedRevenue += order.total;

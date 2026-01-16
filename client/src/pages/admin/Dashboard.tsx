@@ -42,9 +42,64 @@ import AdminTimeDisplay from "@/components/admin/AdminTimeDisplay";
 import TodaysSpecialManager from "./components/TodaysSpecialManager";
 import CategoryOrderManager from "@/components/CategoryOrderManager";
 import { useWebSocket } from "@/hooks/useWebSocket";
+import { useAuth } from "@/hooks/use-auth";
 import { TaxRateFields } from "@/components/admin/TaxRateFields";
 import { AddMenuItemForm } from "@/components/admin/AddMenuItemForm";
 import TaxReportsManager from "@/components/admin/TaxReportsManager";
+
+/**
+ * Helper function to determine if a promo code is currently active based on:
+ * - Manual active flag
+ * - Expiry date (has passed)
+ * - Usage limit (reached)
+ */
+function isPromoCodeActive(promo: PromoCode): boolean {
+  // If manually set to inactive, it's inactive
+  if (!promo.active) {
+    return false;
+  }
+
+  // Check if expired
+  if (promo.endDate) {
+    const now = new Date();
+    const endDate = new Date(promo.endDate);
+    endDate.setHours(23, 59, 59, 999);
+    if (endDate < now) {
+      return false; // Expired
+    }
+  }
+
+  // Check if usage limit reached
+  if (promo.usageLimit && promo.currentUsage >= promo.usageLimit) {
+    return false; // Usage limit exceeded
+  }
+
+  return true; // All checks passed, code is active
+}
+
+/**
+ * Helper function to get the reason why a promo code is inactive
+ */
+function getPromoCodeInactiveReason(promo: PromoCode): string {
+  if (!promo.active) {
+    return "Manually disabled";
+  }
+
+  if (promo.endDate) {
+    const now = new Date();
+    const endDate = new Date(promo.endDate);
+    endDate.setHours(23, 59, 59, 999);
+    if (endDate < now) {
+      return "Expired";
+    }
+  }
+
+  if (promo.usageLimit && promo.currentUsage >= promo.usageLimit) {
+    return "Usage limit reached";
+  }
+
+  return "Unknown";
+}
 
 // We'll wrap the admin component sections in conditional rendering
 // to avoid errors when the component files are being loaded
@@ -64,6 +119,7 @@ export default function AdminDashboard() {
   const [selectedCategory, setSelectedCategory] = useState<MenuCategory | null>(null);
   const [selectedPromoCode, setSelectedPromoCode] = useState<PromoCode | null>(null);
   const { toast } = useToast();
+  const { logoutMutation } = useAuth();
 
   // WebSocket connection for real-time updates
   useWebSocket({
@@ -433,8 +489,11 @@ export default function AdminDashboard() {
 
 
   const handleLogout = () => {
-    // In a real app, we would handle authentication logout here
-    navigate("/");
+    logoutMutation.mutate(undefined, {
+      onSuccess: () => {
+        navigate("/");
+      }
+    });
   };
 
   return (
@@ -1163,11 +1222,11 @@ export default function AdminDashboard() {
                                   </td>
                                   <td className="whitespace-nowrap py-3 px-3 text-sm sm:px-4">
                                     <span className={`inline-flex text-xs px-2 py-1 rounded-full ${
-                                      promo.active 
+                                      isPromoCodeActive(promo)
                                         ? 'bg-green-500/10 text-green-500' 
                                         : 'bg-red-500/10 text-red-500'
-                                    }`}>
-                                      {promo.active ? 'ACTIVE' : 'INACTIVE'}
+                                    }`} title={!isPromoCodeActive(promo) ? getPromoCodeInactiveReason(promo) : 'Active'}>
+                                      {isPromoCodeActive(promo) ? 'ACTIVE' : 'INACTIVE'}
                                     </span>
                                   </td>
                                   <td className="whitespace-nowrap py-3 px-3 text-sm sm:px-4">

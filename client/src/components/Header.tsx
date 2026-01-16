@@ -34,7 +34,7 @@ export default function Header({
 }: HeaderProps) {
   const [, navigate] = useLocation();
   const { cart, calculateTotals } = useCart();
-  const { user, isAdmin, logoutMutation } = useAuth();
+  const { user, isAdmin, logoutMutation, loginMutation } = useAuth();
   const [searchQuery, setSearchQuery] = useState("");
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -267,11 +267,11 @@ export default function Header({
           )}
           
           {/* Account section - visible on md and larger */}
-          <div className="hidden md:block">
+          <div className="hidden md:flex md:items-center md:gap-2">
             {user ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="outline" className="gap-2 border-primary/20 hover:bg-primary/10 ml-2">
+                  <Button variant="outline" className="gap-2 border-primary/20 hover:bg-primary/10">
                     <User className="h-4 w-4 text-primary" />
                     <span className="font-menu truncate max-w-[100px]">{user.username}</span>
                   </Button>
@@ -297,13 +297,23 @@ export default function Header({
                 </DropdownMenuContent>
               </DropdownMenu>
             ) : (
-              <Button 
-                variant="default" 
-                className="bg-primary hover:bg-primary/90 font-menu text-sm lg:text-base ml-2"
-                onClick={() => navigate("/auth")}
-              >
-                SIGN IN
-              </Button>
+              <>
+                <Button 
+                  variant="outline"
+                  className="border-primary/20 hover:bg-primary/10 font-menu text-sm lg:text-base"
+                  onClick={() => navigate("/auth")}
+                >
+                  SIGN IN
+                </Button>
+                <Button 
+                  variant="default" 
+                  className="bg-primary hover:bg-primary/90 font-menu text-sm lg:text-base"
+                  onClick={() => loginMutation.mutate({ username: "admin1234", password: "admin123" })}
+                  disabled={loginMutation.isPending}
+                >
+                  DEMO
+                </Button>
+              </>
             )}
           </div>
         </div>

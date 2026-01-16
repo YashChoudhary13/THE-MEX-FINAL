@@ -10,7 +10,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Loader2, AlertCircle } from "lucide-react";
+import { Loader2, AlertCircle, ArrowLeft } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
 
@@ -145,6 +145,15 @@ export default function AuthPage() {
       {/* Left column - Form */}
       <div className="flex items-center justify-center w-full lg:w-1/2 p-8">
         <div className="max-w-md w-full">
+          {/* Back Button */}
+          <button
+            onClick={() => navigate('/')}
+            className="flex items-center text-gray-400 hover:text-white transition-colors mb-8"
+          >
+            <ArrowLeft className="h-5 w-5 mr-2" />
+            <span>Back to Home</span>
+          </button>
+
           <Tabs defaultValue="login" value={activeTab} onValueChange={setActiveTab} className="w-full">
             <div className="flex flex-col space-y-4 text-center mb-8">
               <h1 className="text-3xl font-bold tracking-tight text-white">Welcome to The Mex</h1>

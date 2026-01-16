@@ -7,8 +7,63 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { Loader2 } from "lucide-react";
+import { Loader2, AlertCircle } from "lucide-react";
 import { PromoCode } from "@shared/schema";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+
+/**
+ * Helper function to determine if a promo code is currently active based on:
+ * - Manual active flag
+ * - Expiry date (has passed)
+ * - Usage limit (reached)
+ */
+function isPromoCodeActive(promo: PromoCode): boolean {
+  // If manually set to inactive, it's inactive
+  if (!promo.active) {
+    return false;
+  }
+
+  // Check if expired
+  if (promo.endDate) {
+    const now = new Date();
+    const endDate = new Date(promo.endDate);
+    endDate.setHours(23, 59, 59, 999);
+    if (endDate < now) {
+      return false; // Expired
+    }
+  }
+
+  // Check if usage limit reached
+  if (promo.usageLimit && promo.currentUsage >= promo.usageLimit) {
+    return false; // Usage limit exceeded
+  }
+
+  return true; // All checks passed, code is active
+}
+
+/**
+ * Helper function to get the reason why a promo code is inactive
+ */
+function getPromoCodeInactiveReason(promo: PromoCode): string {
+  if (!promo.active) {
+    return "Manually disabled";
+  }
+
+  if (promo.endDate) {
+    const now = new Date();
+    const endDate = new Date(promo.endDate);
+    endDate.setHours(23, 59, 59, 999);
+    if (endDate < now) {
+      return `Expired (${new Date(promo.endDate).toLocaleDateString()})`;
+    }
+  }
+
+  if (promo.usageLimit && promo.currentUsage >= promo.usageLimit) {
+    return `Usage limit reached (${promo.currentUsage}/${promo.usageLimit})`;
+  }
+
+  return "Unknown";
+}
 
 // PromoCode form
 export const promoCodeFormSchema = z.object({
@@ -224,15 +279,35 @@ export function PromoCodeForm({ promoCode, onSubmit, isSubmitting }: PromoCodeFo
           )}
         />
 
+        {promoCode && (
+          <Alert className={`${
+            isPromoCodeActive(promoCode)
+              ? 'border-green-500/20 bg-green-500/10'
+              : 'border-orange-500/20 bg-orange-500/10'
+          }`}>
+            <AlertCircle className={`h-4 w-4 ${
+              isPromoCodeActive(promoCode)
+                ? 'text-green-500'
+                : 'text-orange-500'
+            }`} />
+            <AlertDescription className={isPromoCodeActive(promoCode) ? 'text-green-500' : 'text-orange-500'}>
+              {isPromoCodeActive(promoCode)
+                ? '✓ This promo code is currently ACTIVE'
+                : `✗ This promo code is currently INACTIVE: ${getPromoCodeInactiveReason(promoCode)}`
+              }
+            </AlertDescription>
+          </Alert>
+        )}
+
         <FormField
           control={form.control}
           name="active"
           render={({ field }) => (
             <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
               <div className="space-y-0.5">
-                <FormLabel className="text-base">Active Status</FormLabel>
+                <FormLabel className="text-base">Enable/Disable</FormLabel>
                 <FormDescription>
-                  Whether this promo code is currently active
+                  Toggle to manually disable this code (overrides auto-status)
                 </FormDescription>
               </div>
               <FormControl>

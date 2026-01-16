@@ -66,15 +66,20 @@ function broadcastToCustomers(orderId: number, message: any) {
   const messageStr = JSON.stringify(message);
   const customerConnections = customerSocketConnections.get(orderId);
   
+  console.log(`📢 Attempting to broadcast to customers tracking order ${orderId}. Connections exist: ${!!customerConnections}`);
+  
   if (customerConnections) {
     let sentCount = 0;
     customerConnections.forEach(client => {
       if (client.readyState === WebSocket.OPEN) {
         client.send(messageStr);
         sentCount++;
-        console.log(`Sent update to customer tracking order ${orderId}`);
+        console.log(`✅ Sent update to customer tracking order ${orderId}`);
       }
     });
+    console.log(`📊 Total messages sent to order ${orderId} customers: ${sentCount}`);
+  } else {
+    console.log(`⚠️ No customer connections found for order ${orderId}`);
   }
 }
 

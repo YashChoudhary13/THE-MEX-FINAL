@@ -28,6 +28,7 @@ export default function OrderTracker({ orderId, onRefresh }: OrderTrackerProps) 
       case OrderStatus.READY:
         return 90;
       case OrderStatus.DELIVERED:
+      case OrderStatus.COMPLETED:
         return 100;
       case OrderStatus.CANCELLED:
         return 0;
@@ -48,8 +49,8 @@ export default function OrderTracker({ orderId, onRefresh }: OrderTrackerProps) 
         return 'Your order is being prepared by our chefs.';
       case OrderStatus.READY:
         return 'Your order is ready for pickup!';
-      case OrderStatus.DELIVERED:
-        return 'Your order has been delivered. Enjoy your meal!';
+      case OrderStatus.COMPLETED:
+        return 'Your order has been completed and delivered!';
       case OrderStatus.CANCELLED:
         return 'Your order has been cancelled.';
       default:
@@ -70,6 +71,7 @@ export default function OrderTracker({ orderId, onRefresh }: OrderTrackerProps) 
       case OrderStatus.READY:
         return <ShoppingBag className="h-6 w-6 text-primary" />;
       case OrderStatus.DELIVERED:
+      case OrderStatus.COMPLETED:
         return <Check className="h-6 w-6 text-primary" />;
       case OrderStatus.CANCELLED:
         return <XCircle className="h-6 w-6 text-destructive" />;

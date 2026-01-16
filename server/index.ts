@@ -63,32 +63,31 @@ app.use((req, res, next) => {
   }
 
   // Use dynamic port assignment for production deployment
-  // Fallback to 5000 for local development
-  const port = parseInt(process.env.PORT || "5000", 10);
-  server.listen({
-    port,
-    host: "0.0.0.0",
-    reusePort: true,
-  }, () => {
-    log(`serving on port ${port}`);
-  });
+  // Fallback to 8000 for local development
+  const basePort = parseInt(process.env.PORT || "8000", 10);
+  let port = basePort;
+  let listening = false;
 
   // Add error handling for server startup
   server.on('error', (error: any) => {
-    if (error.code === 'EADDRINUSE') {
+    if (error.code === 'EADDRINUSE' && !listening) {
       log(`Port ${port} is already in use. Trying next available port...`);
-      // Try next port if specified port is in use
-      const nextPort = port + 1;
+      port++;
       server.listen({
-        port: nextPort,
-        host: "0.0.0.0",
-        reusePort: true,
-      }, () => {
-        log(`serving on port ${nextPort}`);
+        port,
+        host: "127.0.0.1",
       });
-    } else {
+    } else if (!listening) {
       log(`Server error: ${error.message}`);
       process.exit(1);
     }
+  });
+
+  server.listen({
+    port,
+    host: "127.0.0.1",
+  }, () => {
+    listening = true;
+    log(`serving on port ${port}`);
   });
 })();

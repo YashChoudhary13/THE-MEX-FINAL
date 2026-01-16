@@ -21,6 +21,63 @@ import connectPg from "connect-pg-simple";
 import { pool } from "./db";
 import createMemoryStore from "memorystore";
 
+/**
+ * Helper function to determine if a promo code should be active based on:
+ * - Manual active flag
+ * - Expiry date (has passed)
+ * - Usage limit (reached)
+ */
+export function calculatePromoCodeStatus(promo: PromoCode): boolean {
+  // If manually set to inactive, it's inactive
+  if (!promo.active) {
+    return false;
+  }
+
+  // Check if expired (using Dublin/Cork timezone)
+  const now = new Date();
+  const dublinTime = new Date(now.toLocaleString("en-US", { timeZone: "Europe/Dublin" }));
+
+  if (promo.endDate) {
+    const endDate = new Date(promo.endDate);
+    endDate.setHours(23, 59, 59, 999);
+    if (endDate < dublinTime) {
+      return false; // Expired
+    }
+  }
+
+  // Check if usage limit reached
+  if (promo.usageLimit && promo.currentUsage >= promo.usageLimit) {
+    return false; // Usage limit exceeded
+  }
+
+  return true; // All checks passed, code is active
+}
+
+/**
+ * Helper function to get the reason why a promo code is inactive
+ */
+export function getPromoCodeInactiveReason(promo: PromoCode): string {
+  if (!promo.active) {
+    return "Manually disabled";
+  }
+
+  const now = new Date();
+  const dublinTime = new Date(now.toLocaleString("en-US", { timeZone: "Europe/Dublin" }));
+
+  if (promo.endDate) {
+    const endDate = new Date(promo.endDate);
+    endDate.setHours(23, 59, 59, 999);
+    if (endDate < dublinTime) {
+      return `Expired (${new Date(promo.endDate).toLocaleDateString()})`;
+    }
+  }
+
+  if (promo.usageLimit && promo.currentUsage >= promo.usageLimit) {
+    return `Usage limit reached (${promo.currentUsage}/${promo.usageLimit})`;
+  }
+
+  return "Unknown";
+}
 
 export interface IStorage {
   // Menu Categories
@@ -670,126 +727,6 @@ export class MemStorage implements IStorage {
     const sides = await this.createMenuCategory({ name: "Sides", slug: "sides" });
     const desserts = await this.createMenuCategory({ name: "Desserts", slug: "desserts" });
     const drinks = await this.createMenuCategory({ name: "Drinks", slug: "drinks" });
-
-    // Create menu items
-    // Starters
-    await this.createMenuItem({
-      name: "Loaded Nachos",
-      description: "Crispy tortilla chips topped with melted cheese, jalapeños, guacamole, and sour cream.",
-      price: 8.99,
-      categoryId: starters.id,
-      image: "https://images.unsplash.com/photo-1559847844-5315695dadae",
-      featured: true,
-      label: "Popular"
-    });
-
-    await this.createMenuItem({
-      name: "Crispy Calamari",
-      description: "Lightly battered calamari rings served with lemon aioli and marinara sauce.",
-      price: 10.99,
-      categoryId: starters.id,
-      image: "https://images.unsplash.com/photo-1625944525533-473f1b3d9684",
-      featured: false
-    });
-
-    await this.createMenuItem({
-      name: "Spinach Artichoke Dip",
-      description: "Creamy spinach and artichoke dip served with toasted bread and vegetable crudités.",
-      price: 9.99,
-      categoryId: starters.id,
-      image: "https://images.unsplash.com/photo-1576506295286-5cda18df43e7",
-      featured: false
-    });
-
-    // Main Courses
-    await this.createMenuItem({
-      name: "Grilled Salmon",
-      description: "Fresh Atlantic salmon fillet, grilled to perfection, served with asparagus and lemon butter sauce.",
-      price: 18.99,
-      categoryId: mainCourses.id,
-      image: "https://images.unsplash.com/photo-1565299507177-b0ac66763828",
-      featured: false,
-      label: "Healthy"
-    });
-
-    await this.createMenuItem({
-      name: "Classic Burger",
-      description: "Juicy beef patty with lettuce, tomato, pickles, and our special sauce on a brioche bun. Served with fries.",
-      price: 14.99,
-      categoryId: mainCourses.id,
-      image: "https://images.unsplash.com/photo-1513104890138-7c749659a591",
-      featured: true,
-      label: "Best Seller"
-    });
-
-    await this.createMenuItem({
-      name: "Margherita Pizza",
-      description: "Hand-tossed pizza with tomato sauce, fresh mozzarella, basil, and extra virgin olive oil.",
-      price: 15.99,
-      categoryId: mainCourses.id,
-      image: "https://images.unsplash.com/photo-1574071318508-1cdbab80d002",
-      featured: true,
-    });
-
-    // Sides
-    await this.createMenuItem({
-      name: "Truffle Fries",
-      description: "Crispy French fries tossed with truffle oil, parmesan cheese, and fresh herbs.",
-      price: 6.99,
-      categoryId: sides.id,
-      image: "https://images.unsplash.com/photo-1639744093327-1aecff9c17b8",
-      featured: false,
-    });
-
-    await this.createMenuItem({
-      name: "Garlic Bread",
-      description: "Toasted bread with garlic butter and melted mozzarella cheese.",
-      price: 5.99,
-      categoryId: sides.id,
-      image: "https://images.unsplash.com/photo-1619535860434-cf54aab1a60c",
-      featured: false,
-    });
-
-    // Desserts
-    await this.createMenuItem({
-      name: "Chocolate Lava Cake",
-      description: "Warm chocolate cake with a molten center, served with vanilla ice cream.",
-      price: 7.99,
-      categoryId: desserts.id,
-      image: "https://images.unsplash.com/photo-1624353365286-3f8d62daad51",
-      featured: true,
-      label: "Popular",
-    });
-
-    await this.createMenuItem({
-      name: "New York Cheesecake",
-      description: "Creamy classic cheesecake with graham cracker crust and berry compote.",
-      price: 8.99,
-      categoryId: desserts.id,
-      image: "https://images.unsplash.com/photo-1567171466295-4afa63d45416",
-      featured: false,
-    });
-
-    // Drinks
-    await this.createMenuItem({
-      name: "Signature Cocktail",
-      description: "House special cocktail with premium spirits, fresh juice, and aromatic bitters.",
-      price: 12.99,
-      categoryId: drinks.id,
-      image: "https://images.unsplash.com/photo-1514362545857-3bc16c4c7d1b",
-      featured: true,
-      label: "Signature",
-    });
-
-    await this.createMenuItem({
-      name: "Fresh Berry Smoothie",
-      description: "Blend of seasonal berries, yogurt, and honey.",
-      price: 6.99,
-      categoryId: drinks.id,
-      image: "https://images.unsplash.com/photo-1553530666-ba11a90a0868",
-      featured: false,
-      label: "Healthy",
-    });
   }
 }
 
@@ -1061,10 +998,11 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createUser(user: InsertUser): Promise<User> {
-    const hashedPassword = await bcrypt.hash(user.password, 10);
+    // Password should already be hashed by the calling code (e.g., registration endpoint)
+    // Do NOT hash again here - it would result in double-hashing!
     const [newUser] = await db
       .insert(users)
-      .values({ ...user, password: hashedPassword })
+      .values(user)
       .returning();
     return newUser;
   }
@@ -1248,9 +1186,14 @@ export class DatabaseStorage implements IStorage {
     if (!promoCode) {
       return { valid: false, message: "Invalid promo code" };
     }
+
+    // Check if the code should be automatically inactive
+    const isActive = calculatePromoCodeStatus(promoCode);
     
-    if (!promoCode.active) {
-      return { valid: false, message: "This promo code is not active" };
+    if (!isActive) {
+      const reason = getPromoCodeInactiveReason(promoCode);
+      console.log(`❌ Promo code ${code} is inactive: ${reason}`);
+      return { valid: false, message: `This promo code is no longer valid (${reason})` };
     }
     
     // Use Dublin/Cork timezone for consistent date comparisons
@@ -1273,26 +1216,11 @@ export class DatabaseStorage implements IStorage {
         return { valid: false, message: "This promo code is not active yet" };
       }
     }
-    
-    if (promoCode.endDate) {
-      const endDate = new Date(promoCode.endDate);
-      // Set end date to end of day (23:59:59) to allow use throughout the end date
-      endDate.setHours(23, 59, 59, 999);
-      if (endDate < dublinTime) {
-        console.log("❌ Promo code expired:", { endDate: endDate.toISOString(), now: dublinTime.toISOString() });
-        return { valid: false, message: "This promo code has expired" };
-      }
-    }
-    
-    if (promoCode.usageLimit && promoCode.currentUsage >= promoCode.usageLimit) {
-      console.log("❌ Promo code usage limit reached:", { currentUsage: promoCode.currentUsage, limit: promoCode.usageLimit });
-      return { valid: false, message: "This promo code has reached its usage limit" };
-    }
-    
+
     if (promoCode.minOrderValue && orderTotal < promoCode.minOrderValue) {
       return { 
         valid: false, 
-        message: `This promo code requires a minimum order of $${promoCode.minOrderValue.toFixed(2)}` 
+        message: `This promo code requires a minimum order of €${promoCode.minOrderValue.toFixed(2)}` 
       };
     }
     

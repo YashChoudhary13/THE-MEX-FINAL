@@ -75,7 +75,7 @@ app.use((req, res, next) => {
       port++;
       server.listen({
         port,
-        host: "127.0.0.1",
+        host: "0.0.0.0",
       });
     } else if (!listening) {
       log(`Server error: ${error.message}`);
@@ -85,7 +85,7 @@ app.use((req, res, next) => {
 
   server.listen({
     port,
-    host: "127.0.0.1",
+    host: "0.0.0.0",
   }, () => {
     listening = true;
     log(`serving on port ${port}`);

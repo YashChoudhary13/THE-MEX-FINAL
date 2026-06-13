@@ -236,22 +236,24 @@ export default function MenuItemCard({ item }: MenuItemCardProps) {
       >
         {/* Card Content */}
         <div className="relative">
-          {/* Image container */}
-          {currentItem.image && (
-            <div className="relative h-48 overflow-hidden">
+          {/* Media header — real photo or a branded placeholder so photoless items still look intentional */}
+          <div className="relative h-48 overflow-hidden bg-gradient-to-br from-primary/15 via-card to-secondary/25">
+            {/* Brand glyph behind the photo; shows through when there is no image (or one fails to load) */}
+            <div className="absolute inset-0 flex items-center justify-center">
+              <Flame className="h-16 w-16 text-primary/20" strokeWidth={1.5} />
+            </div>
+            {currentItem.image && (
               <img
                 src={currentItem.image}
                 alt={currentItem.name}
-                className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
+                className="relative w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
                 onError={(e) => {
-                  const target = e.target as HTMLImageElement;
-                  const container = target.parentElement;
-                  if (container) {
-                    container.style.display = 'none';
-                  }
+                  // Hide only the image; the gradient + glyph placeholder behind it stays.
+                  (e.target as HTMLImageElement).style.display = 'none';
                 }}
               />
-              
+            )}
+
               {/* Status badges */}
               <div className="absolute top-3 right-3 flex flex-col gap-1">
                 {currentItem.soldOut && (
@@ -295,8 +297,7 @@ export default function MenuItemCard({ item }: MenuItemCardProps) {
                 <span>{prepTime} min</span>
               </div>
             </div>
-          )}
-          
+
           <div className="p-5">
             <div className="flex justify-between items-start">
               <h3 className="font-heading text-xl text-foreground">{currentItem.name}</h3>

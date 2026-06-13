@@ -18,6 +18,7 @@ jobs:
           host: ${{ secrets.DO_HOST }}
           username: root
           key: ${{ secrets.DO_SSH_KEY }}
+          command_timeout: 15m
           script: |
             cd /apps/mex
             git pull origin main

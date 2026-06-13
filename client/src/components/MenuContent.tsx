@@ -124,20 +124,27 @@ export default function MenuContent({ activeCategory, searchQuery }: MenuContent
     </div>
   );
 
-  // Animation variants for the menu items
+  // Animation variants for the menu items — tighter stagger + a springy
+  // pop so cards cascade in instead of appearing all at once.
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: {
       opacity: 1,
       transition: {
-        staggerChildren: 0.1
+        staggerChildren: 0.06,
+        delayChildren: 0.05
       }
     }
   };
 
   const itemVariants = {
-    hidden: { opacity: 0, y: 20 },
-    visible: { opacity: 1, y: 0 }
+    hidden: { opacity: 0, y: 24, scale: 0.96 },
+    visible: {
+      opacity: 1,
+      y: 0,
+      scale: 1,
+      transition: { type: "spring", stiffness: 260, damping: 22 }
+    }
   };
 
   return (
@@ -229,11 +236,12 @@ export default function MenuContent({ activeCategory, searchQuery }: MenuContent
               <p className="text-muted-foreground max-w-md mx-auto">We couldn't find any items matching "{searchQuery}". Try a different search term or browse our categories.</p>
             </div>
           ) : (
-            <motion.div 
+            <motion.div
               className="grid grid-cols-1 md:grid-cols-2 gap-6"
               variants={containerVariants}
               initial="hidden"
-              animate="visible"
+              whileInView="visible"
+              viewport={{ once: true, margin: "-60px" }}
             >
               {filteredItems.map(item => (
                 <motion.div key={item.id} variants={itemVariants}>
@@ -287,7 +295,8 @@ export default function MenuContent({ activeCategory, searchQuery }: MenuContent
                 <p className="text-muted-foreground">We're currently updating our menu in this category. Check back soon!</p>
               </div>
             ) : (
-              <motion.div 
+              <motion.div
+                key={activeCategory || category.slug}
                 className="grid grid-cols-1 md:grid-cols-2 gap-6"
                 variants={containerVariants}
                 initial="hidden"

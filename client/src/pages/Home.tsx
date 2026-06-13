@@ -25,8 +25,14 @@ export default function Home() {
   const isMobile = useIsMobile();
   
   // Set up scroll animation
-  const { scrollYProgress } = useScroll();
-  
+  const { scrollY, scrollYProgress } = useScroll();
+
+  // Differential parallax for the hero — image drifts faster than the text,
+  // and the whole hero gently fades as you scroll into the menu.
+  const heroImageY = useTransform(scrollY, [0, 600], [0, 90]);
+  const heroTextY = useTransform(scrollY, [0, 600], [0, 40]);
+  const heroFade = useTransform(scrollY, [0, 450], [1, 0]);
+
   // Animation values to make the menu "open up" as user scrolls
   const [menuOpen, setMenuOpen] = useState(false);
   
@@ -130,9 +136,10 @@ export default function Home() {
       
       {/* Hero Section - Fully Responsive Professional Design */}
       <section className="py-8 sm:py-12 lg:py-16 bg-gradient-to-b from-secondary/50 via-secondary/20 to-background relative overflow-hidden">
-        {/* Background texture */}
-        <div className="absolute inset-0 bg-[url('https://scontent.fjai8-1.fna.fbcdn.net/v/t39.30808-6/470137200_18016000643644923_5572987016785909359_n.jpg?_nc_cat=106&ccb=1-7&_nc_sid=127cfc&_nc_ohc=qrQLfWrhTVMQ7kNvwFp7Lo8&_nc_oc=AdmxVxWFCwmqPFm61O3T3dCtZxW61a8WPeIdO_kgGdgCyA0IKWKPaN_RnmIFqGdwDjI&_nc_zt=23&_nc_ht=scontent.fjai8-1.fna&_nc_gid=2GAlB3mf8S9Cb3zTbJOmJw&oh=00_AfNg434ZS8ewit0-m0XyCkJPrp8pWejoQa6_lfpSaa5O2w&oe=685D67A0')] opacity-10 bg-cover bg-center"></div>
-        
+        {/* Animated flame-glow background (self-hosted, zero external assets) */}
+        <div className="hero-flame-glow" aria-hidden="true"></div>
+        <div className="hero-grain" aria-hidden="true"></div>
+
         <div className="container mx-auto px-4 sm:px-6">
           {/* Featured Banner */}
           <motion.div 
@@ -158,13 +165,17 @@ export default function Home() {
           </motion.div>
           
           {/* Hero Content */}
-          <div className="flex flex-col lg:flex-row items-center gap-6 sm:gap-8 lg:gap-10 mb-6 sm:mb-10">
+          <motion.div
+            className="flex flex-col lg:flex-row items-center gap-6 sm:gap-8 lg:gap-10 mb-6 sm:mb-10"
+            style={{ opacity: heroFade }}
+          >
             {/* Left Content */}
-            <motion.div 
+            <motion.div
               className="lg:w-1/2 z-10 flex flex-col items-center lg:items-start text-center lg:text-left"
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.5, delay: 0.1 }}
+              style={{ y: heroTextY }}
             >
               <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-heading text-foreground mb-4 sm:mb-6 leading-tight">
                 <span className="text-primary">FLAME-GRILLED</span> <br />
@@ -200,9 +211,9 @@ export default function Home() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.2 }}
             >
-              <div className="relative w-full">
+              <motion.div className="relative w-full" style={{ y: heroImageY }}>
                 {/* Main hero image */}
-                <img 
+                <img
                   src="https://res.cloudinary.com/dva2pren5/image/upload/b_rgb:F10000/c_fill,w_800,h_600,ar_4:3,e_improve/v1750576587/470203602_18016000436644923_8240666612134347088_n.jpg_v98bvs.jpg?auto=format&fit=crop&w=800&q=80"
                   alt="Signature Burger"
                   className="w-full h-auto rounded-xl sm:rounded-2xl shadow-lg sm:shadow-2xl"
@@ -265,10 +276,10 @@ export default function Home() {
                 <div className="absolute top-2 sm:top-3 lg:top-4 left-2 sm:left-3 lg:left-4 bg-primary text-white font-bold px-2 sm:px-3 lg:px-4 py-1 sm:py-1.5 lg:py-2 rounded-full text-xs sm:text-sm">
                   FROM €9.99
                 </div>
-              </div>
+              </motion.div>
             </motion.div>
-          </div>
-          
+          </motion.div>
+
           {/* Scroll Down Indicator - responsive */}
           <motion.div 
             className="text-center mt-6 sm:mt-8 lg:mt-10"
@@ -294,10 +305,11 @@ export default function Home() {
           className="container mx-auto px-4 py-4 sm:py-6"
         >
           {/* Section title */}
-          <motion.div 
+          <motion.div
             className="mb-6 sm:mb-8"
             initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: "-80px" }}
             transition={{ duration: 0.4 }}
           >
             <h2 className="text-2xl sm:text-3xl lg:text-4xl font-heading text-center sm:text-left">
@@ -311,7 +323,8 @@ export default function Home() {
           {/* Menu content */}
           <motion.div
             initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
+            whileInView={{ opacity: 1 }}
+            viewport={{ once: true, margin: "-60px" }}
             transition={{ duration: 0.5, delay: 0.2 }}
           >
             {isMobile ? (

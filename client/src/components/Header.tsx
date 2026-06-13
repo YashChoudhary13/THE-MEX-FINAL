@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useLocation } from "wouter";
+import { motion, AnimatePresence } from "framer-motion";
 import { useCart } from "@/context/CartContext";
 import { useAuth } from "@/hooks/use-auth";
 import { MenuIcon, Search, ShoppingBag, ChevronRight, Flame, LogOut, User, LayoutDashboard, MapPin } from "lucide-react";
@@ -257,11 +258,20 @@ export default function Header({
                 onClick={onCartToggle}
               >
                 <ShoppingBag className="h-6 w-6" />
-                {cartItemCount > 0 && (
-                  <span className="absolute -top-2 -right-2 bg-primary text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center cart-badge-animation">
-                    {cartItemCount}
-                  </span>
-                )}
+                <AnimatePresence>
+                  {cartItemCount > 0 && (
+                    <motion.span
+                      key={cartItemCount}
+                      className="absolute -top-2 -right-2 bg-primary text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center"
+                      initial={{ scale: 0 }}
+                      animate={{ scale: [1.4, 1] }}
+                      exit={{ scale: 0 }}
+                      transition={{ type: "spring", stiffness: 500, damping: 15 }}
+                    >
+                      {cartItemCount}
+                    </motion.span>
+                  )}
+                </AnimatePresence>
               </Button>
             </div>
           )}

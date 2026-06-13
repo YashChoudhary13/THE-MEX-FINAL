@@ -3,9 +3,9 @@ import { MenuItem, MenuItemOptionGroup, MenuItemOption } from "@shared/schema";
 import { useCart } from "@/context/CartContext";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { 
-  Plus, Minus, ShoppingBag, Flame, Clock, ChevronDown, 
-  Info, X, Heart, Share, MessageSquare, Settings
+import {
+  Plus, Minus, ShoppingBag, Flame, Clock, ChevronDown,
+  Info, X, Heart, Share, MessageSquare, Settings, Check
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -66,6 +66,7 @@ export default function MenuItemCard({ item }: MenuItemCardProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [isAddingToCart, setIsAddingToCart] = useState(false);
+  const [justAdded, setJustAdded] = useState(false);
   const [isHovering, setIsHovering] = useState(false);
   const [quantity, setQuantity] = useState(1);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -182,7 +183,11 @@ export default function MenuItemCard({ item }: MenuItemCardProps) {
         title: "Added to cart",
         description: `${currentItem.name} has been added to your cart.`,
       });
-      
+
+      // Brief success state on the Add button (checkmark pop).
+      setJustAdded(true);
+      setTimeout(() => setJustAdded(false), 1300);
+
       setShowCustomization(false);
       setSelectedOptions({});
       setCustomizationQuantity(1);
@@ -355,14 +360,24 @@ export default function MenuItemCard({ item }: MenuItemCardProps) {
               ) : (
                 <Button
                   size="sm"
-                  className="bg-primary hover:bg-primary/90 text-primary-foreground h-8 px-4"
+                  className={`${justAdded ? 'bg-green-600 hover:bg-green-600' : 'bg-primary hover:bg-primary/90'} text-primary-foreground h-8 px-4 transition-colors`}
                   onClick={(e) => {
                     e.stopPropagation();
                     handleAddToCart();
                   }}
                   disabled={isAddingToCart}
                 >
-                  {isAddingToCart ? (
+                  {justAdded ? (
+                    <motion.span
+                      className="flex items-center"
+                      initial={{ scale: 0.6, opacity: 0 }}
+                      animate={{ scale: 1, opacity: 1 }}
+                      transition={{ type: "spring", stiffness: 500, damping: 18 }}
+                    >
+                      <Check className="h-3.5 w-3.5 mr-1" />
+                      Added
+                    </motion.span>
+                  ) : isAddingToCart ? (
                     <span className="flex items-center">
                       <div className="w-3 h-3 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin mr-1" />
                       Adding...

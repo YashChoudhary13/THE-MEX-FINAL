@@ -13,6 +13,9 @@ Autonomous design-polish backlog for https://themexcobh.shop. Each entry: what c
   - Global scroll-progress bar + page transitions.
   - `<MotionConfig reducedMotion="user">` + CSS reduced-motion guard.
 
+## Premium pass (redesign-skill)
+- **2026-06-13** — Professional polish (commit 9a36adc, build green, deployed). Applied redesign-skill audit, perf-safe: font-smoothing + `text-wrap:balance` headings + branded `::selection`; tabular figures on prices; menu cards use `.card-premium` (hairline brand-tinted border + layered orange-tinted shadow, GPU-only hover lift); all buttons get `active:scale` press feedback; fixed 2.5%-opacity grain overlay (own layer); `scroll-behavior:smooth`. **No blur()/backdrop-filter** — verified 60fps on a warm scroll (0 frames >32ms, max 18.7ms). Headless-no-GPU cold pass = 57fps avg.
+
 ## Perf
 - **2026-06-13** — Fixed hero scroll lag (commit 79cba73, build green, deployed). Cause: `filter: blur(60px)` on the animated `.hero-flame-glow` layers re-rasterized every frame and composited against the whole hero on scroll. Fix: removed `blur()` (multi-stop radial gradients give the same soft glow), `isolation/contain` on the glow, `translateZ` on the grain, static glow ≤768px. **Do not reintroduce `filter: blur()` on animated hero layers.**
 

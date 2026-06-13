@@ -100,6 +100,7 @@ function App() {
             <CartProvider>
               <Toaster />
               <ScrollProgress />
+              <div className="app-grain" aria-hidden="true" />
               <Router />
             </CartProvider>
           </AuthProvider>

@@ -224,7 +224,7 @@ export default function MenuItemCard({ item }: MenuItemCardProps) {
   return (
     <>
       <motion.div
-        className={`bg-card text-card-foreground rounded-xl shadow-md overflow-hidden border border-border cursor-pointer group relative ${
+        className={`bg-card text-card-foreground rounded-xl overflow-hidden card-premium cursor-pointer group relative ${
           currentItem.soldOut ? 'opacity-75 grayscale' : ''
         }`}
         whileHover={{ y: -4, scale: 1.02 }}
@@ -304,11 +304,11 @@ export default function MenuItemCard({ item }: MenuItemCardProps) {
               <div className="text-right">
                 {isOnSpecial ? (
                   <div className="flex flex-col items-end">
-                    <span className="font-bold text-primary text-xl">€{displayPrice.toFixed(2)}</span>
-                    <span className="text-sm line-through text-muted-foreground">€{originalPrice.toFixed(2)}</span>
+                    <span className="font-bold text-primary text-xl tnum">€{displayPrice.toFixed(2)}</span>
+                    <span className="text-sm line-through text-muted-foreground tnum">€{originalPrice.toFixed(2)}</span>
                   </div>
                 ) : (
-                  <span className="font-bold text-primary text-xl">€{displayPrice.toFixed(2)}</span>
+                  <span className="font-bold text-primary text-xl tnum">€{displayPrice.toFixed(2)}</span>
                 )}
               </div>
             </div>

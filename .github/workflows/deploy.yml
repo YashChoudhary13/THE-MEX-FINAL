@@ -3,6 +3,9 @@ name: Deploy to Droplet
 on:
   push:
     branches: [main]
+    # Docs-only pushes (progress logs) should not trigger a rebuild + pm2 restart.
+    paths-ignore:
+      - '**.md'
 
 jobs:
   deploy:

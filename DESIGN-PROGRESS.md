@@ -14,7 +14,7 @@ Autonomous design-polish backlog for https://themexcobh.shop. Each entry: what c
   - `<MotionConfig reducedMotion="user">` + CSS reduced-motion guard.
 
 ## Backlog (in priority order)
-1. [ ] Photoless menu cards: branded gradient/utensil placeholder so text-only items look intentional.
+1. [x] Photoless menu cards: branded gradient + Flame-glyph placeholder (commit 719a833, build green). Done 2026-06-13.
 2. [ ] Customization modal: staggered option-row entrance + spring on selection; more padding/hierarchy.
 3. [ ] Typography pass: heading rhythm, line-heights, muted-text contrast to WCAG AA.
 4. [ ] Hero CTAs: magnetic/spring hover; count-up on "FROM €9.99".

@@ -13,6 +13,9 @@ Autonomous design-polish backlog for https://themexcobh.shop. Each entry: what c
   - Global scroll-progress bar + page transitions.
   - `<MotionConfig reducedMotion="user">` + CSS reduced-motion guard.
 
+## Perf
+- **2026-06-13** — Fixed hero scroll lag (commit 79cba73, build green, deployed). Cause: `filter: blur(60px)` on the animated `.hero-flame-glow` layers re-rasterized every frame and composited against the whole hero on scroll. Fix: removed `blur()` (multi-stop radial gradients give the same soft glow), `isolation/contain` on the glow, `translateZ` on the grain, static glow ≤768px. **Do not reintroduce `filter: blur()` on animated hero layers.**
+
 ## Backlog (in priority order)
 1. [x] Photoless menu cards: branded gradient + Flame-glyph placeholder (commit 719a833, build green). Done 2026-06-13.
 2. [ ] Customization modal: staggered option-row entrance + spring on selection; more padding/hierarchy.
